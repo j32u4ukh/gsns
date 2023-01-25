@@ -5,14 +5,14 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Launch gsns",
+            "name": "gsns",
             "type": "go",
             "request": "launch",
             "mode": "auto",
             "program": "./cmd/gsns/",
         },
         {
-            "name": "Launch http server",
+            "name": "http server",
             "type": "go",
             "request": "launch",
             "mode": "auto",
