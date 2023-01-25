@@ -5,11 +5,18 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Launch GSNS",
+            "name": "Launch gsns",
             "type": "go",
             "request": "launch",
             "mode": "auto",
             "program": "./cmd/gsns/",
+        },
+        {
+            "name": "Launch http server",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "./cmd/http_server/",
         }
     ]
 }
