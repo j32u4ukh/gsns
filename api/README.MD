@@ -1,0 +1,1 @@
+OpenAPI/Swagger 規格、JSON schema 檔案、各種協定定義檔。
