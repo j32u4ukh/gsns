@@ -2,11 +2,11 @@ package main
 
 import (
 	"fmt"
-	"internal/server"
+	"internal/gsns"
 )
 
 func main() {
 	fmt.Println("Hello, gsns!")
-	server.Init()
-	server.Run()
+	gsns.Init()
+	gsns.Run()
 }
