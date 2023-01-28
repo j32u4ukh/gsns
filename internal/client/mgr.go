@@ -1,4 +1,4 @@
-package gsns
+package client
 
 import (
 	"github.com/j32u4ukh/gos/ans"
@@ -8,15 +8,15 @@ import (
 type Mgr struct {
 }
 
-func (m *Mgr) Handler(router *ans.Router) {
+func (m *Mgr) HttpHandler(router *ans.Router) {
 	router.GET("/", func(c *ghttp.Context) {
-		c.Response.Json(200, ghttp.H{
+		c.Json(200, ghttp.H{
 			"index": 1,
 			"msg":   "GET | /",
 		})
 	})
 	router.POST("/", func(c *ghttp.Context) {
-		c.Response.Json(200, ghttp.H{
+		c.Json(200, ghttp.H{
 			"index": 2,
 			"msg":   "POST | /",
 		})
@@ -25,13 +25,13 @@ func (m *Mgr) Handler(router *ans.Router) {
 	r1 := router.NewRouter("/abc")
 
 	r1.GET("/get", func(c *ghttp.Context) {
-		c.Response.Json(200, ghttp.H{
+		c.Json(200, ghttp.H{
 			"index": 3,
 			"msg":   "GET | /abc/get",
 		})
 	})
 	r1.POST("/post", func(c *ghttp.Context) {
-		c.Response.Json(200, ghttp.H{
+		c.Json(200, ghttp.H{
 			"index": 4,
 			"msg":   "POST | /abc/post",
 		})

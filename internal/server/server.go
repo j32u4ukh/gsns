@@ -1,4 +1,4 @@
-package gsns
+package server
 
 import (
 	"fmt"
@@ -21,8 +21,8 @@ func Init() {
 	}
 
 	httpAnswer := anser.(*ans.HttpAnser)
-	mrg := &Mgr{}
-	mrg.Handler(httpAnswer.Router)
+	mgr := &Mgr{}
+	mgr.HttpHandler(httpAnswer.Router)
 
 	fmt.Printf("Init | 伺服器初始化完成\n")
 }
