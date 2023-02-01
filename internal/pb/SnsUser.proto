@@ -1,0 +1,11 @@
+syntax = "proto3";
+option go_package = ".;pbgo";
+
+message SnsUser {
+    // {"primary_key": "default"}
+    int32 index = 1;
+    
+    string name = 2;
+
+    int64 token = 3;
+}

@@ -1,0 +1,14 @@
+syntax = "proto3";
+option go_package = ".;pbgo";
+import "TimeStamp.proto";
+
+message Account {
+    // {"default": "AI", "primary_key": "default"}
+    int32 index = 1;
+    
+    string account = 2;
+    
+    string password = 3;
+
+    TimeStamp create_time = 4;
+}
