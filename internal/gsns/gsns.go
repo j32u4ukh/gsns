@@ -13,9 +13,11 @@ import (
 )
 
 const EDbaServer int32 = 0
+const EAccountServer int32 = 1
 
 var ms *MainServer
 var dbaAsker *ask.Tcp0Asker
+var accountAsker *ask.Tcp0Asker
 var logger *glog.Logger
 
 func Init(lg *glog.Logger) error {
@@ -63,6 +65,21 @@ func initGos() error {
 	dbaAsker = asker.(*ask.Tcp0Asker)
 	dbaAsker.SetWorkHandler(ms.DbaHandler)
 	logger.Info("DbaServer Asker 伺服器初始化完成")
+	logger.Info("伺服器初始化完成")
+
+	// ==================================================
+	// 與 Account Server 建立 TCP 連線，將數據依序寫入緩存
+	// ==================================================
+	port = 1021
+	askAccount, err := gos.Bind(EAccountServer, address, 1021, define.Tcp0)
+
+	if err != nil {
+		return errors.Wrapf(err, "Failed to bind address %s:%d", address, port)
+	}
+
+	accountAsker = askAccount.(*ask.Tcp0Asker)
+	accountAsker.SetWorkHandler(ms.AccountHandler)
+	logger.Info("AccountServer Asker 伺服器初始化完成")
 	logger.Info("伺服器初始化完成")
 
 	// =============================================

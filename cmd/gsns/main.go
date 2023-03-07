@@ -17,5 +17,4 @@ func main() {
 		return
 	}
 	gsns.Run()
-	logger.Flush()
 }

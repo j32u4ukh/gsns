@@ -2,19 +2,20 @@ package dba
 
 import (
 	"fmt"
+	"internal/define"
 	"time"
 
 	"github.com/j32u4ukh/gos"
 	"github.com/j32u4ukh/gos/ans"
 	"github.com/j32u4ukh/gos/base"
-	"github.com/j32u4ukh/gos/define"
+	gosDefine "github.com/j32u4ukh/gos/define"
 )
 
 var s *DbaServer
 
 func Init() {
 	var port int = 1022
-	anser, err := gos.Listen(define.Tcp0, int32(port))
+	anser, err := gos.Listen(gosDefine.Tcp0, int32(port))
 	fmt.Printf("DbaServer | Listen to port %d\n", port)
 
 	if err != nil {
@@ -61,7 +62,9 @@ func (s *DbaServer) Handler(work *base.Work) {
 	case 0:
 		s.handleSystemCommand(work)
 	case 1:
+	case define.CommissionCommand:
 		s.handleCommission(work)
+
 	default:
 		fmt.Printf("Unsupport command: %d\n", cmd)
 		work.Finish()
@@ -92,17 +95,19 @@ func (s *DbaServer) handleSystemCommand(work *base.Work) {
 
 func (s *DbaServer) handleCommission(work *base.Work) {
 	commission := work.Body.PopUInt16()
+	var cid int32 = work.Body.PopInt32()
 
 	switch commission {
 	case 1023:
-		cid := work.Body.PopInt32()
 		work.Body.Clear()
-
 		work.Body.AddByte(1)
 		work.Body.AddUInt16(1023)
 		work.Body.AddInt32(cid)
 		work.Body.AddString("Commission completed.")
 		work.SendTransData()
+
+	case define.Register:
+		// TODO: 建立使用者資料
 
 	default:
 		fmt.Printf("Unsupport commission: %d\n", commission)

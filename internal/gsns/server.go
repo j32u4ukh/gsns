@@ -114,6 +114,20 @@ func (s *MainServer) CommissionHandler(site int32, cid int32) {
 	}
 }
 
+func (s *MainServer) AccountHandler(work *base.Work) {
+	cmd := work.Body.PopByte()
+
+	switch cmd {
+	case 0:
+		s.handleSystemCommand(work)
+	case 1:
+		s.handleCommission(work)
+	default:
+		fmt.Printf("Unsupport command: %d\n", cmd)
+		work.Finish()
+	}
+}
+
 func (s *MainServer) Run() {
 
 }

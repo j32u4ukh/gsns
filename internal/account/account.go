@@ -33,15 +33,16 @@ func Init(lg *glog.Logger) error {
 	}
 
 	as = &AccountServer{}
-	tcpAnser := anser.(*ans.Tcp0Anser)
-	tcpAnser.SetWorkHandler(as.Handler)
+	as.Tcp = anser.(*ans.Tcp0Anser)
+	as.Tcp.SetWorkHandler(as.Handler)
+	logger.Info("完成與 Dba Server 建立 TCP 連線")
 
 	// ==================================================
 	// 與 Dba Server 建立 TCP 連線，將數據依序寫入緩存
 	// ==================================================
 	var address string = "127.0.0.1"
 	port = 1022
-	asker, err := gos.Bind(define.EDbaServer, address, 1022, gosDefine.Tcp0)
+	asker, err := gos.Bind(define.DbaServer, address, 1022, gosDefine.Tcp0)
 
 	if err != nil {
 		return errors.Wrapf(err, "Failed to bind address %s:%d", address, port)
@@ -80,6 +81,7 @@ func Run() {
 }
 
 type AccountServer struct {
+	Tcp *ans.Tcp0Anser
 }
 
 func (s *AccountServer) Handler(work *base.Work) {
@@ -88,7 +90,7 @@ func (s *AccountServer) Handler(work *base.Work) {
 	switch cmd {
 	case 0:
 		s.handleSystemCommand(work)
-	case 1:
+	case define.CommissionCommand:
 		s.handleCommission(work)
 	default:
 		fmt.Printf("Unsupport command: %d\n", cmd)
