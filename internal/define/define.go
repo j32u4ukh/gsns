@@ -2,7 +2,15 @@ package define
 
 // Server id
 const (
-	DbaServer int32 = 0
+	DbaServer     = 0
+	AccountServer = 1
+)
+
+// TODO: Connection config
+const (
+	MainPort    = 1023
+	DbaPort     = 1022
+	AccountPort = 1021
 )
 
 // Command type id
@@ -17,5 +25,6 @@ const (
 
 // Request / Response id
 const (
-	Register uint16 = 0
+	Heartbeat uint16 = iota
+	Register
 )

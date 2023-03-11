@@ -10,5 +10,6 @@ message Account {
     
     string password = 3;
 
+    // {"default": "current_timestamp()"}
     TimeStamp create_time = 4;
 }

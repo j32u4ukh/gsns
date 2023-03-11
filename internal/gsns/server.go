@@ -2,6 +2,7 @@ package gsns
 
 import (
 	"fmt"
+	"internal/define"
 	"internal/gsns/user"
 	"internal/pbgo"
 
@@ -120,11 +121,30 @@ func (s *MainServer) AccountHandler(work *base.Work) {
 	switch cmd {
 	case 0:
 		s.handleSystemCommand(work)
-	case 1:
-		s.handleCommission(work)
+	case define.CommissionCommand:
+		s.handleAccountCommission(work)
 	default:
 		fmt.Printf("Unsupport command: %d\n", cmd)
 		work.Finish()
+	}
+}
+
+func (s *MainServer) handleAccountCommission(work *base.Work) {
+	commission := work.Body.PopUInt16()
+	switch commission {
+	case define.Register:
+		c := s.HttpAnswer.GetContext(-1)
+		c.Cid = work.Body.PopInt32()
+		returnCode := work.Body.PopUInt16()
+		logger.Debug("returnCode: %d", returnCode)
+		work.Finish()
+
+		c.Json(200, ghttp.H{
+			"index": 5,
+			"msg":   fmt.Sprintf("POST | register returnCode: %d", returnCode),
+		})
+		s.HttpAnswer.Send(c)
+	default:
 	}
 }
 
