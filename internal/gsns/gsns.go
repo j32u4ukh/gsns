@@ -56,7 +56,7 @@ func initGos() error {
 	// ==================================================
 	var address string = "127.0.0.1"
 	port = 1022
-	asker, err := gos.Bind(EDbaServer, address, 1022, define.Tcp0)
+	asker, err := gos.Bind(EDbaServer, address, 1022, define.Tcp0, nil)
 
 	if err != nil {
 		return errors.Wrapf(err, "Failed to bind address %s:%d", address, port)
@@ -71,7 +71,7 @@ func initGos() error {
 	// 與 Account Server 建立 TCP 連線，將數據依序寫入緩存
 	// ==================================================
 	port = 1021
-	askAccount, err := gos.Bind(EAccountServer, address, 1021, define.Tcp0)
+	askAccount, err := gos.Bind(EAccountServer, address, 1021, define.Tcp0, nil)
 
 	if err != nil {
 		return errors.Wrapf(err, "Failed to bind address %s:%d", address, port)
