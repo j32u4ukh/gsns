@@ -36,7 +36,7 @@ func (s *MainServer) HttpHandler(router *ans.Router) {
 	rAccount.POST("/register", s.register)
 
 	// TODO:
-	rAccount.POST("/login", s.logout)
+	rAccount.POST("/login", s.login)
 
 	// TODO:
 	rAccount.POST("/logout", s.logout)
@@ -143,6 +143,27 @@ func (s *MainServer) handleAccountCommission(work *base.Work) {
 			"index": 5,
 			"msg":   fmt.Sprintf("POST | register returnCode: %d", returnCode),
 		})
+		s.HttpAnswer.Send(c)
+	case define.Login:
+		c := s.HttpAnswer.GetContext(-1)
+		c.Cid = work.Body.PopInt32()
+		returnCode := work.Body.PopUInt16()
+		token := work.Body.PopUInt64()
+		logger.Debug("returnCode: %d", returnCode)
+		work.Finish()
+
+		if returnCode == 0 {
+			c.Json(200, ghttp.H{
+				"msg":   "Login success",
+				"token": token,
+			})
+		} else {
+			c.Json(200, ghttp.H{
+				"msg":   "Login failed",
+				"token": -1,
+			})
+		}
+
 		s.HttpAnswer.Send(c)
 	default:
 	}

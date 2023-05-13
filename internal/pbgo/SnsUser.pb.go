@@ -20,7 +20,6 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// TODO: 帳號資訊移至 Account Server, MainServer 持有 token 即可
 type SnsUser struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

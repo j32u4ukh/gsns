@@ -67,6 +67,21 @@ func (s *DbaServer) handleCommission(work *base.Work) {
 		work.Body.AddString("Commission completed.")
 		work.SendTransData()
 
+	case define.GetUserData:
+		var result *database.SqlResult
+		sql, err := gs.Query(TidAccount, nil)
+		if err != nil {
+			logger.Error("Query err: %+v", err)
+		}
+		result, err = db.Query(sql)
+		if err != nil {
+			logger.Error("Query err: %+v", err)
+		}
+		logger.Debug("result: %s", result)
+
+		// users := pbgo.SnsUserArray{}
+		// gs.Query()
+
 	case define.Register:
 		// 建立使用者資料
 		bs := work.Body.PopByteArray()
@@ -98,12 +113,39 @@ func (s *DbaServer) handleCommission(work *base.Work) {
 			}
 
 			logger.Info("result: %s", result)
+			// returnCode
 			work.Body.AddUInt16(0)
 			account.Index = int32(result.LastInsertId)
 			account.Account = ""
 			account.Password = ""
 			bs, _ = proto.Marshal(account)
 			work.Body.AddByteArray(bs)
+			work.SendTransData()
+		}
+
+	case define.Login:
+		// 建立使用者資料
+		bs := work.Body.PopByteArray()
+		account := &pbgo.Account{}
+		err := proto.Unmarshal(bs, account)
+		work.Body.Clear()
+		work.Body.AddByte(define.CommissionCommand)
+		work.Body.AddUInt16(define.Login)
+		work.Body.AddInt32(cid)
+
+		if err != nil {
+			logger.Error("Unmarshal account err: %+v", err)
+			// TODO: send error message back to client
+		} else {
+			// TODO: 檢查該帳號是否存在；若存在，檢查密碼是否正確
+
+			// returnCode
+			work.Body.AddUInt16(0)
+
+			// 使用權 token
+			work.Body.AddUInt64(9527)
+
+			// 將結果回傳
 			work.SendTransData()
 		}
 	default:

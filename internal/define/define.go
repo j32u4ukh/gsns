@@ -26,5 +26,7 @@ const (
 // Request / Response id
 const (
 	Heartbeat uint16 = iota
+	GetUserData
 	Register
+	Login
 )

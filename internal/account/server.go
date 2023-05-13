@@ -95,6 +95,32 @@ func (s *AccountServer) handleCommission(work *base.Work) {
 			return
 		}
 
+	case define.Login:
+		s.MainServerId = work.Index
+		cid := work.Body.PopInt32()
+		bs := work.Body.PopByteArray()
+		logger.Info("MainServerId: %d, cid: %d, bs: %+v", s.MainServerId, cid, bs)
+		work.Finish()
+
+		td := base.NewTransData()
+		td.AddByte(define.CommissionCommand)
+		td.AddUInt16(define.Login)
+		td.AddInt32(cid)
+
+		// Account data for register
+		td.AddByteArray(bs)
+
+		data := td.FormData()
+		logger.Info("data: %+v", data)
+
+		// 將註冊數據傳到 Dba 伺服器
+		err := gos.SendToServer(define.DbaServer, &data, td.GetLength())
+
+		if err != nil {
+			logger.Error("Failed to send to server %d: %v\nError: %+v", define.DbaServer, data, err)
+			return
+		}
+
 	default:
 		fmt.Printf("Unsupport commission: %d\n", commission)
 		work.Finish()
@@ -162,6 +188,27 @@ func (s *AccountServer) handleDbaCommission(work *base.Work) {
 
 		// 將註冊結果回傳主伺服器
 		err = gos.SendToClient(define.AccountPort, s.MainServerId, &data, td.GetLength())
+
+		if err != nil {
+			logger.Error("Failed to send to client %d: %v\nError: %+v", s.MainServerId, data, err)
+			return
+		}
+	case define.Login:
+		cid := work.Body.PopInt32()
+		returnCode := work.Body.PopUInt16()
+		token := work.Body.PopUInt64()
+		work.Finish()
+
+		td := base.NewTransData()
+		td.AddByte(define.CommissionCommand)
+		td.AddUInt16(define.Login)
+		td.AddInt32(cid)
+		td.AddUInt16(returnCode)
+		td.AddUInt64(token)
+		data := td.FormData()
+
+		// 將註冊結果回傳主伺服器
+		err := gos.SendToClient(define.AccountPort, s.MainServerId, &data, td.GetLength())
 
 		if err != nil {
 			logger.Error("Failed to send to client %d: %v\nError: %+v", s.MainServerId, data, err)

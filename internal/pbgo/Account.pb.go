@@ -26,9 +26,10 @@ type Account struct {
 	unknownFields protoimpl.UnknownFields
 
 	// {"default": "AI", "primary_key": "default"}
-	Index      int32      `protobuf:"varint,1,opt,name=index,proto3" json:"index,omitempty"`
-	Account    string     `protobuf:"bytes,2,opt,name=account,proto3" json:"account,omitempty"`
-	Password   string     `protobuf:"bytes,3,opt,name=password,proto3" json:"password,omitempty"`
+	Index    int32  `protobuf:"varint,1,opt,name=index,proto3" json:"index,omitempty"`
+	Account  string `protobuf:"bytes,2,opt,name=account,proto3" json:"account,omitempty"`
+	Password string `protobuf:"bytes,3,opt,name=password,proto3" json:"password,omitempty"`
+	// {"default": "current_timestamp()"}
 	CreateTime *TimeStamp `protobuf:"bytes,4,opt,name=create_time,json=createTime,proto3" json:"create_time,omitempty"`
 }
 
