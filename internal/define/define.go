@@ -1,18 +1,5 @@
 package define
 
-// Server id
-const (
-	DbaServer     = 0
-	AccountServer = 1
-)
-
-// TODO: Connection config
-const (
-	MainPort    = 1023
-	DbaPort     = 1022
-	AccountPort = 1021
-)
-
 // Command type id
 const (
 	// 系統任務
