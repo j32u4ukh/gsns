@@ -21,10 +21,10 @@ func (s *DbaServer) Handler(work *base.Work) {
 	switch cmd {
 	case define.SystemCommand:
 		s.handleSystemCommand(work)
-	case 1:
+	case define.NormalCommand:
+		s.handleNormalCommand(work)
 	case define.CommissionCommand:
 		s.handleCommission(work)
-
 	default:
 		fmt.Printf("Unsupport command: %d\n", cmd)
 		work.Finish()
@@ -50,6 +50,27 @@ func (s *DbaServer) handleSystemCommand(work *base.Work) {
 	default:
 		fmt.Printf("Unsupport service: %d\n", service)
 		work.Finish()
+	}
+}
+
+func (s *DbaServer) handleNormalCommand(work *base.Work) {
+	service := work.Body.PopUInt16()
+	switch service {
+	case define.GetUserData:
+		work.Body.Clear()
+		work.Body.AddByte(define.SystemCommand)
+		work.Body.AddUInt16(define.GetUserData)
+
+		var sql string
+		var err error
+		sql, err = gs.Query(TidAccount, nil)
+		if err != nil {
+			work.Body.AddUInt16(1)
+			work.SendTransData()
+			return
+		}
+		logger.Info("sql: %s", sql)
+		// results, err := db.Query(sql)
 	}
 }
 

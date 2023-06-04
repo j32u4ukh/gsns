@@ -9,6 +9,7 @@ import (
 	"github.com/j32u4ukh/gos"
 	"github.com/j32u4ukh/gos/ans"
 	"github.com/j32u4ukh/gos/ask"
+	"github.com/j32u4ukh/gos/base"
 	gosDefine "github.com/j32u4ukh/gos/define"
 	"github.com/pkg/errors"
 )
@@ -48,6 +49,19 @@ func initGos() error {
 	asker, err := gos.Bind(define.DbaServer, address, define.DbaPort, gosDefine.Tcp0, map[gosDefine.EventType]func(){
 		gosDefine.OnConnected: func() {
 			logger.Info("完成與 Dba Server 建立 TCP 連線")
+
+			td := base.NewTransData()
+			td.AddByte(define.NormalCommand)
+			td.AddUInt16(define.GetUserData)
+			data := td.FormData()
+
+			// 將註冊結果回傳主伺服器
+			err := gos.SendToServer(define.DbaServer, &data, td.GetLength())
+
+			if err != nil {
+				logger.Error("Failed to send to dba %d: %v\nError: %+v", define.DbaServer, data, err)
+				return
+			}
 		},
 	})
 
