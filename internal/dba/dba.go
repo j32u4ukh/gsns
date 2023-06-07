@@ -4,7 +4,7 @@ import (
 	"internal/define"
 	"time"
 
-	"github.com/j32u4ukh/glog"
+	"github.com/j32u4ukh/glog/v2"
 	"github.com/j32u4ukh/gos"
 	"github.com/j32u4ukh/gos/ans"
 	gosDefine "github.com/j32u4ukh/gos/define"
@@ -19,8 +19,8 @@ var db *database.Database
 var gs *gstmt.Gstmt
 var logger *glog.Logger
 
-func Init(lg *glog.Logger) error {
-	logger = lg
+func Init() error {
+	logger = glog.GetLogger(0)
 	err := initGos()
 	if err != nil {
 		return errors.Wrap(err, "Failed to initialize gos.")
