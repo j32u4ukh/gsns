@@ -1,2 +1,3 @@
 github.com/golang/protobuf v1.5.0 h1:LUVKkCeviFUMKqHa4tXIIij/lbhnMbP7Fn5wKdKkRh4=
 github.com/j32u4ukh/glog v1.0.1/go.mod h1:8E7STeA2S12P74yNLvFWAbAf2eE/iebmxa8ZxOz9SKY=
+google.golang.org/protobuf v1.28.1/go.mod h1:HV8QOd/L58Z+nl8r43ehVNZIU/HEI6OcFqwMG9pJV4I=

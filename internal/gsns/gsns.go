@@ -9,6 +9,7 @@ import (
 	"github.com/j32u4ukh/gos"
 	"github.com/j32u4ukh/gos/ans"
 	"github.com/j32u4ukh/gos/ask"
+	"github.com/j32u4ukh/gos/base"
 	gosDefine "github.com/j32u4ukh/gos/define"
 	"github.com/pkg/errors"
 )
@@ -53,8 +54,8 @@ func initGos() error {
 	// ==================================================
 	var address string = "127.0.0.1"
 	port = 1021
-	askAccount, err := gos.Bind(define.AccountServer, address, 1021, gosDefine.Tcp0, map[gosDefine.EventType]func(){
-		gosDefine.OnConnected: func() {
+	askAccount, err := gos.Bind(define.AccountServer, address, 1021, gosDefine.Tcp0, base.OnEventsFunc{
+		gosDefine.OnConnected: func(any) {
 			logger.Info("成功與 AccountServer 連線")
 		},
 	})

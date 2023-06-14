@@ -46,8 +46,8 @@ func initGos() error {
 	// 與 Dba Server 建立 TCP 連線，將數據依序寫入緩存
 	// ==================================================
 	var address string = "127.0.0.1"
-	asker, err := gos.Bind(define.DbaServer, address, define.DbaPort, gosDefine.Tcp0, map[gosDefine.EventType]func(){
-		gosDefine.OnConnected: func() {
+	asker, err := gos.Bind(define.DbaServer, address, define.DbaPort, gosDefine.Tcp0, base.OnEventsFunc{
+		gosDefine.OnConnected: func(any) {
 			logger.Info("完成與 Dba Server 建立 TCP 連線")
 
 			td := base.NewTransData()

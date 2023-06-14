@@ -11,7 +11,7 @@ require (
 require (
 	github.com/go-sql-driver/mysql v1.7.1 // indirect
 	github.com/j32u4ukh/cntr v1.1.0 // indirect
-	github.com/j32u4ukh/glog/v2 v2.0.1 // indirect
+	github.com/j32u4ukh/glog/v2 v2.0.3 // indirect
 	github.com/yoheimuta/go-protoparser/v4 v4.8.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
