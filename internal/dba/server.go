@@ -69,20 +69,36 @@ func (s *DbaServer) handleNormalCommand(work *base.Work) {
 	service := work.Body.PopUInt16()
 	switch service {
 	case define.GetUserData:
+		logger.Debug("GetUserData")
 		work.Body.Clear()
-		work.Body.AddByte(define.SystemCommand)
+		work.Body.AddByte(define.NormalCommand)
 		work.Body.AddUInt16(define.GetUserData)
+		defer work.SendTransData()
 
 		selector := s.tables[TidAccount].GetSelector()
 		defer s.tables[TidAccount].PutSelector(selector)
-		result, err := selector.Exec()
+		results, err := selector.Query(func() any { return &pbgo.Account{} })
 		if err != nil {
 			logger.Error("Select err: %+v", err)
+			work.Body.AddUInt16(1)
 			return
 		}
-		for _, data := range result.Datas {
-			logger.Debug("data: %+v", data)
+		accounts := &pbgo.AccountArray{}
+		var account *pbgo.Account
+		for _, result := range results {
+			account = result.(*pbgo.Account)
+			account.CreateTime = nil
+			logger.Debug("account: %+v", account)
+			accounts.Accounts = append(accounts.Accounts, account)
 		}
+		bs, err := proto.Marshal(accounts)
+		if err != nil {
+			logger.Error("Select err: %+v", err)
+			work.Body.AddUInt16(2)
+			return
+		}
+		work.Body.AddUInt16(0)
+		work.Body.AddByteArray(bs)
 	}
 }
 
