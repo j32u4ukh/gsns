@@ -50,6 +50,7 @@ func initGos() error {
 		gosDefine.OnConnected: func(any) {
 			logger.Info("完成與 Dba Server 建立 TCP 連線")
 
+			// 請求取得用戶資料
 			td := base.NewTransData()
 			td.AddByte(define.NormalCommand)
 			td.AddUInt16(define.GetUserData)

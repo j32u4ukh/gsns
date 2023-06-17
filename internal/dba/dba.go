@@ -9,14 +9,10 @@ import (
 	"github.com/j32u4ukh/gos/ans"
 	gosDefine "github.com/j32u4ukh/gos/define"
 	"github.com/j32u4ukh/gosql/database"
-	"github.com/j32u4ukh/gosql/proto/gstmt"
-	"github.com/j32u4ukh/gosql/stmt/dialect"
 	"github.com/pkg/errors"
 )
 
 var s *DbaServer
-var db *database.Database
-var gs *gstmt.Gstmt
 var logger *glog.Logger
 
 func Init() error {
@@ -41,7 +37,7 @@ func initGos() error {
 		return errors.Wrapf(err, "Failed to listen to port %d.", define.DbaPort)
 	}
 
-	s = &DbaServer{}
+	s = NewDbaServer()
 	dbaAnser := anser.(*ans.Tcp0Anser)
 	dbaAnser.SetWorkHandler(s.Handler)
 	logger.Info("伺服器初始化完成")
@@ -62,40 +58,30 @@ func initDatabase() error {
 	}
 
 	dc := conf.GetDatabase()
-	db, err = database.Connect(0, dc.UserName, dc.Password, dc.Server, dc.Port, dc.Name)
+	db, err := database.Connect(0, dc.UserName, dc.Password, dc.Server, dc.Port, dc.Name)
 
 	if err != nil {
 		return errors.Wrapf(err, "與資料庫連線時發生錯誤, err: %+v", err)
 	}
 
-	gs, err = gstmt.SetGstmt(0, dc.Name, dialect.MARIA)
+	s.initDatabase(db, dc.Name)
 
 	if err != nil {
-		return errors.Wrapf(err, "SetGstmt err: %+v", err)
+		return errors.Wrapf(err, "Failed to init database, err: %+v", err)
 	}
 
-	var sql string
-	sql, err = gs.CreateTable(TidAccount, "../pb", "Account")
-	if err != nil {
-		return errors.Wrapf(err, "Create err: %+v", err)
-	}
-
-	var result *database.SqlResult
-	result, err = db.Exec(sql)
+	err = s.initAccountData()
 
 	if err != nil {
-		return errors.Wrapf(err, "Create Exec err: %+v", err)
+		return errors.Wrapf(err, "Failed to init account data, err: %+v", err)
 	}
-
-	logger.Debug("result: %s", result)
-	gs.UseAntiInjection(true)
 	return nil
 }
 
 func Run() {
 	var start time.Time
 	var during, frameTime time.Duration = 0, 20 * time.Millisecond
-	defer db.Close()
+	defer s.db.Close()
 
 	for {
 		start = time.Now()

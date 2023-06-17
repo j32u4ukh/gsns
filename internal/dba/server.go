@@ -7,12 +7,24 @@ import (
 	"time"
 
 	"github.com/j32u4ukh/gos/base"
+	"github.com/j32u4ukh/gosql"
 	"github.com/j32u4ukh/gosql/database"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 type DbaServer struct {
+	db     *database.Database
+	DbName string
+	tables map[int]*gosql.Table
+}
+
+func NewDbaServer() *DbaServer {
+	s := &DbaServer{
+		db:     nil,
+		DbName: "",
+		tables: make(map[int]*gosql.Table),
+	}
+	return s
 }
 
 func (s *DbaServer) Handler(work *base.Work) {
@@ -31,7 +43,7 @@ func (s *DbaServer) Handler(work *base.Work) {
 	}
 }
 
-func (rrs *DbaServer) Run() {
+func (s *DbaServer) Run() {
 
 }
 
@@ -61,16 +73,16 @@ func (s *DbaServer) handleNormalCommand(work *base.Work) {
 		work.Body.AddByte(define.SystemCommand)
 		work.Body.AddUInt16(define.GetUserData)
 
-		var sql string
-		var err error
-		sql, err = gs.Query(TidAccount, nil)
+		selector := s.tables[TidAccount].GetSelector()
+		defer s.tables[TidAccount].PutSelector(selector)
+		result, err := selector.Exec()
 		if err != nil {
-			work.Body.AddUInt16(1)
-			work.SendTransData()
+			logger.Error("Select err: %+v", err)
 			return
 		}
-		logger.Info("sql: %s", sql)
-		// results, err := db.Query(sql)
+		for _, data := range result.Datas {
+			logger.Debug("data: %+v", data)
+		}
 	}
 }
 
@@ -88,21 +100,6 @@ func (s *DbaServer) handleCommission(work *base.Work) {
 		work.Body.AddString("Commission completed.")
 		work.SendTransData()
 
-	case define.GetUserData:
-		var result *database.SqlResult
-		sql, err := gs.Query(TidAccount, nil)
-		if err != nil {
-			logger.Error("Query err: %+v", err)
-		}
-		result, err = db.Query(sql)
-		if err != nil {
-			logger.Error("Query err: %+v", err)
-		}
-		logger.Debug("result: %s", result)
-
-		// users := pbgo.SnsUserArray{}
-		// gs.Query()
-
 	case define.Register:
 		// 建立使用者資料
 		bs := work.Body.PopByteArray()
@@ -117,16 +114,16 @@ func (s *DbaServer) handleCommission(work *base.Work) {
 			logger.Error("Unmarshal account err: %+v", err)
 			// TODO: send error message back to client
 		} else {
-			var sql string
-			sql, err = gs.Insert(TidAccount, []protoreflect.ProtoMessage{account})
-
+			inserter := s.tables[TidAccount].GetInserter()
+			defer s.tables[TidAccount].PutInserter(inserter)
+			err = inserter.Insert(account)
 			if err != nil {
-				fmt.Printf("Error: %+v", err)
+				fmt.Printf("Insert err: %+v", err)
 				return
 			}
 
 			var result *database.SqlResult
-			result, err = db.Exec(sql)
+			result, err = inserter.Exec()
 
 			if err != nil {
 				fmt.Printf("Insert Exec err: %+v\n", err)
