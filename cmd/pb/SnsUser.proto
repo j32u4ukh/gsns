@@ -7,5 +7,5 @@ message SnsUser {
     
     string name = 2;
 
-    int64 token = 3;
+    uint64 token = 3;
 }

@@ -5,6 +5,7 @@ import (
 	"internal/define"
 	"internal/pbgo"
 
+	"github.com/j32u4ukh/cntr"
 	"github.com/j32u4ukh/glog/v2"
 	"github.com/j32u4ukh/gos/ans"
 	"github.com/j32u4ukh/gos/base"
@@ -14,13 +15,14 @@ import (
 // 與 Account 相關的由這個物件來管理
 type AccountMgr struct {
 	httpAnswer *ans.HttpAnser
-	users      map[int32]*pbgo.SnsUser
-	logger     *glog.Logger
+	// key1: user id, key2: token
+	users  *cntr.BikeyMap[int32, uint64, *pbgo.SnsUser]
+	logger *glog.Logger
 }
 
 func NewAccountMgr(lg *glog.Logger) *AccountMgr {
 	m := &AccountMgr{
-		users:  map[int32]*pbgo.SnsUser{},
+		users:  cntr.NewBikeyMap[int32, uint64, *pbgo.SnsUser](),
 		logger: lg,
 	}
 	return m
@@ -74,17 +76,35 @@ func (m *AccountMgr) handleAccountCommission(work *base.Work) {
 		})
 		m.httpAnswer.Send(c)
 	case define.Login:
-		c := m.httpAnswer.GetContext(-1)
-		c.Cid = work.Body.PopInt32()
 		returnCode := work.Body.PopUInt16()
-		token := work.Body.PopUInt64()
 		m.logger.Debug("returnCode: %d", returnCode)
-		work.Finish()
+
+		// 取得空閒的 HTTP 連線物件
+		c := m.httpAnswer.GetContext(-1)
+
+		// 取得客戶端編號
+		c.Cid = work.Body.PopInt32()
 
 		if returnCode == 0 {
+			name := work.Body.PopString()
+			index := work.Body.PopInt32()
+			m.logger.Info("index: %d, name: %s", index, name)
+			user := &pbgo.SnsUser{
+				Index: index,
+				Name:  name,
+				Token: m.getToken(),
+			}
+			m.logger.Info("New user: %+v", user)
+			err := m.AddUser(user)
+			if err != nil {
+				c.Json(200, ghttp.H{
+					"msg":   "Login failed",
+					"token": -1,
+				})
+			}
 			c.Json(200, ghttp.H{
 				"msg":   "Login success",
-				"token": token,
+				"token": user.Token,
 			})
 		} else {
 			c.Json(200, ghttp.H{
@@ -93,6 +113,7 @@ func (m *AccountMgr) handleAccountCommission(work *base.Work) {
 			})
 		}
 
+		work.Finish()
 		m.httpAnswer.Send(c)
 	default:
 	}

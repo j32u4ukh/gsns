@@ -64,6 +64,8 @@ func (s *AccountServer) handleDbaNormalCommand(work *base.Work) {
 		}
 		for _, account := range accounts.Accounts {
 			logger.Debug("account: %+v", account)
+			// 將用戶資訊加入緩存
+			s.accounts[account.Account] = account
 		}
 	default:
 		logger.Warn("Unsupport service: %d\n", service)

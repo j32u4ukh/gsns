@@ -2,7 +2,6 @@ package gsns
 
 import (
 	"internal/define"
-	"internal/pbgo"
 	"time"
 
 	"github.com/j32u4ukh/glog/v2"
@@ -87,10 +86,6 @@ func initGos() error {
 }
 
 func initData() error {
-	ms.AMgr.AddUser(&pbgo.SnsUser{
-		Index: 0,
-		Name:  "Henry",
-	})
 	// TODO: 生成向 DBA 取得數據的請求
 	// TODO: 生成向 Account 取得數據的請求
 	return nil

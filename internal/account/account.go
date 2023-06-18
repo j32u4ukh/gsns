@@ -38,7 +38,7 @@ func initGos() error {
 		return errors.Wrapf(err, "Failed to listen port %d", define.AccountPort)
 	}
 
-	as = &AccountServer{}
+	as = NewAccountServer()
 	as.Tcp = anser.(*ans.Tcp0Anser)
 	as.Tcp.SetWorkHandler(as.Handler)
 
