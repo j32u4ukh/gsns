@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"internal/define"
 	"internal/pbgo"
+	"strconv"
 
 	"github.com/j32u4ukh/gos"
 	"github.com/j32u4ukh/gos/ans"
@@ -18,7 +19,7 @@ func (m *AccountMgr) HttpHandler(router *ans.Router) {
 	// TODO: 註冊：帳密以及個人資訊。儲存以 SHA256 加密後的密碼，而非儲存原始密碼。
 	router.POST("/register", m.register)
 
-	// TODO:
+	// TODO: token 應該要有時效
 	router.POST("/login", m.login)
 
 	// TODO:
@@ -157,8 +158,32 @@ func (m *AccountMgr) login(c *ghttp.Context) {
 }
 
 func (m *AccountMgr) logout(c *ghttp.Context) {
+	var token string
+	var ok bool
+	defer m.httpAnswer.Send(c)
+	dict := map[string]string{}
+	err := json.Unmarshal(c.Body[:c.BodyLength], &dict)
+
+	if err != nil {
+		m.logger.Error("Failed to unmarshal data: %+v\nError: %+v", c.Body[:c.BodyLength], err)
+		c.Json(ghttp.StatusBadRequest, ghttp.H{
+			"msg": "Failed to unmarshal data.",
+		})
+		return
+	}
+
+	if token, ok = dict["token"]; !ok {
+		m.logger.Error("Not found param: token")
+		c.Json(ghttp.StatusBadRequest, ghttp.H{
+			"msg": "Not found token parameter.",
+		})
+		return
+	}
+
+	key, err := strconv.ParseUint(token, 10, 64)
+	m.users.DelByKey2(key)
+
 	c.Json(200, ghttp.H{
-		"index": 2,
-		"msg":   "POST | /",
+		"msg": "Logout success.",
 	})
 }
