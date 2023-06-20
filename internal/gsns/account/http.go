@@ -1,11 +1,9 @@
 package account
 
 import (
-	"encoding/json"
 	"fmt"
 	"internal/define"
 	"internal/pbgo"
-	"strconv"
 
 	"github.com/j32u4ukh/gos"
 	"github.com/j32u4ukh/gos/ans"
@@ -39,23 +37,14 @@ func (m *AccountMgr) register(c *ghttp.Context) {
 	td.AddUInt16(define.Register)
 	td.AddInt32(c.GetId())
 
+	ap := &AccountProtocol{}
+	c.ReadJson(ap)
+	m.logger.Info("AccountProtocol: %+v", ap)
 	account := &pbgo.Account{}
-	dict := map[string]string{}
-	err := json.Unmarshal(c.Body[:c.BodyLength], &dict)
 
-	if err != nil {
-		m.logger.Error("Failed to unmarshal data: %+v\nError: %+v", c.Body[:c.BodyLength], err)
-		m.httpAnswer.Finish(c)
-		return
-	}
-
-	m.logger.Info("json body: %+v", dict)
-	var ok bool
-	var value string
-
-	if value, ok = dict["account"]; ok {
+	if ap.Account != "" {
 		// 帳號名稱
-		account.Account = value
+		account.Account = ap.Account
 	} else {
 		m.logger.Error("Not found param: account")
 		// 將當前 Http 的工作結束
@@ -63,9 +52,9 @@ func (m *AccountMgr) register(c *ghttp.Context) {
 		return
 	}
 
-	if value, ok = dict["password"]; ok {
+	if ap.Password != "" {
 		// 密碼原文(TODO: 在前端就加密?)
-		account.Password = value
+		account.Password = ap.Password
 	} else {
 		m.logger.Error("Not found param: password")
 
@@ -88,7 +77,7 @@ func (m *AccountMgr) register(c *ghttp.Context) {
 	m.logger.Info("data: %+v", data)
 
 	// 將註冊數據傳到 Account 伺服器
-	err = gos.SendToServer(define.AccountServer, &data, td.GetLength())
+	err := gos.SendToServer(define.AccountServer, &data, td.GetLength())
 
 	if err != nil {
 		fmt.Printf("(s *MainServer) CommissionHandler | Failed to send to server %d: %v\nError: %+v\n", define.DbaServer, data, err)
@@ -102,23 +91,14 @@ func (m *AccountMgr) login(c *ghttp.Context) {
 	td.AddUInt16(define.Login)
 	td.AddInt32(c.GetId())
 
-	dict := map[string]string{}
-	err := json.Unmarshal(c.Body[:c.BodyLength], &dict)
-
-	if err != nil {
-		m.logger.Error("Failed to unmarshal data: %+v\nError: %+v", c.Body[:c.BodyLength], err)
-		m.httpAnswer.Finish(c)
-		return
-	}
-
-	m.logger.Info("json body: %+v", dict)
-	var ok bool
-	var value string
+	ap := &AccountProtocol{}
+	c.ReadJson(ap)
+	m.logger.Info("AccountProtocol: %+v", ap)
 	account := &pbgo.Account{}
 
-	if value, ok = dict["account"]; ok {
+	if ap.Account != "" {
 		// 帳號名稱
-		account.Account = value
+		account.Account = ap.Account
 	} else {
 		m.logger.Error("Not found param: account")
 		// 將當前 Http 的工作結束
@@ -126,9 +106,9 @@ func (m *AccountMgr) login(c *ghttp.Context) {
 		return
 	}
 
-	if value, ok = dict["password"]; ok {
+	if ap.Password != "" {
 		// 密碼原文(TODO: 在前端就加密?)
-		account.Password = value
+		account.Password = ap.Password
 	} else {
 		m.logger.Error("Not found param: password")
 
@@ -149,7 +129,7 @@ func (m *AccountMgr) login(c *ghttp.Context) {
 	m.logger.Info("data: %+v", data)
 
 	// 將登入數據傳到 Account 伺服器
-	err = gos.SendToServer(define.AccountServer, &data, td.GetLength())
+	err := gos.SendToServer(define.AccountServer, &data, td.GetLength())
 
 	if err != nil {
 		m.logger.Error("Failed to send to server %d: %v\nError: %+v", define.DbaServer, data, err)
@@ -158,21 +138,11 @@ func (m *AccountMgr) login(c *ghttp.Context) {
 }
 
 func (m *AccountMgr) logout(c *ghttp.Context) {
-	var token string
-	var ok bool
 	defer m.httpAnswer.Send(c)
-	dict := map[string]string{}
-	err := json.Unmarshal(c.Body[:c.BodyLength], &dict)
+	ap := &AccountProtocol{}
+	c.ReadJson(ap)
 
-	if err != nil {
-		m.logger.Error("Failed to unmarshal data: %+v\nError: %+v", c.Body[:c.BodyLength], err)
-		c.Json(ghttp.StatusBadRequest, ghttp.H{
-			"msg": "Failed to unmarshal data.",
-		})
-		return
-	}
-
-	if token, ok = dict["token"]; !ok {
+	if ap.Token == 0 {
 		m.logger.Error("Not found param: token")
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
 			"msg": "Not found token parameter.",
@@ -180,9 +150,7 @@ func (m *AccountMgr) logout(c *ghttp.Context) {
 		return
 	}
 
-	key, err := strconv.ParseUint(token, 10, 64)
-	m.users.DelByKey2(key)
-
+	m.users.DelByKey2(ap.Token)
 	c.Json(200, ghttp.H{
 		"msg": "Logout success.",
 	})

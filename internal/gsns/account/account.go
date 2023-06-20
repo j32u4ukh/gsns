@@ -12,6 +12,12 @@ import (
 	"github.com/j32u4ukh/gos/base/ghttp"
 )
 
+type AccountProtocol struct {
+	Account  string
+	Password string
+	Token    uint64
+}
+
 // 與 Account 相關的由這個物件來管理
 type AccountMgr struct {
 	httpAnswer *ans.HttpAnser
