@@ -1,4 +1,7 @@
+github.com/go-sql-driver/mysql v1.7.0/go.mod h1:OXbVy3sEdcQ2Doequ6Z5BW6fXNQTmx+9S1MCJN5yJMI=
 github.com/golang/protobuf v1.5.0 h1:LUVKkCeviFUMKqHa4tXIIij/lbhnMbP7Fn5wKdKkRh4=
 github.com/j32u4ukh/glog v1.0.1/go.mod h1:8E7STeA2S12P74yNLvFWAbAf2eE/iebmxa8ZxOz9SKY=
+github.com/j32u4ukh/glog/v2 v2.0.1/go.mod h1:bTSp2wHDJWYRbf8b8oX/OmDjZ/Po0vQJdvZvH8/KsBA=
 github.com/j32u4ukh/glog/v2 v2.0.3/go.mod h1:bTSp2wHDJWYRbf8b8oX/OmDjZ/Po0vQJdvZvH8/KsBA=
+github.com/yoheimuta/go-protoparser/v4 v4.7.0/go.mod h1:AHNNnSWnb0UoL4QgHPiOAg2BniQceFscPI5X/BZNHl8=
 google.golang.org/protobuf v1.28.1/go.mod h1:HV8QOd/L58Z+nl8r43ehVNZIU/HEI6OcFqwMG9pJV4I=

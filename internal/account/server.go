@@ -149,9 +149,7 @@ func (s *AccountServer) handleCommission(work *base.Work) {
 		// Return code
 		work.Body.AddUInt16(0)
 		work.Body.AddInt32(cid)
-		name := account.Account
-		logger.Info("name: %s", name)
-		work.Body.AddString("account1")
+		work.Body.AddString(account.Account)
 		work.Body.AddInt32(account.Index)
 		logger.Info("account: %+v", account)
 
