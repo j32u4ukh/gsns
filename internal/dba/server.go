@@ -150,8 +150,6 @@ func (s *DbaServer) handleCommission(work *base.Work) {
 			// returnCode
 			work.Body.AddUInt16(0)
 			account.Index = int32(result.LastInsertId)
-			account.Account = ""
-			account.Password = ""
 			bs, _ = proto.Marshal(account)
 			work.Body.AddByteArray(bs)
 			work.SendTransData()

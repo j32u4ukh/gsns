@@ -10,6 +10,7 @@ import (
 	"github.com/j32u4ukh/gos/ans"
 	"github.com/j32u4ukh/gos/base"
 	"github.com/j32u4ukh/gos/base/ghttp"
+	"google.golang.org/protobuf/proto"
 )
 
 type AccountProtocol struct {
@@ -70,16 +71,38 @@ func (m *AccountMgr) handleAccountCommission(work *base.Work) {
 	commission := work.Body.PopUInt16()
 	switch commission {
 	case define.Register:
+		// TODO: 利用 cid 取得對應的 Context
 		c := m.httpAnswer.GetContext(-1)
 		c.Cid = work.Body.PopInt32()
+
 		returnCode := work.Body.PopUInt16()
 		m.logger.Debug("returnCode: %d", returnCode)
-		work.Finish()
 
-		c.Json(200, ghttp.H{
-			"index": 5,
-			"msg":   fmt.Sprintf("POST | register returnCode: %d", returnCode),
-		})
+		if returnCode != 0 {
+			work.Finish()
+			c.Json(ghttp.StatusBadGateway, ghttp.H{
+				"ret": 1,
+				"msg": fmt.Sprintf("returnCode: %d", returnCode),
+			})
+		} else {
+			bs := work.Body.PopByteArray()
+			work.Finish()
+
+			account := &pbgo.Account{}
+			err := proto.Unmarshal(bs, account)
+
+			if err != nil {
+				c.Json(ghttp.StatusBadGateway, ghttp.H{
+					"ret": 2,
+					"msg": fmt.Sprintf("Failed to unmarshal account data, err: %+v", err),
+				})
+			} else {
+				c.Json(ghttp.StatusOK, ghttp.H{
+					"ret": 0,
+					"msg": fmt.Sprintf("registered account: %+v", account),
+				})
+			}
+		}
 		m.httpAnswer.Send(c)
 	case define.Login:
 		returnCode := work.Body.PopUInt16()
@@ -109,7 +132,7 @@ func (m *AccountMgr) handleAccountCommission(work *base.Work) {
 				})
 			}
 			c.Json(200, ghttp.H{
-				"msg":   "Login success",
+				"msg":   fmt.Sprintf("User %s login success", name),
 				"token": user.Token,
 			})
 		} else {

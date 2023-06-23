@@ -78,12 +78,16 @@ func (s *AccountServer) handleCommission(work *base.Work) {
 		work.SendTransData()
 
 	case define.Register:
+		// TODO: 伺服器之間的連線，第一次訊息中除了前導碼，還需要自我介紹。
 		s.MainServerId = work.Index
 		cid := work.Body.PopInt32()
 		bs := work.Body.PopByteArray()
 		logger.Info("MainServerId: %d, cid: %d, bs: %+v", s.MainServerId, cid, bs)
 		work.Finish()
 
+		// ==================================================
+		// 準備將請求轉送給 DBA server
+		// ==================================================
 		td := base.NewTransData()
 		td.AddByte(define.CommissionCommand)
 		td.AddUInt16(define.Register)

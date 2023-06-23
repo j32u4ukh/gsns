@@ -31,42 +31,39 @@ func (m *AccountMgr) HttpHandler(router *ans.Router) {
 }
 
 func (m *AccountMgr) register(c *ghttp.Context) {
-	// 形成 "建立使用者" 的請求
-	td := base.NewTransData()
-	td.AddByte(define.CommissionCommand)
-	td.AddUInt16(define.Register)
-	td.AddInt32(c.GetId())
-
 	ap := &AccountProtocol{}
 	c.ReadJson(ap)
 	m.logger.Info("AccountProtocol: %+v", ap)
 	account := &pbgo.Account{}
 
-	if ap.Account != "" {
-		// 帳號名稱
-		account.Account = ap.Account
-	} else {
-		m.logger.Error("Not found param: account")
-		// 將當前 Http 的工作結束
-		m.httpAnswer.Finish(c)
-		return
-	}
-
-	if ap.Password != "" {
-		// 密碼原文(TODO: 在前端就加密?)
-		account.Password = ap.Password
-	} else {
-		m.logger.Error("Not found param: password")
-
-		// 將當前 Http 的工作結束
-		m.httpAnswer.Finish(c)
+	if ap.Account == "" || ap.Password == "" {
+		c.Json(ghttp.StatusBadRequest, ghttp.H{
+			"ret": 1,
+			"msg": fmt.Sprintf("缺少參數, account: %+v", ap),
+		})
+		m.httpAnswer.Send(c)
 		return
 	}
 
 	// 將當前 Http 的工作結束
 	m.httpAnswer.Finish(c)
 
+	// 帳號名稱
+	account.Account = ap.Account
+
+	// 密碼原文(TODO: 在前端就加密)
+	account.Password = ap.Password
+
 	m.logger.Info("Register account: %+v", account)
+
+	// ==================================================
+	// 準備將請求轉送給 Account server
+	// ==================================================
+	// 形成 "建立使用者" 的請求
+	td := base.NewTransData()
+	td.AddByte(define.CommissionCommand)
+	td.AddUInt16(define.Register)
+	td.AddInt32(c.GetId())
 
 	// 寫入 pbgo.Account
 	bs, _ := proto.Marshal(account)
@@ -150,8 +147,16 @@ func (m *AccountMgr) logout(c *ghttp.Context) {
 		return
 	}
 
-	m.users.DelByKey2(ap.Token)
-	c.Json(200, ghttp.H{
-		"msg": "Logout success.",
-	})
+	user, ok := m.users.GetByKey2(ap.Token)
+
+	if !ok {
+		c.Json(ghttp.StatusBadRequest, ghttp.H{
+			"msg": fmt.Sprintf("Not found token %d", ap.Token),
+		})
+	} else {
+		m.users.DelByKey2(ap.Token)
+		c.Json(200, ghttp.H{
+			"msg": fmt.Sprintf("User %s logout success.", user.Name),
+		})
+	}
 }

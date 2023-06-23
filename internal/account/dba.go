@@ -90,8 +90,13 @@ func (s *AccountServer) handleDbaCommission(work *base.Work) {
 			return
 		}
 
+		// 將新註冊用戶加入緩存管理
+		s.accounts[account.Account] = account
 		logger.Info("New account created : %+v", account)
 
+		// ==================================================
+		// 準備將回應返還給 Main server
+		// ==================================================
 		td := base.NewTransData()
 		td.AddByte(define.CommissionCommand)
 		td.AddUInt16(define.Register)
@@ -99,6 +104,9 @@ func (s *AccountServer) handleDbaCommission(work *base.Work) {
 		td.AddUInt16(returnCode)
 
 		// Account data for register
+		clone := proto.Clone(account).(*pbgo.Account)
+		clone.Password = ""
+		bs, _ = proto.Marshal(clone)
 		td.AddByteArray(bs)
 
 		data := td.FormData()
