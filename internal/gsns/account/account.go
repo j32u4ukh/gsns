@@ -16,6 +16,7 @@ import (
 type AccountProtocol struct {
 	Account  string
 	Password string
+	Info     string
 	Token    uint64
 }
 

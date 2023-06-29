@@ -54,6 +54,8 @@ func (m *AccountMgr) register(c *ghttp.Context) {
 	// 密碼原文(TODO: 在前端就加密)
 	account.Password = ap.Password
 
+	// 個人資訊(可以不填)
+	account.Info = ap.Info
 	m.logger.Info("Register account: %+v", account)
 
 	// ==================================================

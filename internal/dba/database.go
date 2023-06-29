@@ -20,11 +20,11 @@ func (s *DbaServer) initTable(tid int) {
 	s.tables[tid].Init(&gosql.TableConfig{
 		Db:               s.db,
 		DbName:           s.DbName,
-		UseAntiInjection: false,
-		PtrToDbFunc:      plugin.ProtoToDb,
+		UseAntiInjection: true,
 		InsertFunc:       plugin.InsertProto,
 		QueryFunc:        plugin.QueryProto,
 		UpdateAnyFunc:    plugin.UpdateProto,
+		PtrToDbFunc:      plugin.ProtoToDb,
 	})
 }
 

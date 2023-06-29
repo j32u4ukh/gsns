@@ -9,7 +9,9 @@ message Account {
     string account = 2;
     
     string password = 3;
+    
+    string info = 4;
 
     // {"default": "current_timestamp()"}
-    TimeStamp create_time = 4;
+    TimeStamp create_time = 5;
 }

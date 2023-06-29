@@ -8,4 +8,6 @@ message SnsUser {
     string name = 2;
 
     uint64 token = 3;
+
+    string info = 4;
 }
