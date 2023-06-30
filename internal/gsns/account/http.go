@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"internal/define"
 	"internal/pbgo"
+	"strconv"
 
 	"github.com/j32u4ukh/gos"
 	"github.com/j32u4ukh/gos/ans"
@@ -23,11 +24,8 @@ func (m *AccountMgr) HttpHandler(router *ans.Router) {
 	// TODO:
 	router.POST("/logout", m.logout)
 
-	// 轉交工作範例
-	router.POST("/delay_response", func(c *ghttp.Context) {
-		m.httpAnswer.Finish(c)
-		// m.CommissionHandler(1023, c.GetId())
-	})
+	// 取得用戶資訊
+	router.GET("/user_info", m.getUserInfo)
 }
 
 func (m *AccountMgr) register(c *ghttp.Context) {
@@ -159,6 +157,35 @@ func (m *AccountMgr) logout(c *ghttp.Context) {
 		m.users.DelByKey2(ap.Token)
 		c.Json(200, ghttp.H{
 			"msg": fmt.Sprintf("User %s logout success.", user.Name),
+		})
+	}
+}
+
+func (m *AccountMgr) getUserInfo(c *ghttp.Context) {
+	defer m.httpAnswer.Send(c)
+	var sToken string
+	var ok bool
+
+	if sToken, ok = c.Params["token"]; !ok {
+		return
+	}
+
+	token, err := strconv.ParseUint(sToken, 10, 64)
+
+	if err != nil {
+		return
+	}
+
+	user, ok := m.users.GetByKey2(token)
+
+	if ok {
+		c.Json(200, ghttp.H{
+			"name": user.Name,
+			"info": user.Info,
+		})
+	} else {
+		c.Json(ghttp.StatusBadRequest, ghttp.H{
+			"msg": fmt.Sprintf("Not found token %d", token),
 		})
 	}
 }
