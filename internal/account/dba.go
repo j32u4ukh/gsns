@@ -105,6 +105,7 @@ func (s *AccountServer) handleDbaCommission(work *base.Work) {
 
 		// Account data for register
 		clone := proto.Clone(account).(*pbgo.Account)
+		// 隱藏密碼相關資訊，無須提供給 GSNS
 		clone.Password = ""
 		bs, _ = proto.Marshal(clone)
 		td.AddByteArray(bs)

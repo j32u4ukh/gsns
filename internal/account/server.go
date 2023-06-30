@@ -149,8 +149,8 @@ func (s *AccountServer) handleCommission(work *base.Work) {
 		// Return code
 		work.Body.AddUInt16(0)
 		work.Body.AddInt32(cid)
-		work.Body.AddString(account.Account)
-		work.Body.AddInt32(account.Index)
+		bs, _ = proto.Marshal(account)
+		work.Body.AddByteArray(bs)
 		logger.Info("account: %+v", account)
 
 	default:

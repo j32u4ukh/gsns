@@ -116,28 +116,31 @@ func (m *AccountMgr) handleAccountCommission(work *base.Work) {
 		c.Cid = work.Body.PopInt32()
 
 		if returnCode == 0 {
-			name := work.Body.PopString()
-			index := work.Body.PopInt32()
-			m.logger.Info("index: %d, name: %s", index, name)
+			bs := work.Body.PopByteArray()
+			account := &pbgo.Account{}
+			proto.Unmarshal(bs, account)
+			m.logger.Info("index: %d, name: %s", account.Index, account.Account)
 			user := &pbgo.SnsUser{
-				Index: index,
-				Name:  name,
+				Index: account.Index,
+				Name:  account.Account,
+				Info:  account.Info,
 				Token: m.getToken(),
 			}
 			m.logger.Info("New user: %+v", user)
 			err := m.AddUser(user)
 			if err != nil {
-				c.Json(200, ghttp.H{
+				c.Json(ghttp.StatusInternalServerError, ghttp.H{
 					"msg":   "Login failed",
 					"token": -1,
 				})
 			}
-			c.Json(200, ghttp.H{
-				"msg":   fmt.Sprintf("User %s login success", name),
+			c.Json(ghttp.StatusOK, ghttp.H{
+				"msg":   fmt.Sprintf("User %s login success", account.Account),
 				"token": user.Token,
+				"info":  user.Info,
 			})
 		} else {
-			c.Json(200, ghttp.H{
+			c.Json(ghttp.StatusInternalServerError, ghttp.H{
 				"msg":   "Login failed",
 				"token": -1,
 			})
