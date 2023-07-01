@@ -6,6 +6,7 @@ import (
 	"internal/pbgo"
 	"time"
 
+	"github.com/j32u4ukh/cntr"
 	"github.com/j32u4ukh/gos"
 	"github.com/j32u4ukh/gos/ans"
 	"github.com/j32u4ukh/gos/base"
@@ -15,12 +16,13 @@ import (
 type AccountServer struct {
 	Tcp          *ans.Tcp0Anser
 	MainServerId int32
-	accounts     map[string]*pbgo.Account
+	// key1: user index, key2: account name
+	accounts *cntr.BikeyMap[int32, string, *pbgo.Account]
 }
 
 func NewAccountServer() *AccountServer {
 	s := &AccountServer{
-		accounts: make(map[string]*pbgo.Account),
+		accounts: cntr.NewBikeyMap[int32, string, *pbgo.Account](),
 	}
 	return s
 }
@@ -130,7 +132,7 @@ func (s *AccountServer) handleCommission(work *base.Work) {
 		var account *pbgo.Account
 		var ok bool
 
-		if account, ok = s.accounts[data.Account]; !ok {
+		if account, ok = s.accounts.GetByKey2(data.Account); !ok {
 			// Return code
 			work.Body.AddUInt16(2)
 			work.Body.AddInt32(cid)
