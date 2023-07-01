@@ -104,7 +104,7 @@ func (s *DbaServer) handleNormalCommand(work *base.Work) {
 
 func (s *DbaServer) handleCommission(work *base.Work) {
 	commission := work.Body.PopUInt16()
-	var cid int32 = work.Body.PopInt32()
+	cid := work.Body.PopInt32()
 	logger.Info("commission: %d, cid: %d", commission, cid)
 
 	switch commission {
@@ -180,6 +180,45 @@ func (s *DbaServer) handleCommission(work *base.Work) {
 			// 將結果回傳
 			work.SendTransData()
 		}
+
+	case define.SetUserData:
+		// 建立使用者資料
+		bs := work.Body.PopByteArray()
+		account := &pbgo.Account{}
+		err := proto.Unmarshal(bs, account)
+		logger.Info("account: %+v", account)
+		work.Body.Clear()
+		work.Body.AddByte(define.CommissionCommand)
+		work.Body.AddUInt16(define.SetUserData)
+		work.Body.AddInt32(cid)
+
+		if err != nil {
+			logger.Error("Unmarshal account err: %+v", err)
+
+			// returnCode
+			work.Body.AddUInt16(1)
+		} else {
+			updater := s.tables[TidAccount].GetUpdater()
+			defer s.tables[TidAccount].PutUpdater(updater)
+			updater.UpdateAny(account)
+			updater.SetCondition(gosql.WS().Eq("index", account.Index))
+			sr, err := updater.Exec()
+			logger.Info("Update result: %+v, err: %+v", sr, err)
+
+			selector := s.tables[TidAccount].GetSelector()
+			defer s.tables[TidAccount].PutSelector(selector)
+			selector.SetCondition(gosql.WS().Eq("index", account.Index))
+			objs, _ := selector.Query(func() any { return &pbgo.Account{} })
+			result := objs[0].(*pbgo.Account)
+			logger.Info("Update result: %+v", result)
+
+			// returnCode
+			work.Body.AddUInt16(0)
+			work.Body.AddByteArray(bs)
+		}
+
+		// 將結果回傳
+		work.SendTransData()
 	default:
 		fmt.Printf("Unsupport commission: %d\n", commission)
 		work.Finish()

@@ -105,15 +105,16 @@ func (m *AccountMgr) handleAccountCommission(work *base.Work) {
 			}
 		}
 		m.httpAnswer.Send(c)
-	case define.Login:
-		returnCode := work.Body.PopUInt16()
-		m.logger.Debug("returnCode: %d", returnCode)
 
+	case define.Login:
 		// 取得空閒的 HTTP 連線物件
 		c := m.httpAnswer.GetContext(-1)
 
 		// 取得客戶端編號
 		c.Cid = work.Body.PopInt32()
+
+		returnCode := work.Body.PopUInt16()
+		m.logger.Debug("returnCode: %d", returnCode)
 
 		if returnCode == 0 {
 			bs := work.Body.PopByteArray()
@@ -143,6 +144,49 @@ func (m *AccountMgr) handleAccountCommission(work *base.Work) {
 			c.Json(ghttp.StatusInternalServerError, ghttp.H{
 				"msg":   "Login failed",
 				"token": -1,
+			})
+		}
+
+		work.Finish()
+		m.httpAnswer.Send(c)
+
+	case define.SetUserData:
+		// 取得空閒的 HTTP 連線物件
+		c := m.httpAnswer.GetContext(-1)
+
+		// 取得客戶端編號
+		c.Cid = work.Body.PopInt32()
+
+		returnCode := work.Body.PopUInt16()
+		m.logger.Debug("returnCode: %d", returnCode)
+
+		if returnCode == 0 {
+			bs := work.Body.PopByteArray()
+			account := &pbgo.Account{}
+			proto.Unmarshal(bs, account)
+			m.logger.Info("index: %d, name: %s", account.Index, account.Account)
+			user, ok := m.users.GetByKey1(account.Index)
+			if !ok {
+				c.Json(ghttp.StatusInternalServerError, ghttp.H{
+					"err": fmt.Sprintf("Not found user %s.", account.Account),
+				})
+			} else {
+				user.Name = account.Account
+				user.Info = account.Info
+				bivalue := cntr.NewBivalue(user.Index, user.Token, user)
+
+				// 更新用戶緩存
+				m.users.UpdateByKey1(user.Index, bivalue)
+
+				c.Json(ghttp.StatusOK, ghttp.H{
+					"msg":   fmt.Sprintf("User %s update success", account.Account),
+					"token": user.Token,
+					"info":  user.Info,
+				})
+			}
+		} else {
+			c.Json(ghttp.StatusInternalServerError, ghttp.H{
+				"err": fmt.Sprintf("Return code %d", returnCode),
 			})
 		}
 

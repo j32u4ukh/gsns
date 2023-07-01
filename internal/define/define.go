@@ -16,6 +16,7 @@ const (
 	Heartbeat uint16 = iota
 	// 一般任務 NormalCommand
 	GetUserData
+	SetUserData
 	// 轉交型請求 CommissionCommand
 	Register
 	Login

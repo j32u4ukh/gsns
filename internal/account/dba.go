@@ -6,6 +6,7 @@ import (
 	"internal/pbgo"
 	"time"
 
+	"github.com/j32u4ukh/cntr"
 	"github.com/j32u4ukh/gos"
 	"github.com/j32u4ukh/gos/base"
 	"google.golang.org/protobuf/proto"
@@ -75,10 +76,10 @@ func (s *AccountServer) handleDbaNormalCommand(work *base.Work) {
 
 func (s *AccountServer) handleDbaCommission(work *base.Work) {
 	commission := work.Body.PopUInt16()
+	cid := work.Body.PopInt32()
 
 	switch commission {
 	case define.Register:
-		cid := work.Body.PopInt32()
 		returnCode := work.Body.PopUInt16()
 		bs := work.Body.PopByteArray()
 		work.Finish()
@@ -119,8 +120,8 @@ func (s *AccountServer) handleDbaCommission(work *base.Work) {
 			logger.Error("Failed to send to client %d: %v\nError: %+v", s.MainServerId, data, err)
 			return
 		}
+
 	case define.Login:
-		cid := work.Body.PopInt32()
 		returnCode := work.Body.PopUInt16()
 		token := work.Body.PopUInt64()
 		work.Finish()
@@ -135,6 +136,54 @@ func (s *AccountServer) handleDbaCommission(work *base.Work) {
 
 		// 將註冊結果回傳主伺服器
 		err := gos.SendToClient(define.AccountPort, s.MainServerId, &data, td.GetLength())
+
+		if err != nil {
+			logger.Error("Failed to send to client %d: %v\nError: %+v", s.MainServerId, data, err)
+			return
+		}
+
+	case define.SetUserData:
+		returnCode := work.Body.PopUInt16()
+
+		// ==================================================
+		// 準備將回應返還給 Main server
+		// ==================================================
+		td := base.NewTransData()
+		td.AddByte(define.CommissionCommand)
+		td.AddUInt16(define.SetUserData)
+		td.AddInt32(cid)
+		var err error
+
+		if returnCode != 0 {
+			td.AddUInt16(1)
+		} else {
+			bs := work.Body.PopByteArray()
+			account := &pbgo.Account{}
+			err = proto.Unmarshal(bs, account)
+
+			if err != nil {
+				td.AddUInt16(2)
+				logger.Error("Unmarshal account failed, err: %+v", err)
+			} else {
+				td.AddUInt16(0)
+
+				// Account data for register
+				clone := proto.Clone(account).(*pbgo.Account)
+				// 隱藏密碼相關資訊，無須提供給 GSNS
+				clone.Password = ""
+				bs, _ = proto.Marshal(clone)
+				td.AddByteArray(bs)
+
+				// 更新用戶帳號緩存
+				bivalue := cntr.NewBivalue(account.Index, account.Account, account)
+				s.accounts.UpdateByKey1(account.Index, bivalue)
+			}
+		}
+		work.Finish()
+		data := td.FormData()
+
+		// 將註冊結果回傳主伺服器
+		err = gos.SendToClient(define.AccountPort, s.MainServerId, &data, td.GetLength())
 
 		if err != nil {
 			logger.Error("Failed to send to client %d: %v\nError: %+v", s.MainServerId, data, err)

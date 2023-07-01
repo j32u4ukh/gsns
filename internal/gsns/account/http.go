@@ -26,6 +26,7 @@ func (m *AccountMgr) HttpHandler(router *ans.Router) {
 
 	// 取得用戶資訊
 	router.GET("/user_info", m.getUserInfo)
+	router.POST("/user_info", m.setUserInfo)
 }
 
 func (m *AccountMgr) register(c *ghttp.Context) {
@@ -179,7 +180,7 @@ func (m *AccountMgr) getUserInfo(c *ghttp.Context) {
 	user, ok := m.users.GetByKey2(token)
 
 	if ok {
-		c.Json(200, ghttp.H{
+		c.Json(ghttp.StatusOK, ghttp.H{
 			"name": user.Name,
 			"info": user.Info,
 		})
@@ -187,5 +188,68 @@ func (m *AccountMgr) getUserInfo(c *ghttp.Context) {
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
 			"msg": fmt.Sprintf("Not found token %d", token),
 		})
+	}
+}
+
+func (m *AccountMgr) setUserInfo(c *ghttp.Context) {
+	ap := &AccountProtocol{}
+	c.ReadJson(ap)
+
+	if ap.Token == 0 {
+		m.logger.Error("Not found param: token")
+		c.Json(ghttp.StatusBadRequest, ghttp.H{
+			"msg": "Not found token parameter.",
+		})
+		m.httpAnswer.Send(c)
+		return
+	}
+
+	cid := c.GetId()
+	m.logger.Info("Cid: %d", cid)
+	m.httpAnswer.Finish(c)
+	user, ok := m.users.GetByKey2(ap.Token)
+
+	if !ok {
+		c.Json(ghttp.StatusBadRequest, ghttp.H{
+			"msg": fmt.Sprintf("Not found token %d", ap.Token),
+		})
+		m.httpAnswer.Send(c)
+		return
+	}
+
+	// 形成 "更新用戶資訊" 的請求
+	td := base.NewTransData()
+	td.AddByte(define.CommissionCommand)
+	td.AddUInt16(define.SetUserData)
+	td.AddInt32(cid)
+
+	if ap.Account != "" {
+		user.Name = ap.Account
+	}
+
+	if ap.Info != "" {
+		user.Info = ap.Info
+	}
+
+	account := &pbgo.Account{
+		Index:   user.Index,
+		Account: user.Name,
+		Info:    user.Info,
+	}
+
+	// 寫入 pbgo.Account
+	bs, _ := proto.Marshal(account)
+	td.AddByteArray(bs)
+
+	data := td.FormData()
+
+	m.logger.Info("account: %+v", account)
+
+	// 將新用戶資訊數據傳到 Account 伺服器
+	err := gos.SendTransDataToServer(define.AccountServer, td)
+
+	if err != nil {
+		fmt.Printf("(s *MainServer) CommissionHandler | Failed to send to server %d: %v\nError: %+v\n", define.DbaServer, data, err)
+		return
 	}
 }
