@@ -120,7 +120,7 @@ func (m *AccountMgr) handleAccountCommission(work *base.Work) {
 			bs := work.Body.PopByteArray()
 			account := &pbgo.Account{}
 			proto.Unmarshal(bs, account)
-			m.logger.Info("index: %d, name: %s", account.Index, account.Account)
+			m.logger.Info("index: %d, name: %s, Account: %+v", account.Index, account.Account)
 			user := &pbgo.SnsUser{
 				Index: account.Index,
 				Name:  account.Account,

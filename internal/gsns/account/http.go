@@ -124,7 +124,7 @@ func (m *AccountMgr) login(c *ghttp.Context) {
 
 	data := td.FormData()
 
-	m.logger.Info("data: %+v", data)
+	m.logger.Info("account: %+v", account)
 
 	// 將登入數據傳到 Account 伺服器
 	err := gos.SendToServer(define.AccountServer, &data, td.GetLength())

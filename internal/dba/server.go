@@ -2,6 +2,7 @@ package dba
 
 import (
 	"fmt"
+	"internal/agrt"
 	"internal/define"
 	"internal/pbgo"
 	"time"
@@ -9,7 +10,6 @@ import (
 	"github.com/j32u4ukh/gos/base"
 	"github.com/j32u4ukh/gosql"
 	"github.com/j32u4ukh/gosql/database"
-	"google.golang.org/protobuf/proto"
 )
 
 type DbaServer struct {
@@ -28,17 +28,23 @@ func NewDbaServer() *DbaServer {
 }
 
 func (s *DbaServer) Handler(work *base.Work) {
-	cmd := work.Body.PopByte()
-
-	switch cmd {
+	agreement := agrt.GetAgreement()
+	defer agrt.PutAgreement(agreement)
+	err := agreement.Init(work)
+	if err != nil {
+		work.Finish()
+		logger.Error("Invalid data from work struct.")
+		return
+	}
+	switch byte(agreement.Cmd) {
 	case define.SystemCommand:
-		s.handleSystemCommand(work)
+		s.handleSystemCommand(work, agreement)
 	case define.NormalCommand:
-		s.handleNormalCommand(work)
+		s.handleNormalCommand(work, agreement)
 	case define.CommissionCommand:
-		s.handleCommission(work)
+		s.handleCommission(work, agreement)
 	default:
-		fmt.Printf("Unsupport command: %d\n", cmd)
+		fmt.Printf("Unsupport command: %d\n", agreement.Cmd)
 		work.Finish()
 	}
 }
@@ -47,180 +53,151 @@ func (s *DbaServer) Run() {
 
 }
 
-func (s *DbaServer) handleSystemCommand(work *base.Work) {
-	service := work.Body.PopUInt16()
-
-	switch service {
+func (s *DbaServer) handleSystemCommand(work *base.Work, agreement *agrt.Agreement) {
+	switch uint16(agreement.Service) {
 	// 回應心跳包
 	case define.Heartbeat:
 		fmt.Printf("Heart beat! Now: %+v\n", time.Now())
 		work.Body.Clear()
-		work.Body.AddByte(define.SystemCommand)
-		work.Body.AddUInt16(define.Heartbeat)
-		work.Body.AddString("OK")
+		// work.Body.AddByte(define.SystemCommand)
+		// work.Body.AddUInt16(define.Heartbeat)
+		bs, _ := agreement.Marshal()
+		work.Body.AddByteArray(bs)
 		work.SendTransData()
 	default:
-		fmt.Printf("Unsupport service: %d\n", service)
+		fmt.Printf("Unsupport service: %d\n", agreement.Service)
 		work.Finish()
 	}
 }
 
-func (s *DbaServer) handleNormalCommand(work *base.Work) {
-	service := work.Body.PopUInt16()
-	switch service {
+func (s *DbaServer) handleNormalCommand(work *base.Work, agreement *agrt.Agreement) {
+	switch uint16(agreement.Service) {
 	case define.GetUserData:
 		logger.Debug("GetUserData")
 		work.Body.Clear()
-		work.Body.AddByte(define.NormalCommand)
-		work.Body.AddUInt16(define.GetUserData)
-		defer work.SendTransData()
+		defer func() {
+			bs, _ := agreement.Marshal()
+			work.Body.AddByteArray(bs)
+			work.SendTransData()
+		}()
 
 		selector := s.tables[TidAccount].GetSelector()
 		defer s.tables[TidAccount].PutSelector(selector)
 		results, err := selector.Query(func() any { return &pbgo.Account{} })
 		if err != nil {
+			// work.Body.AddUInt16(1)
+			agreement.ReturnCode = 1
+			agreement.Msg = "Failed to select data."
 			logger.Error("Select err: %+v", err)
-			work.Body.AddUInt16(1)
 			return
 		}
-		accounts := &pbgo.AccountArray{}
+		// accounts := &pbgo.AccountArray{}
 		var account *pbgo.Account
 		for _, result := range results {
 			account = result.(*pbgo.Account)
 			account.CreateTime = nil
 			logger.Debug("account: %+v", account)
-			accounts.Accounts = append(accounts.Accounts, account)
+			agreement.Accounts = append(agreement.Accounts, account)
 		}
-		bs, err := proto.Marshal(accounts)
-		if err != nil {
-			logger.Error("Select err: %+v", err)
-			work.Body.AddUInt16(2)
-			return
-		}
-		work.Body.AddUInt16(0)
-		work.Body.AddByteArray(bs)
+		// bs, err := proto.Marshal(accounts)
+		// if err != nil {
+		// 	logger.Error("Select err: %+v", err)
+		// 	work.Body.AddUInt16(2)
+		// 	return
+		// }
+
+		agreement.ReturnCode = 0
+		// work.Body.AddUInt16(0)
+		// work.Body.AddByteArray(bs)
 	}
 }
 
-func (s *DbaServer) handleCommission(work *base.Work) {
-	commission := work.Body.PopUInt16()
-	cid := work.Body.PopInt32()
-	logger.Info("commission: %d, cid: %d", commission, cid)
+func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement) {
+	// commission := work.Body.PopUInt16()
+	// cid := work.Body.PopInt32()
+	// logger.Info("commission: %d, cid: %d", commission, cid)
 
-	switch commission {
-	case 1023:
-		work.Body.Clear()
-		work.Body.AddByte(1)
-		work.Body.AddUInt16(1023)
-		work.Body.AddInt32(cid)
-		work.Body.AddString("Commission completed.")
-		work.SendTransData()
-
+	switch uint16(agreement.Service) {
 	case define.Register:
 		// 建立使用者資料
-		bs := work.Body.PopByteArray()
-		account := &pbgo.Account{}
-		err := proto.Unmarshal(bs, account)
+		// bs := work.Body.PopByteArray()
+		// account := &pbgo.Account{}
+		// err := proto.Unmarshal(bs, account)
 		work.Body.Clear()
-		work.Body.AddByte(define.CommissionCommand)
-		work.Body.AddUInt16(define.Register)
-		work.Body.AddInt32(cid)
-
-		if err != nil {
-			logger.Error("Unmarshal account err: %+v", err)
-			// TODO: send error message back to client
-		} else {
-			inserter := s.tables[TidAccount].GetInserter()
-			defer s.tables[TidAccount].PutInserter(inserter)
-			err = inserter.Insert(account)
-			if err != nil {
-				fmt.Printf("Insert err: %+v", err)
-				return
-			}
-
-			var result *database.SqlResult
-			result, err = inserter.Exec()
-
-			if err != nil {
-				fmt.Printf("Insert Exec err: %+v\n", err)
-				return
-			}
-
-			logger.Info("result: %s", result)
-			// returnCode
-			work.Body.AddUInt16(0)
-			account.Index = int32(result.LastInsertId)
-			bs, _ = proto.Marshal(account)
+		// work.Body.AddByte(define.CommissionCommand)
+		// work.Body.AddUInt16(define.Register)
+		// work.Body.AddInt32(cid)
+		defer func() {
+			bs, _ := agreement.Marshal()
 			work.Body.AddByteArray(bs)
 			work.SendTransData()
+		}()
+
+		account := agreement.Accounts[0]
+		inserter := s.tables[TidAccount].GetInserter()
+		defer s.tables[TidAccount].PutInserter(inserter)
+		err := inserter.Insert(account)
+		if err != nil {
+			fmt.Printf("Insert err: %+v", err)
+			agreement.ReturnCode = 1
+			agreement.Msg = "Failed to insert account."
+			return
 		}
 
-	case define.Login:
-		// 建立使用者資料
-		bs := work.Body.PopByteArray()
-		account := &pbgo.Account{}
-		err := proto.Unmarshal(bs, account)
-		work.Body.Clear()
-		work.Body.AddByte(define.CommissionCommand)
-		work.Body.AddUInt16(define.Login)
-		work.Body.AddInt32(cid)
+		var result *database.SqlResult
+		result, err = inserter.Exec()
 
 		if err != nil {
-			logger.Error("Unmarshal account err: %+v", err)
-			// TODO: send error message back to client
-		} else {
-			// TODO: 檢查該帳號是否存在；若存在，檢查密碼是否正確
-
-			// returnCode
-			work.Body.AddUInt16(0)
-
-			// 使用權 token
-			work.Body.AddUInt64(9527)
-
-			// 將結果回傳
-			work.SendTransData()
+			fmt.Printf("Insert Exec err: %+v\n", err)
+			agreement.ReturnCode = 2
+			agreement.Msg = "Failed to execute insert statement."
+			return
 		}
+
+		logger.Info("result: %s", result)
+		// returnCode
+		agreement.ReturnCode = 0
+		// work.Body.AddUInt16(0)
+		account.Index = int32(result.LastInsertId)
 
 	case define.SetUserData:
 		// 建立使用者資料
-		bs := work.Body.PopByteArray()
-		account := &pbgo.Account{}
-		err := proto.Unmarshal(bs, account)
-		logger.Info("account: %+v", account)
+		// bs := work.Body.PopByteArray()
+		// account := &pbgo.Account{}
+		// err := proto.Unmarshal(bs, account)
+		// logger.Info("account: %+v", account)
 		work.Body.Clear()
-		work.Body.AddByte(define.CommissionCommand)
-		work.Body.AddUInt16(define.SetUserData)
-		work.Body.AddInt32(cid)
-
-		if err != nil {
-			logger.Error("Unmarshal account err: %+v", err)
-
-			// returnCode
-			work.Body.AddUInt16(1)
-		} else {
-			updater := s.tables[TidAccount].GetUpdater()
-			defer s.tables[TidAccount].PutUpdater(updater)
-			updater.UpdateAny(account)
-			updater.SetCondition(gosql.WS().Eq("index", account.Index))
-			sr, err := updater.Exec()
-			logger.Info("Update result: %+v, err: %+v", sr, err)
-
-			selector := s.tables[TidAccount].GetSelector()
-			defer s.tables[TidAccount].PutSelector(selector)
-			selector.SetCondition(gosql.WS().Eq("index", account.Index))
-			objs, _ := selector.Query(func() any { return &pbgo.Account{} })
-			result := objs[0].(*pbgo.Account)
-			logger.Info("Update result: %+v", result)
-
-			// returnCode
-			work.Body.AddUInt16(0)
+		// work.Body.AddByte(define.CommissionCommand)
+		// work.Body.AddUInt16(define.SetUserData)
+		// work.Body.AddInt32(cid)
+		defer func() {
+			bs, _ := agreement.Marshal()
 			work.Body.AddByteArray(bs)
-		}
+			work.SendTransData()
+		}()
 
-		// 將結果回傳
-		work.SendTransData()
+		account := agreement.Accounts[0]
+		updater := s.tables[TidAccount].GetUpdater()
+		defer s.tables[TidAccount].PutUpdater(updater)
+		updater.UpdateAny(account)
+		updater.SetCondition(gosql.WS().Eq("index", account.Index))
+		sr, err := updater.Exec()
+		logger.Info("Update result: %+v, err: %+v", sr, err)
+
+		selector := s.tables[TidAccount].GetSelector()
+		defer s.tables[TidAccount].PutSelector(selector)
+		selector.SetCondition(gosql.WS().Eq("index", account.Index))
+		objs, _ := selector.Query(func() any { return &pbgo.Account{} })
+		agreement.Accounts[0] = objs[0].(*pbgo.Account)
+		logger.Info("Update result: %+v", agreement.Accounts[0])
+
+		// returnCode
+		agreement.ReturnCode = 0
+		// work.Body.AddUInt16(0)
+		// work.Body.AddByteArray(bs)
+
 	default:
-		fmt.Printf("Unsupport commission: %d\n", commission)
+		fmt.Printf("Unsupport commission: %d\n", agreement.Service)
 		work.Finish()
 	}
 }

@@ -2,6 +2,7 @@ package account
 
 import (
 	"fmt"
+	"internal/agrt"
 	"internal/define"
 	"internal/pbgo"
 	"time"
@@ -57,6 +58,13 @@ func (s *AccountServer) handleSystemCommand(work *base.Work) {
 	case define.Heartbeat:
 		logger.Debug("Heart beat! Now: %+v\n", time.Now())
 		work.Body.Clear()
+		// agreement := agrt.GetAgreement()
+		// defer agrt.PutAgreement(agreement)
+		// agreement.Cmd = int32(define.SystemCommand)
+		// agreement.Service = int32(define.Heartbeat)
+		// agreement.Msg = "OK"
+		// bs, _ := agreement.Marshal()
+		// work.Body.AddByteArray(bs)
 		work.Body.AddByte(0)
 		work.Body.AddUInt16(0)
 		work.Body.AddString("OK")
@@ -69,9 +77,7 @@ func (s *AccountServer) handleSystemCommand(work *base.Work) {
 
 func (s *AccountServer) handleNormal(work *base.Work) {
 	service := work.Body.PopUInt16()
-
 	switch service {
-
 	default:
 		logger.Warn("Unsupport normal service: %d\n", service)
 		work.Finish()
@@ -79,26 +85,34 @@ func (s *AccountServer) handleNormal(work *base.Work) {
 }
 
 func (s *AccountServer) handleCommission(work *base.Work) {
-	commission := work.Body.PopUInt16()
-	cid := work.Body.PopInt32()
-	logger.Info("commission: %d", commission)
+	agreement := agrt.GetAgreement()
+	defer agrt.PutAgreement(agreement)
+	agreement.Cmd = int32(define.CommissionCommand)
+	agreement.Service = int32(work.Body.PopUInt16())
+	agreement.Cid = work.Body.PopInt32()
+	// commission := work.Body.PopUInt16()
+	// cid := work.Body.PopInt32()
+	logger.Info("Service: %d, Cid: %d", agreement.Service, agreement.Cid)
 
-	switch commission {
+	switch uint16(agreement.Service) {
 	case define.Register:
 		// TODO: 伺服器之間的連線，第一次訊息中除了前導碼，還需要自我介紹。
 		s.MainServerId = work.Index
 		bs := work.Body.PopByteArray()
-		logger.Info("MainServerId: %d, cid: %d, bs: %+v", s.MainServerId, cid, bs)
+		account := &pbgo.Account{}
+		proto.Unmarshal(bs, account)
+		agreement.Accounts = append(agreement.Accounts, account)
 		work.Finish()
 
 		// ==================================================
 		// 準備將請求轉送給 DBA server
 		// ==================================================
 		td := base.NewTransData()
-		td.AddByte(define.CommissionCommand)
-		td.AddUInt16(define.Register)
-		td.AddInt32(cid)
+		// td.AddByte(define.CommissionCommand)
+		// td.AddUInt16(define.Register)
+		// td.AddInt32(cid)
 
+		bs, _ = agreement.Marshal()
 		// Account data for register
 		td.AddByteArray(bs)
 
@@ -118,43 +132,45 @@ func (s *AccountServer) handleCommission(work *base.Work) {
 	case define.Login:
 		bs := work.Body.PopByteArray()
 		data := &pbgo.Account{}
-		err := proto.Unmarshal(bs, data)
+		proto.Unmarshal(bs, data)
+		agreement.Accounts = append(agreement.Accounts, data)
 
 		work.Body.Clear()
 		work.Body.AddByte(define.CommissionCommand)
 		work.Body.AddUInt16(define.Login)
-		defer work.SendTransData()
-
-		if err != nil {
-			// Return code
-			work.Body.AddUInt16(1)
-			work.Body.AddInt32(cid)
-			logger.Error("Failed to unmarshal.")
-			return
-		}
+		defer func() {
+			// bs, _ = agreement.Marshal()
+			// work.Body.AddByteArray(bs)
+			work.SendTransData()
+		}()
 
 		var account *pbgo.Account
 		var ok bool
 
 		if account, ok = s.accounts.GetByKey2(data.Account); !ok {
 			// Return code
+			// agreement.ReturnCode = 2
+			agreement.Msg = fmt.Sprintf("Account %s not exists.", data.Account)
+			work.Body.AddInt32(agreement.Cid)
 			work.Body.AddUInt16(2)
-			work.Body.AddInt32(cid)
-			logger.Error("Account %s not exists.", data.Account)
+			logger.Error(agreement.Msg)
 			return
 		}
 
 		if data.Password != account.Password {
 			// Return code
+			// agreement.ReturnCode = 3
+			agreement.Msg = fmt.Sprintf("Password %s is not correct.", data.Password)
+			work.Body.AddInt32(agreement.Cid)
 			work.Body.AddUInt16(3)
-			work.Body.AddInt32(cid)
-			logger.Error("Password %s is not correct.", data.Password)
+			logger.Error(agreement.Msg)
 			return
 		}
 
 		// Return code
+		// agreement.ReturnCode = 0
+		work.Body.AddInt32(agreement.Cid)
 		work.Body.AddUInt16(0)
-		work.Body.AddInt32(cid)
 		bs, _ = proto.Marshal(account)
 		work.Body.AddByteArray(bs)
 		logger.Info("account: %+v", account)
@@ -170,7 +186,7 @@ func (s *AccountServer) handleCommission(work *base.Work) {
 		}
 		// 填入原始密碼
 		newAccount.Password = account.Password
-
+		agreement.Accounts = append(agreement.Accounts, newAccount)
 		// 當前工作直接結束，無須回應
 		work.Finish()
 
@@ -179,14 +195,15 @@ func (s *AccountServer) handleCommission(work *base.Work) {
 		// ==================================================
 		// 形成 "更新用戶資訊" 的請求
 		td := base.NewTransData()
-		td.AddByte(define.CommissionCommand)
-		td.AddUInt16(define.SetUserData)
-		td.AddInt32(cid)
+		// td.AddByte(define.CommissionCommand)
+		// td.AddUInt16(define.SetUserData)
+		// td.AddInt32(cid)
 
-		// 寫入 pbgo.Account
-		bs, _ = proto.Marshal(newAccount)
+		// // 寫入 pbgo.Account
+		// bs, _ = proto.Marshal(newAccount)
+		// td.AddByteArray(bs)
+		bs, _ = agreement.Marshal()
 		td.AddByteArray(bs)
-
 		data := td.FormData()
 
 		logger.Info("data: %+v", data)
@@ -201,7 +218,7 @@ func (s *AccountServer) handleCommission(work *base.Work) {
 		}
 
 	default:
-		fmt.Printf("Unsupport commission: %d\n", commission)
+		fmt.Printf("Unsupport commission: %d", agreement.Service)
 		work.Finish()
 	}
 }
