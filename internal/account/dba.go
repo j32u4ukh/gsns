@@ -77,21 +77,17 @@ func (s *AccountServer) handleDbaCommission(work *base.Work, agreement *agrt.Agr
 		account := proto.Clone(agreement.Accounts[0]).(*pbgo.Account)
 		s.accounts.Set(account.Index, account.Account, account)
 		logger.Info("New account created : %+v", account)
+		// 隱藏密碼相關資訊，無須提供給 GSNS
+		agreement.Accounts[0].Password = ""
 
 		td := base.NewTransData()
-		td.AddByte(byte(agreement.Cmd))
-		td.AddUInt16(uint16(agreement.Service))
-		td.AddInt32(agreement.Cid)
-		td.AddUInt16(uint16(agreement.ReturnCode))
-
-		if agreement.ReturnCode != 0 {
-			logger.Error("ReturnCode: %d", agreement.ReturnCode)
-		} else {
-			// 隱藏密碼相關資訊，無須提供給 GSNS
-			agreement.Accounts[0].Password = ""
-			bs, _ := proto.Marshal(agreement.Accounts[0])
-			td.AddByteArray(bs)
-		}
+		// bs, _ := proto.Marshal(agreement.Accounts[0])
+		bs, _ := agreement.Marshal()
+		td.AddByteArray(bs)
+		// td.AddByte(byte(agreement.Cmd))
+		// td.AddUInt16(uint16(agreement.Service))
+		// td.AddInt32(agreement.Cid)
+		// td.AddUInt16(uint16(agreement.ReturnCode))
 
 		data := td.FormData()
 
@@ -107,27 +103,30 @@ func (s *AccountServer) handleDbaCommission(work *base.Work, agreement *agrt.Agr
 		var err error
 		work.Finish()
 		td := base.NewTransData()
-		td.AddByte(byte(agreement.Cmd))
-		td.AddUInt16(uint16(agreement.Service))
-		td.AddInt32(agreement.Cid)
-		td.AddUInt16(uint16(agreement.ReturnCode))
+		// td.AddByte(byte(agreement.Cmd))
+		// td.AddUInt16(uint16(agreement.Service))
+		// td.AddInt32(agreement.Cid)
+		// td.AddUInt16(uint16(agreement.ReturnCode))
 
 		if agreement.ReturnCode != 0 {
 			logger.Error("ReturnCode: %d", agreement.ReturnCode)
+			agreement.Accounts = agreement.Accounts[:0]
 		} else {
-			account := agreement.Accounts[0]
+			account := proto.Clone(agreement.Accounts[0]).(*pbgo.Account)
 			logger.Debug("New account: %+v", account)
-
-			// 隱藏密碼相關資訊，無須提供給 GSNS
-			clone := proto.Clone(account).(*pbgo.Account)
-			clone.Password = ""
-			bs, _ := proto.Marshal(clone)
-			td.AddByteArray(bs)
 
 			// 更新用戶帳號緩存
 			bivalue := cntr.NewBivalue(account.Index, account.Account, account)
 			s.accounts.UpdateByKey1(account.Index, bivalue)
+
+			// 隱藏密碼相關資訊，無須提供給 GSNS
+			agreement.Accounts[0].Password = ""
+			// bs, _ := proto.Marshal(clone)
+			// td.AddByteArray(bs)
 		}
+
+		bs, _ := agreement.Marshal()
+		td.AddByteArray(bs)
 		data := td.FormData()
 
 		// 將註冊結果回傳主伺服器

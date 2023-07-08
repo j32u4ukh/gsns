@@ -11,7 +11,6 @@ import (
 	"github.com/j32u4ukh/gos"
 	"github.com/j32u4ukh/gos/ans"
 	"github.com/j32u4ukh/gos/base"
-	"google.golang.org/protobuf/proto"
 )
 
 type AccountServer struct {
@@ -62,12 +61,12 @@ func (s *AccountServer) handleSystemCommand(work *base.Work, agreement *agrt.Agr
 	case define.Heartbeat:
 		logger.Debug("Heart beat! Now: %+v\n", time.Now())
 		work.Body.Clear()
-		work.Body.AddByte(0)
-		work.Body.AddUInt16(0)
-		work.Body.AddString("OK")
-		// agreement.Msg = "OK"
-		// bs, _ := agreement.Marshal()
-		// work.Body.AddByteArray(bs)
+		// work.Body.AddByte(0)
+		// work.Body.AddUInt16(0)
+		// work.Body.AddString("OK")
+		agreement.Msg = "OK"
+		bs, _ := agreement.Marshal()
+		work.Body.AddByteArray(bs)
 		work.SendTransData()
 	default:
 		logger.Warn("Unsupport service: %d\n", agreement.Service)
@@ -134,11 +133,11 @@ func (s *AccountServer) handleCommission(work *base.Work, agreement *agrt.Agreem
 		data := agreement.Accounts[0]
 
 		work.Body.Clear()
-		work.Body.AddByte(define.CommissionCommand)
-		work.Body.AddUInt16(define.Login)
+		// work.Body.AddByte(define.CommissionCommand)
+		// work.Body.AddUInt16(define.Login)
 		defer func() {
-			// bs, _ = agreement.Marshal()
-			// work.Body.AddByteArray(bs)
+			bs, _ := agreement.Marshal()
+			work.Body.AddByteArray(bs)
 			work.SendTransData()
 		}()
 
@@ -147,30 +146,31 @@ func (s *AccountServer) handleCommission(work *base.Work, agreement *agrt.Agreem
 
 		if account, ok = s.accounts.GetByKey2(data.Account); !ok {
 			// Return code
-			// agreement.ReturnCode = 2
+			agreement.ReturnCode = 2
 			agreement.Msg = fmt.Sprintf("Account %s not exists.", data.Account)
-			work.Body.AddInt32(agreement.Cid)
-			work.Body.AddUInt16(2)
+			// work.Body.AddInt32(agreement.Cid)
+			// work.Body.AddUInt16(2)
 			logger.Error(agreement.Msg)
 			return
 		}
 
 		if data.Password != account.Password {
 			// Return code
-			// agreement.ReturnCode = 3
+			agreement.ReturnCode = 3
 			agreement.Msg = fmt.Sprintf("Password %s is not correct.", data.Password)
-			work.Body.AddInt32(agreement.Cid)
-			work.Body.AddUInt16(3)
+			// work.Body.AddInt32(agreement.Cid)
+			// work.Body.AddUInt16(3)
 			logger.Error(agreement.Msg)
 			return
 		}
 
 		// Return code
-		// agreement.ReturnCode = 0
-		work.Body.AddInt32(agreement.Cid)
-		work.Body.AddUInt16(0)
-		bs, _ := proto.Marshal(account)
-		work.Body.AddByteArray(bs)
+		agreement.ReturnCode = 0
+		agreement.Accounts[0] = account
+		// work.Body.AddInt32(agreement.Cid)
+		// work.Body.AddUInt16(0)
+		// bs, _ := proto.Marshal(account)
+		// work.Body.AddByteArray(bs)
 		logger.Info("account: %+v", account)
 
 	// 設置用戶資料

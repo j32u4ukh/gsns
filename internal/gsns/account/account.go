@@ -2,6 +2,7 @@ package account
 
 import (
 	"fmt"
+	"internal/agrt"
 	"internal/define"
 	"internal/pbgo"
 
@@ -10,7 +11,6 @@ import (
 	"github.com/j32u4ukh/gos/ans"
 	"github.com/j32u4ukh/gos/base"
 	"github.com/j32u4ukh/gos/base/ghttp"
-	"google.golang.org/protobuf/proto"
 )
 
 type AccountProtocol struct {
@@ -41,85 +41,73 @@ func (m *AccountMgr) SetHttpAnswer(a *ans.HttpAnser) {
 }
 
 func (m *AccountMgr) WorkHandler(work *base.Work) {
-	cmd := work.Body.PopByte()
-
-	switch cmd {
+	agreement := agrt.GetAgreement()
+	defer agrt.PutAgreement(agreement)
+	bs := work.Body.PopByteArray()
+	err := agreement.Unmarshal(bs)
+	if err != nil {
+		work.Finish()
+		m.logger.Error("Failed to unmarshal agreement, err: %+v", err)
+		return
+	}
+	switch byte(agreement.Cmd) {
 	case define.SystemCommand:
-		m.handleSystemCommand(work)
+		m.handleSystemCommand(work, agreement)
 	case define.CommissionCommand:
-		m.handleAccountCommission(work)
+		m.handleAccountCommission(work, agreement)
 	default:
-		fmt.Printf("Unsupport command: %d\n", cmd)
+		fmt.Printf("Unsupport command: %d\n", agreement.Cmd)
 		work.Finish()
 	}
 }
 
-func (m *AccountMgr) handleSystemCommand(work *base.Work) {
-	service := work.Body.PopUInt16()
-
-	switch service {
-	case 0:
-		response := work.Body.PopString()
-		fmt.Printf("Heart beat response: %s\n", response)
+func (m *AccountMgr) handleSystemCommand(work *base.Work, agreement *agrt.Agreement) {
+	switch uint16(agreement.Service) {
+	case define.Heartbeat:
+		fmt.Printf("Heart beat response: %s\n", agreement.Msg)
 		work.Finish()
 	default:
-		fmt.Printf("Unsupport service: %d\n", service)
+		fmt.Printf("Unsupport service: %d\n", agreement.Service)
 		work.Finish()
 	}
 }
 
-func (m *AccountMgr) handleAccountCommission(work *base.Work) {
-	commission := work.Body.PopUInt16()
-	switch commission {
+func (m *AccountMgr) handleAccountCommission(work *base.Work, agreement *agrt.Agreement) {
+	switch uint16(agreement.Service) {
 	case define.Register:
+		work.Finish()
 		// TODO: 利用 cid 取得對應的 Context
-		c := m.httpAnswer.GetContext(-1)
-		c.Cid = work.Body.PopInt32()
+		c := m.httpAnswer.GetContext(agreement.Cid)
+		// c.Cid = agreement.Cid
+		m.logger.Debug("returnCode: %d", agreement.ReturnCode)
 
-		returnCode := work.Body.PopUInt16()
-		m.logger.Debug("returnCode: %d", returnCode)
-
-		if returnCode != 0 {
-			work.Finish()
+		if agreement.ReturnCode != 0 {
 			c.Json(ghttp.StatusBadGateway, ghttp.H{
 				"ret": 1,
-				"msg": fmt.Sprintf("returnCode: %d", returnCode),
+				"msg": fmt.Sprintf("returnCode: %d", agreement.ReturnCode),
 			})
 		} else {
-			bs := work.Body.PopByteArray()
-			work.Finish()
-
-			account := &pbgo.Account{}
-			err := proto.Unmarshal(bs, account)
-
-			if err != nil {
-				c.Json(ghttp.StatusBadGateway, ghttp.H{
-					"ret": 2,
-					"msg": fmt.Sprintf("Failed to unmarshal account data, err: %+v", err),
-				})
-			} else {
-				c.Json(ghttp.StatusOK, ghttp.H{
-					"ret": 0,
-					"msg": fmt.Sprintf("registered account: %+v", account),
-				})
-			}
+			c.Json(ghttp.StatusOK, ghttp.H{
+				"ret": 0,
+				"msg": fmt.Sprintf("registered account: %+v", agreement.Accounts[0]),
+			})
 		}
 		m.httpAnswer.Send(c)
 
 	case define.Login:
 		// 取得空閒的 HTTP 連線物件
-		c := m.httpAnswer.GetContext(-1)
+		c := m.httpAnswer.GetContext(agreement.Cid)
 
 		// 取得客戶端編號
-		c.Cid = work.Body.PopInt32()
+		// c.Cid = work.Body.PopInt32()
 
-		returnCode := work.Body.PopUInt16()
-		m.logger.Debug("returnCode: %d", returnCode)
+		// returnCode := work.Body.PopUInt16()
+		m.logger.Debug("returnCode: %d", agreement.ReturnCode)
 
-		if returnCode == 0 {
-			bs := work.Body.PopByteArray()
-			account := &pbgo.Account{}
-			proto.Unmarshal(bs, account)
+		if agreement.ReturnCode == 0 {
+			// bs := work.Body.PopByteArray()
+			account := agreement.Accounts[0]
+			// proto.Unmarshal(bs, account)
 			m.logger.Info("index: %d, name: %s, Account: %+v", account.Index, account.Account)
 			user := &pbgo.SnsUser{
 				Index: account.Index,
@@ -152,18 +140,18 @@ func (m *AccountMgr) handleAccountCommission(work *base.Work) {
 
 	case define.SetUserData:
 		// 取得空閒的 HTTP 連線物件
-		c := m.httpAnswer.GetContext(-1)
+		c := m.httpAnswer.GetContext(agreement.Cid)
 
 		// 取得客戶端編號
-		c.Cid = work.Body.PopInt32()
+		// c.Cid = work.Body.PopInt32()
 
-		returnCode := work.Body.PopUInt16()
-		m.logger.Debug("returnCode: %d", returnCode)
+		// returnCode := work.Body.PopUInt16()
+		m.logger.Debug("returnCode: %d", agreement.ReturnCode)
 
-		if returnCode == 0 {
-			bs := work.Body.PopByteArray()
-			account := &pbgo.Account{}
-			proto.Unmarshal(bs, account)
+		if agreement.ReturnCode == 0 {
+			// bs := work.Body.PopByteArray()
+			account := agreement.Accounts[0]
+			// proto.Unmarshal(bs, account)
 			m.logger.Info("index: %d, name: %s", account.Index, account.Account)
 			user, ok := m.users.GetByKey1(account.Index)
 			if !ok {
@@ -186,7 +174,7 @@ func (m *AccountMgr) handleAccountCommission(work *base.Work) {
 			}
 		} else {
 			c.Json(ghttp.StatusInternalServerError, ghttp.H{
-				"err": fmt.Sprintf("Return code %d", returnCode),
+				"err": fmt.Sprintf("Return code %d", agreement.ReturnCode),
 			})
 		}
 
