@@ -50,7 +50,7 @@ func (m *AccountMgr) WorkHandler(work *base.Work) {
 		m.logger.Error("Failed to unmarshal agreement, err: %+v", err)
 		return
 	}
-	switch byte(agreement.Cmd) {
+	switch agreement.Cmd {
 	case define.SystemCommand:
 		m.handleSystemCommand(work, agreement)
 	case define.CommissionCommand:
@@ -62,7 +62,7 @@ func (m *AccountMgr) WorkHandler(work *base.Work) {
 }
 
 func (m *AccountMgr) handleSystemCommand(work *base.Work, agreement *agrt.Agreement) {
-	switch uint16(agreement.Service) {
+	switch agreement.Service {
 	case define.Heartbeat:
 		fmt.Printf("Heart beat response: %s\n", agreement.Msg)
 		work.Finish()
@@ -73,12 +73,11 @@ func (m *AccountMgr) handleSystemCommand(work *base.Work, agreement *agrt.Agreem
 }
 
 func (m *AccountMgr) handleAccountCommission(work *base.Work, agreement *agrt.Agreement) {
-	switch uint16(agreement.Service) {
+	switch agreement.Service {
 	case define.Register:
 		work.Finish()
-		// TODO: 利用 cid 取得對應的 Context
+		// 利用 cid 取得對應的 Context
 		c := m.httpAnswer.GetContext(agreement.Cid)
-		// c.Cid = agreement.Cid
 		m.logger.Debug("returnCode: %d", agreement.ReturnCode)
 
 		if agreement.ReturnCode != 0 {
@@ -97,17 +96,10 @@ func (m *AccountMgr) handleAccountCommission(work *base.Work, agreement *agrt.Ag
 	case define.Login:
 		// 取得空閒的 HTTP 連線物件
 		c := m.httpAnswer.GetContext(agreement.Cid)
-
-		// 取得客戶端編號
-		// c.Cid = work.Body.PopInt32()
-
-		// returnCode := work.Body.PopUInt16()
 		m.logger.Debug("returnCode: %d", agreement.ReturnCode)
 
 		if agreement.ReturnCode == 0 {
-			// bs := work.Body.PopByteArray()
 			account := agreement.Accounts[0]
-			// proto.Unmarshal(bs, account)
 			m.logger.Info("index: %d, name: %s, Account: %+v", account.Index, account.Account)
 			user := &pbgo.SnsUser{
 				Index: account.Index,
@@ -141,17 +133,10 @@ func (m *AccountMgr) handleAccountCommission(work *base.Work, agreement *agrt.Ag
 	case define.SetUserData:
 		// 取得空閒的 HTTP 連線物件
 		c := m.httpAnswer.GetContext(agreement.Cid)
-
-		// 取得客戶端編號
-		// c.Cid = work.Body.PopInt32()
-
-		// returnCode := work.Body.PopUInt16()
 		m.logger.Debug("returnCode: %d", agreement.ReturnCode)
 
 		if agreement.ReturnCode == 0 {
-			// bs := work.Body.PopByteArray()
 			account := agreement.Accounts[0]
-			// proto.Unmarshal(bs, account)
 			m.logger.Info("index: %d, name: %s", account.Index, account.Account)
 			user, ok := m.users.GetByKey1(account.Index)
 			if !ok {

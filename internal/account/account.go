@@ -52,15 +52,13 @@ func initGos() error {
 			logger.Info("完成與 Dba Server 建立 TCP 連線")
 			agreement := agrt.GetAgreement()
 			defer agrt.PutAgreement(agreement)
+			agreement.Cmd = int32(define.NormalCommand)
+			agreement.Service = int32(define.GetUserData)
 
 			// 請求取得用戶資料
 			td := base.NewTransData()
-			agreement.Cmd = int32(define.NormalCommand)
-			agreement.Service = int32(define.GetUserData)
 			bs, _ := agreement.Marshal()
 			td.AddByteArray(bs)
-			// td.AddByte(define.NormalCommand)
-			// td.AddUInt16(define.GetUserData)
 			data := td.FormData()
 
 			// 將註冊結果回傳主伺服器

@@ -3,7 +3,7 @@ package define
 // Command type id
 const (
 	// 系統任務
-	SystemCommand byte = iota
+	SystemCommand int32 = iota
 	// 一般任務
 	NormalCommand
 	// 轉交型請求
@@ -13,7 +13,7 @@ const (
 // Request / Response id
 const (
 	// 系統任務 SystemCommand
-	Heartbeat uint16 = iota
+	Heartbeat int32 = iota
 	// 一般任務 NormalCommand
 	GetUserData
 	SetUserData

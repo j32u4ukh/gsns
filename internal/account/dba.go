@@ -23,7 +23,7 @@ func (s *AccountServer) DbaHandler(work *base.Work) {
 		return
 	}
 	logger.Info("Cmd: %d, Service: %d", agreement.Cmd, agreement.Service)
-	switch byte(agreement.Cmd) {
+	switch agreement.Cmd {
 	case define.SystemCommand:
 		s.handleDbaSystemCommand(work, agreement)
 	case define.NormalCommand:
@@ -37,7 +37,7 @@ func (s *AccountServer) DbaHandler(work *base.Work) {
 }
 
 func (s *AccountServer) handleDbaSystemCommand(work *base.Work, agreement *agrt.Agreement) {
-	switch uint16(agreement.Service) {
+	switch agreement.Service {
 	// 回應心跳包
 	case define.Heartbeat:
 		fmt.Printf("Heart response Now: %+v\n", time.Now())
@@ -49,7 +49,7 @@ func (s *AccountServer) handleDbaSystemCommand(work *base.Work, agreement *agrt.
 }
 
 func (s *AccountServer) handleDbaNormalCommand(work *base.Work, agreement *agrt.Agreement) {
-	switch uint16(agreement.Service) {
+	switch agreement.Service {
 	// 取得用戶資訊
 	case define.GetUserData:
 		logger.Debug("GetUserData")
@@ -69,7 +69,7 @@ func (s *AccountServer) handleDbaNormalCommand(work *base.Work, agreement *agrt.
 }
 
 func (s *AccountServer) handleDbaCommission(work *base.Work, agreement *agrt.Agreement) {
-	switch uint16(agreement.Service) {
+	switch agreement.Service {
 	case define.Register:
 		work.Finish()
 
@@ -81,14 +81,8 @@ func (s *AccountServer) handleDbaCommission(work *base.Work, agreement *agrt.Agr
 		agreement.Accounts[0].Password = ""
 
 		td := base.NewTransData()
-		// bs, _ := proto.Marshal(agreement.Accounts[0])
 		bs, _ := agreement.Marshal()
 		td.AddByteArray(bs)
-		// td.AddByte(byte(agreement.Cmd))
-		// td.AddUInt16(uint16(agreement.Service))
-		// td.AddInt32(agreement.Cid)
-		// td.AddUInt16(uint16(agreement.ReturnCode))
-
 		data := td.FormData()
 
 		// 將註冊結果回傳主伺服器
@@ -103,10 +97,6 @@ func (s *AccountServer) handleDbaCommission(work *base.Work, agreement *agrt.Agr
 		var err error
 		work.Finish()
 		td := base.NewTransData()
-		// td.AddByte(byte(agreement.Cmd))
-		// td.AddUInt16(uint16(agreement.Service))
-		// td.AddInt32(agreement.Cid)
-		// td.AddUInt16(uint16(agreement.ReturnCode))
 
 		if agreement.ReturnCode != 0 {
 			logger.Error("ReturnCode: %d", agreement.ReturnCode)
@@ -121,8 +111,6 @@ func (s *AccountServer) handleDbaCommission(work *base.Work, agreement *agrt.Agr
 
 			// 隱藏密碼相關資訊，無須提供給 GSNS
 			agreement.Accounts[0].Password = ""
-			// bs, _ := proto.Marshal(clone)
-			// td.AddByteArray(bs)
 		}
 
 		bs, _ := agreement.Marshal()

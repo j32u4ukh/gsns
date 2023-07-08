@@ -61,23 +61,11 @@ func (m *AccountMgr) register(c *ghttp.Context) {
 		Info:     ap.Info,
 	}
 
-	// 帳號名稱
-	account.Account = ap.Account
-
-	// 密碼原文()
-	account.Password = ap.Password
-
-	account.Info = ap.Info
 	m.logger.Info("Register account: %+v", account)
 	agreement.Accounts = append(agreement.Accounts, account)
 
-	// ==================================================
-	// 準備將請求轉送給 Account server
-	// ==================================================
-	// 形成 "建立使用者" 的請求
-	td := base.NewTransData()
-
 	// 寫入 agreement
+	td := base.NewTransData()
 	bs, _ := agreement.Marshal()
 	td.AddByteArray(bs)
 	data := td.FormData()
@@ -143,10 +131,9 @@ func (m *AccountMgr) login(c *ghttp.Context) {
 		})
 		m.httpAnswer.Send(c)
 		return
-	} else {
-		// 將當前 Http 的工作結束
-		m.httpAnswer.Finish(c)
 	}
+	// 將當前 Http 的工作結束
+	m.httpAnswer.Finish(c)
 }
 
 func (m *AccountMgr) logout(c *ghttp.Context) {
@@ -254,9 +241,8 @@ func (m *AccountMgr) setUserInfo(c *ghttp.Context) {
 
 	agreement.Accounts = append(agreement.Accounts, account)
 
-	// 形成 "更新用戶資訊" 的請求
-	td := base.NewTransData()
 	// 寫入 agreement
+	td := base.NewTransData()
 	bs, _ := agreement.Marshal()
 	td.AddByteArray(bs)
 	data := td.FormData()
