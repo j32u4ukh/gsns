@@ -13,7 +13,7 @@ import (
 
 func Init() {
 	fmt.Println("Starting http server...")
-	asker, err := gos.Bind(0, "127.0.0.1", 1023, define.Http)
+	asker, err := gos.Bind(0, "127.0.0.1", 1023, define.Http, nil)
 
 	if err != nil {
 		fmt.Printf("BindError: %+v\n", err)

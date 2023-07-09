@@ -3,9 +3,9 @@ OpenSNS base on Golang, hope everyone can build a SNS and connect to each other 
 
 **應用多款獨立開發的套件，開發此`社群網路服務`，開發的同時完善所用到的套件**
 
-* github.com/j32u4ukh/glog (public)
-* github.com/j32u4ukh/gos (private)
-* github.com/j32u4ukh/gosql (private)
+* github.com/j32u4ukh/glog
+* github.com/j32u4ukh/gos
+* github.com/j32u4ukh/gosql
 
 ## [glog](https://github.com/j32u4ukh/glog)
 
@@ -15,7 +15,7 @@ OpenSNS base on Golang, hope everyone can build a SNS and connect to each other 
 
 log 輸出成檔案時，可根據時間或檔案大小，進行分檔。
 
-## gos
+## [gos](https://github.com/j32u4ukh/gos)
 
 伺服器框架，目前支援 tcp 與 http 兩種協定，之後也將支援 WebSocket。
 
@@ -23,17 +23,13 @@ log 輸出成檔案時，可根據時間或檔案大小，進行分檔。
 
 基於之前開發所需，目前採用單線程，之後也將開發多線程版本，讓使用者根據需求做選擇。
 
-## gosql
+## [gosql](https://github.com/j32u4ukh/gosql)
 
 使用 Protobuf 來生成 SQL 指令的 ORM 工具，包含讀取 .proto 檔來建立表格。
 
 透過 Where 結構來定義 WHERE 部分的語法，無需自行撰寫語法。
 
 .proto 檔可放在不同伺服器，協定更新或表格更新都很方便。
-
-另有 [j32u4ukh/gorm](https://github.com/j32u4ukh/gorm) 提供類似功能，差別在於使用 Golang 本身的結構，而非 Protobuf。
-
-若要在不同伺服器上使用 j32u4ukh/gorm，則需要再定義一次該結構。
 
 # 其他套件
 

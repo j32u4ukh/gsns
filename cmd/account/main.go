@@ -2,13 +2,13 @@ package main
 
 import (
 	"fmt"
-	"internal/dba"
+	"internal/account"
 
 	"github.com/j32u4ukh/glog/v2"
 )
 
 func main() {
-	fmt.Println("Hello, dba!")
+	fmt.Println("Hello, account!")
 	logger := glog.SetLogger(0, "gsns", glog.DebugLevel)
 	logger.SetFolder("../log")
 	logger.SetOptions(glog.UtcOption(8))
@@ -16,10 +16,10 @@ func main() {
 	logger.SetOptions(glog.BasicOption(glog.InfoLevel, true, false, true, true))
 	logger.SetOptions(glog.BasicOption(glog.WarnLevel, true, true, true, true))
 	logger.SetOptions(glog.BasicOption(glog.ErrorLevel, true, true, true, true))
-	err := dba.Init()
+	err := account.Init()
 	if err != nil {
-		logger.Error(fmt.Sprintf("Dba server 初始化失敗, err: %+v", err))
+		logger.Error(fmt.Sprintf("Account server 初始化失敗, err: %+v", err))
 		return
 	}
-	dba.Run()
+	account.Run()
 }
