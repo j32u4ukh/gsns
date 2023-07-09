@@ -70,10 +70,10 @@ func initDatabase() error {
 		return errors.Wrapf(err, "Failed to init database, err: %+v", err)
 	}
 
-	err = s.initAccountData()
+	err = s.initTables()
 
 	if err != nil {
-		return errors.Wrapf(err, "Failed to init account data, err: %+v", err)
+		return errors.Wrapf(err, "Failed to init tables, err: %+v", err)
 	}
 	return nil
 }

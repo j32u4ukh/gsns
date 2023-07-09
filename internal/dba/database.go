@@ -16,7 +16,38 @@ func (s *DbaServer) initDatabase(db *database.Database, dbName string) {
 	s.DbName = dbName
 }
 
-func (s *DbaServer) initTable(tid int) {
+func (s *DbaServer) initTables() error {
+	tables := map[string]int{
+		"Account":     TidAccount,
+		"PostMessage": TidPostMessage,
+	}
+	var tableName string
+	var tid int
+	var err error
+	var result *database.SqlResult
+	for tableName, tid = range tables {
+		err = s.initTable(tableName, tid)
+		if err != nil {
+			return errors.Wrapf(err, "初始化表格 %s 時發生錯誤", tableName)
+		}
+		result, err = s.tables[tid].Creater().Exec()
+		if err != nil {
+			return errors.Wrapf(err, "建立表格 %s 時發生錯誤", tableName)
+		}
+		logger.Debug("初始化表格 %s\n%+v\n", tableName, result)
+	}
+	return nil
+}
+
+func (s *DbaServer) initTable(tableName string, tid int) error {
+	var tableParams *stmt.TableParam
+	var columnParams []*stmt.ColumnParam
+	var err error
+	tableParams, columnParams, err = plugin.GetProtoParams(fmt.Sprintf("../pb/%s.proto", tableName), dialect.MARIA)
+	if err != nil {
+		return errors.Wrapf(err, "讀取 %s proto 檔時發生錯誤", tableName)
+	}
+	s.tables[tid] = gosql.NewTable(tableName, tableParams, columnParams, stmt.ENGINE, stmt.COLLATE, dialect.MARIA)
 	s.tables[tid].Init(&gosql.TableConfig{
 		Db:               s.db,
 		DbName:           s.DbName,
@@ -26,20 +57,5 @@ func (s *DbaServer) initTable(tid int) {
 		UpdateAnyFunc:    plugin.UpdateProto,
 		PtrToDbFunc:      plugin.ProtoToDb,
 	})
-}
-
-func (s *DbaServer) initAccountData() error {
-	tableName := "Account"
-	tableParams, columnParams, err := plugin.GetProtoParams(fmt.Sprintf("../pb/%s.proto", tableName), dialect.MARIA)
-	if err != nil {
-		return errors.Wrapf(err, "讀取 %s proto 檔時發生錯誤", tableName)
-	}
-	s.tables[TidAccount] = gosql.NewTable(tableName, tableParams, columnParams, stmt.ENGINE, stmt.COLLATE, dialect.MARIA)
-	s.initTable(TidAccount)
-	result, err := s.tables[TidAccount].Creater().Exec()
-	if err != nil {
-		return errors.Wrapf(err, "初始化表格 %s 時發生錯誤", tableName)
-	}
-	logger.Debug("初始化表格 result\n%+v\n", result)
 	return nil
 }

@@ -1,0 +1,21 @@
+syntax = "proto3";
+option go_package = ".;pbgo";
+import "TimeStamp.proto";
+
+message PostMessage {
+    // {"primary_key": "default"}
+    int64 id = 1;
+    
+    int64 parent_id = 2;
+    
+    int32 user_id = 3;
+    
+    // {"size": 500}
+    string content = 4;
+
+    // {"default": "current_timestamp()"}
+    TimeStamp create_time = 5;
+
+    // {"default": "current_timestamp()", "update": "current_timestamp()"}
+    TimeStamp update_time = 6;
+}

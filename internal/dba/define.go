@@ -2,5 +2,6 @@ package dba
 
 // Table id
 const (
-	TidAccount = iota
+	TidAccount int = iota
+	TidPostMessage
 )

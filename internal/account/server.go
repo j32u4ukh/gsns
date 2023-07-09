@@ -72,7 +72,7 @@ func (s *AccountServer) handleSystemCommand(work *base.Work, agreement *agrt.Agr
 }
 
 func (s *AccountServer) handleNormal(work *base.Work, agreement *agrt.Agreement) {
-	switch uint16(agreement.Service) {
+	switch agreement.Service {
 	default:
 		logger.Warn("Unsupport normal service: %d", agreement.Service)
 		work.Finish()
