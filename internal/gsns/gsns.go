@@ -15,6 +15,7 @@ import (
 
 var ms *MainServer
 var accountAsker *ask.Tcp0Asker
+var pmAsker *ask.Tcp0Asker
 var logger *glog.Logger
 
 func Init() error {
@@ -45,7 +46,6 @@ func initGos() error {
 	}
 
 	ms.SetHttpAnswer(anser.(*ans.HttpAnser))
-	ms.HttpHandler(ms.HttpAnswer.Router)
 	logger.Info("Http Anser 伺服器初始化完成")
 
 	// ==================================================
@@ -65,6 +65,24 @@ func initGos() error {
 
 	accountAsker = askAccount.(*ask.Tcp0Asker)
 	accountAsker.SetWorkHandler(ms.AMgr.WorkHandler)
+
+	// ==================================================
+	// 與 PostMessage Server 建立 TCP 連線，將數據依序寫入緩存
+	// ==================================================
+	askPostMessage, err := gos.Bind(define.PostMessageServer, address, define.PostMessagePort, gosDefine.Tcp0, base.OnEventsFunc{
+		gosDefine.OnConnected: func(any) {
+			logger.Info("成功與 PostMessage Server 連線")
+		},
+	})
+
+	if err != nil {
+		return errors.Wrapf(err, "Failed to bind address %s:%d", address, define.PostMessagePort)
+	}
+
+	pmAsker = askPostMessage.(*ask.Tcp0Asker)
+	pmAsker.SetWorkHandler(ms.AMgr.WorkHandler)
+
+	// =============================================
 	logger.Info("伺服器初始化完成")
 
 	// =============================================

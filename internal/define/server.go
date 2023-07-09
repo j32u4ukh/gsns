@@ -4,6 +4,7 @@ package define
 const (
 	DbaServer = iota
 	AccountServer
+	PostMessageServer
 )
 
 // TODO: Connection config
