@@ -38,8 +38,9 @@ type Agreement struct {
 func newAgreement() *Agreement {
 	return &Agreement{
 		Agreement: &pbgo.Agreement{
-			Accounts: []*pbgo.Account{},
-			Users:    []*pbgo.User{},
+			Accounts:     []*pbgo.Account{},
+			Users:        []*pbgo.User{},
+			PostMessages: []*pbgo.PostMessage{},
 		},
 	}
 }
@@ -78,4 +79,5 @@ func (a *Agreement) Release() {
 	agreement.Cid = -1
 	agreement.Accounts = agreement.Accounts[:0]
 	agreement.Users = agreement.Users[:0]
+	agreement.PostMessages = agreement.PostMessages[:0]
 }

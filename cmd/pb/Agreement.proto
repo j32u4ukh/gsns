@@ -2,6 +2,7 @@ syntax = "proto3";
 option go_package = ".;pbgo";
 import "Account.proto";
 import "User.proto";
+import "PostMessage.proto";
 
 message Agreement {
     int32 cmd = 1;
@@ -17,4 +18,6 @@ message Agreement {
     repeated Account accounts = 6;
 
     repeated User users = 7;
+
+    repeated PostMessage post_messages = 8;
 }
