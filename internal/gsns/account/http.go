@@ -51,8 +51,8 @@ func (m *AccountMgr) register(c *ghttp.Context) {
 
 	agreement := agrt.GetAgreement()
 	defer agrt.PutAgreement(agreement)
-	agreement.Cmd = int32(define.CommissionCommand)
-	agreement.Service = int32(define.Register)
+	agreement.Cmd = define.CommissionCommand
+	agreement.Service = define.Register
 	agreement.Cid = c.GetId()
 
 	account := &pbgo.Account{
@@ -125,7 +125,7 @@ func (m *AccountMgr) login(c *ghttp.Context) {
 	err := gos.SendToServer(define.AccountServer, &data, td.GetLength())
 
 	if err != nil {
-		m.logger.Error("Failed to send to server %d: %v\nError: %+v", define.DbaServer, data, err)
+		m.logger.Error("Failed to send to server %d: %v\nError: %+v", define.AccountServer, data, err)
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
 			"err": "Failed to send to server.",
 		})

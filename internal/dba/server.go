@@ -163,6 +163,44 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 		// returnCode
 		agreement.ReturnCode = 0
 
+	case define.AddPost:
+		work.Body.Clear()
+		defer func() {
+			bs, _ := agreement.Marshal()
+			work.Body.AddByteArray(bs)
+			work.SendTransData()
+		}()
+
+		post := agreement.PostMessages[0]
+		// 根據雪花算法，給出 post id
+		post.Id = GetSnowflake(0, 0)
+		logger.Info("post: %+v", post)
+		inserter := s.tables[TidPostMessage].GetInserter()
+		defer s.tables[TidPostMessage].PutInserter(inserter)
+		err := inserter.Insert(post)
+		if err != nil {
+			fmt.Printf("Insert err: %+v", err)
+			agreement.ReturnCode = 1
+			agreement.Msg = "Failed to insert account."
+			agreement.PostMessages = agreement.PostMessages[:0]
+			return
+		}
+
+		var result *database.SqlResult
+		result, err = inserter.Exec()
+
+		if err != nil {
+			fmt.Printf("Insert Exec err: %+v\n", err)
+			agreement.ReturnCode = 2
+			agreement.Msg = "Failed to execute insert statement."
+			agreement.PostMessages = agreement.PostMessages[:0]
+			return
+		}
+
+		logger.Info("result: %s, post: %+v", result, agreement.PostMessages[0])
+		// returnCode
+		agreement.ReturnCode = 0
+
 	default:
 		fmt.Printf("Unsupport commission: %d\n", agreement.Service)
 		work.Finish()

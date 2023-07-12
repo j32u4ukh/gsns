@@ -80,7 +80,7 @@ func initGos() error {
 	}
 
 	pmAsker = askPostMessage.(*ask.Tcp0Asker)
-	pmAsker.SetWorkHandler(ms.AMgr.WorkHandler)
+	pmAsker.SetWorkHandler(ms.PMgr.WorkHandler)
 
 	// =============================================
 	logger.Info("伺服器初始化完成")

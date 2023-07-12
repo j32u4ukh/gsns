@@ -4,9 +4,12 @@ import (
 	"fmt"
 	"internal/agrt"
 	"internal/define"
+	"internal/pbgo"
 	"time"
 
+	"github.com/j32u4ukh/gos"
 	"github.com/j32u4ukh/gos/base"
+	"google.golang.org/protobuf/proto"
 )
 
 func (s *PostMessageServer) DbaHandler(work *base.Work) {
@@ -54,6 +57,30 @@ func (s *PostMessageServer) handleDbaNormalCommand(work *base.Work, agreement *a
 
 func (s *PostMessageServer) handleDbaCommission(work *base.Work, agreement *agrt.Agreement) {
 	switch agreement.Service {
+	case define.AddPost:
+		work.Finish()
+		logger.Debug("#post: %d, returnCode: %d", len(agreement.PostMessages), agreement.ReturnCode)
+		post := proto.Clone(agreement.PostMessages[0]).(*pbgo.PostMessage)
+		logger.Info("New post: %+v", post)
+
+		if post.ParentId == 0 {
+			s.pmRoots[post.Id] = post
+		} else {
+			s.pmLeaves.Add(post.Id, post.ParentId, post)
+		}
+
+		td := base.NewTransData()
+		bs, _ := agreement.Marshal()
+		td.AddByteArray(bs)
+		data := td.FormData()
+
+		// 將註冊結果回傳主伺服器
+		err := gos.SendToClient(define.PostMessagePort, s.MainServerId, &data, td.GetLength())
+
+		if err != nil {
+			logger.Error("Failed to send to client %d: %v\nError: %+v", s.MainServerId, data, err)
+			return
+		}
 	default:
 		fmt.Printf("Unsupport commission: %d\n", agreement.Service)
 		work.Finish()

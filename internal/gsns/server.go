@@ -18,6 +18,7 @@ func newMainServer() *MainServer {
 		AMgr: account.NewAccountMgr(logger),
 		PMgr: pm.NewPostMessageMgr(logger),
 	}
+	m.PMgr.SetFuncGetUserByToken(m.AMgr.GetUserByToken)
 	return m
 }
 

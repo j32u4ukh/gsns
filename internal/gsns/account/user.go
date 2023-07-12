@@ -16,6 +16,10 @@ func (m *AccountMgr) AddUser(user *pbgo.SnsUser) error {
 	return nil
 }
 
+func (m *AccountMgr) GetUserByToken(token uint64) (*pbgo.SnsUser, bool) {
+	return m.users.GetByKey2(token)
+}
+
 // 取得不重複 token
 func (m *AccountMgr) getToken() uint64 {
 	var token uint64

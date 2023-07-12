@@ -16,8 +16,11 @@ const (
 	Heartbeat int32 = iota
 	// 一般任務 NormalCommand
 	GetUserData
-	SetUserData
 	// 轉交型請求 CommissionCommand
 	Register
 	Login
+	// 設置用戶資訊
+	SetUserData
+	// 新增貼文
+	AddPost
 )
