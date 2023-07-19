@@ -22,6 +22,9 @@ func (m *PostMessageMgr) HttpHandler(router *ans.Router) {
 		m.httpAnswer.Send(c)
 	})
 	router.POST("/", m.addNewPost)
+	router.GET("/<user_id int>/<post_id int>", func(c *ghttp.Context) {
+		// TODO: 返回指定的貼文內容
+	})
 }
 
 // 用於新增貼文
