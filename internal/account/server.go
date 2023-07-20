@@ -138,6 +138,20 @@ func (s *AccountServer) handleCommission(work *base.Work, agreement *agrt.Agreem
 		agreement.Accounts[0] = account
 		logger.Info("account: %+v", account)
 
+		// ==================================================
+		// 登入後，向 DBA 取得該用戶的貼文數據，將數據返回給 PostMessage server
+		// ==================================================
+		// agreement2 := agrt.GetAgreement()
+		// defer agrt.PutAgreement(agreement2)
+		// agreement2.Cmd = define.NormalCommand
+		// agreement2.Service = define.GetPost
+		// clone := proto.Clone(account).(*pbgo.Account)
+		// agreement2.Accounts = append(agreement2.Accounts, clone)
+		// td := base.NewTransData()
+		// bs, _ := agreement2.Marshal()
+		// td.AddByteArray(bs)
+		// gos.SendTransDataToServer(define.DbaServer, td)
+
 	// 設置用戶資料
 	case define.SetUserData:
 		newAccount := agreement.Accounts[0]

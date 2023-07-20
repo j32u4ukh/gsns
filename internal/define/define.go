@@ -23,4 +23,6 @@ const (
 	SetUserData
 	// 新增貼文
 	AddPost
+	// 讀取貼文
+	GetPost
 )

@@ -58,7 +58,7 @@ func (s *DbaServer) handleSystemCommand(work *base.Work, agreement *agrt.Agreeme
 	// 回應心跳包
 	case define.Heartbeat:
 		fmt.Printf("Heart beat! Now: %+v\n", time.Now())
-		work.Body.Clear()
+		// work.Body.Clear()
 		bs, _ := agreement.Marshal()
 		work.Body.AddByteArray(bs)
 		work.SendTransData()
@@ -72,7 +72,7 @@ func (s *DbaServer) handleNormalCommand(work *base.Work, agreement *agrt.Agreeme
 	switch agreement.Service {
 	case define.GetUserData:
 		logger.Debug("GetUserData")
-		work.Body.Clear()
+		// work.Body.Clear()
 		defer func() {
 			bs, _ := agreement.Marshal()
 			work.Body.AddByteArray(bs)
@@ -98,13 +98,64 @@ func (s *DbaServer) handleNormalCommand(work *base.Work, agreement *agrt.Agreeme
 		}
 
 		agreement.ReturnCode = 0
+	case define.GetPost:
+		work.Finish()
+		defer func() {
+			td := base.NewTransData()
+			bs, _ := agreement.Marshal()
+			td.AddByteArray(bs)
+			// gos.SendToClient()
+		}()
+
+		// 只有 Account: 取得這些帳號的所有貼文
+		// 有 PostMessage 列表: 取得這些 post_id 的貼文
+		if len(agreement.Accounts) > 0 {
+			userIds := []any{}
+			for _, account := range agreement.Accounts {
+				userIds = append(userIds, account.Index)
+			}
+			selector := s.tables[TidPostMessage].GetSelector()
+			defer s.tables[TidPostMessage].PutSelector(selector)
+			selector.SetCondition(gosql.WS().In("user_id", userIds))
+			pms, err := selector.Query(func() any { return &pbgo.PostMessage{} })
+			if err != nil {
+				agreement.ReturnCode = 1
+				agreement.Msg = "Failed to query posts."
+			} else {
+				agreement.ReturnCode = 0
+				for _, pm := range pms {
+					agreement.PostMessages = append(agreement.PostMessages, pm.(*pbgo.PostMessage))
+				}
+			}
+		} else if len(agreement.PostMessages) > 0 {
+			postIds := []any{}
+			for _, pm := range agreement.PostMessages {
+				postIds = append(postIds, pm.Id)
+			}
+			selector := s.tables[TidPostMessage].GetSelector()
+			defer s.tables[TidPostMessage].PutSelector(selector)
+			selector.SetCondition(gosql.WS().In("id", postIds))
+			pms, err := selector.Query(func() any { return &pbgo.PostMessage{} })
+			if err != nil {
+				agreement.ReturnCode = 2
+				agreement.Msg = "Failed to query posts."
+			} else {
+				agreement.ReturnCode = 0
+				for _, pm := range pms {
+					agreement.PostMessages = append(agreement.PostMessages, pm.(*pbgo.PostMessage))
+				}
+			}
+		} else {
+			agreement.ReturnCode = 3
+			agreement.Msg = "Undefine which posts to query."
+		}
 	}
 }
 
 func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement) {
 	switch agreement.Service {
 	case define.Register:
-		work.Body.Clear()
+		// work.Body.Clear()
 		defer func() {
 			bs, _ := agreement.Marshal()
 			work.Body.AddByteArray(bs)
@@ -138,7 +189,7 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 		account.Index = int32(result.LastInsertId)
 
 	case define.SetUserData:
-		work.Body.Clear()
+		// work.Body.Clear()
 		defer func() {
 			bs, _ := agreement.Marshal()
 			work.Body.AddByteArray(bs)
@@ -164,7 +215,7 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 		agreement.ReturnCode = 0
 
 	case define.AddPost:
-		work.Body.Clear()
+		// work.Body.Clear()
 		defer func() {
 			bs, _ := agreement.Marshal()
 			work.Body.AddByteArray(bs)

@@ -5,6 +5,7 @@ import (
 	"internal/agrt"
 	"internal/define"
 	"internal/pbgo"
+	"strconv"
 
 	"github.com/j32u4ukh/gos"
 	"github.com/j32u4ukh/gos/ans"
@@ -22,8 +23,23 @@ func (m *PostMessageMgr) HttpHandler(router *ans.Router) {
 		m.httpAnswer.Send(c)
 	})
 	router.POST("/", m.addNewPost)
-	router.GET("/<user_id int>/<post_id int>", func(c *ghttp.Context) {
+	router.GET("/<post_id int>", func(c *ghttp.Context) {
 		// TODO: 返回指定的貼文內容
+		ok, value := c.GetParam("post_id")
+		if ok {
+			post_id, _ := strconv.Atoi(value)
+			m.logger.Info("post_id: %d", post_id)
+			c.Json(ghttp.StatusOK, ghttp.H{
+				"ret": 0,
+				"msg": fmt.Sprintf("post_id: %d", post_id),
+			})
+		} else {
+			c.Json(ghttp.StatusBadRequest, ghttp.H{
+				"ret": 1,
+				"msg": "Failed to get post id.",
+			})
+		}
+		m.httpAnswer.Send(c)
 	})
 }
 

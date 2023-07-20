@@ -49,6 +49,14 @@ func (s *PostMessageServer) handleDbaSystemCommand(work *base.Work, agreement *a
 
 func (s *PostMessageServer) handleDbaNormalCommand(work *base.Work, agreement *agrt.Agreement) {
 	switch agreement.Service {
+	case define.GetPost:
+		if agreement.ReturnCode != 0 {
+			logger.Error("Failed to query posts, err: %s", agreement.Msg)
+		} else {
+			for i, pm := range agreement.PostMessages {
+				logger.Debug("%d) %+v", i, pm)
+			}
+		}
 	default:
 		logger.Warn("Unsupport service: %d\n", agreement.Service)
 		work.Finish()

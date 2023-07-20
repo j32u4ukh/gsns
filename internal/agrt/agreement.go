@@ -48,6 +48,7 @@ func newAgreement() *Agreement {
 func (a *Agreement) Init(work *base.Work) error {
 	bs := work.Body.PopByteArray()
 	err := proto.Unmarshal(bs, a.Agreement)
+	defer work.Body.Clear()
 	if err != nil {
 		return errors.Wrap(err, "Failed to unmarshal Agreement.")
 	}

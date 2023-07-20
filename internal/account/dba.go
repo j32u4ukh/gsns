@@ -53,15 +53,15 @@ func (s *AccountServer) handleDbaNormalCommand(work *base.Work, agreement *agrt.
 	// 取得用戶資訊
 	case define.GetUserData:
 		logger.Debug("GetUserData")
-		if agreement.ReturnCode != 0 {
-			work.Finish()
-			return
+		if agreement.ReturnCode == 0 {
+			for _, account := range agreement.Accounts {
+				logger.Debug("account: %+v", account)
+				// 將用戶資訊加入緩存
+				s.accounts.Set(account.Index, account.Account, account)
+			}
 		}
-		for _, account := range agreement.Accounts {
-			logger.Debug("account: %+v", account)
-			// 將用戶資訊加入緩存
-			s.accounts.Set(account.Index, account.Account, account)
-		}
+		work.Finish()
+
 	default:
 		logger.Warn("Unsupport service: %d\n", agreement.Service)
 		work.Finish()
