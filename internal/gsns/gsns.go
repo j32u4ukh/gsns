@@ -1,6 +1,7 @@
 package gsns
 
 import (
+	"internal/agrt"
 	"internal/define"
 	"time"
 
@@ -33,6 +34,29 @@ func Init() error {
 
 func initGos() error {
 	ms = newMainServer()
+	td := base.NewTransData()
+	agreement := agrt.GetAgreement()
+	defer agrt.PutAgreement(agreement)
+	agreement.Cmd = define.SystemCommand
+	agreement.Service = define.Heartbeat
+	bs, _ := agreement.Marshal()
+	td.AddByteArray(bs)
+	data := td.FormData()
+	agreement.Release()
+	td.Clear()
+	heartbeat := make([]byte, len(data))
+	copy(heartbeat, data)
+
+	agreement.Cmd = define.SystemCommand
+	agreement.Service = define.Introduction
+	agreement.Cipher = "GSNS"
+	agreement.Identity = define.GsnsServer
+	bs, _ = agreement.Marshal()
+	td.AddByteArray(bs)
+	data = td.FormData()
+	td.Clear()
+	introduction := make([]byte, len(data))
+	copy(introduction, data)
 
 	// ==================================================
 	// Http Server: 接受來自客戶端的請求
@@ -57,7 +81,7 @@ func initGos() error {
 		gosDefine.OnConnected: func(any) {
 			logger.Info("成功與 AccountServer 連線")
 		},
-	})
+	}, &introduction, &heartbeat)
 
 	if err != nil {
 		return errors.Wrapf(err, "Failed to bind address %s:%d", address, port)
@@ -73,7 +97,7 @@ func initGos() error {
 		gosDefine.OnConnected: func(any) {
 			logger.Info("成功與 PostMessage Server 連線")
 		},
-	})
+	}, &introduction, &heartbeat)
 
 	if err != nil {
 		return errors.Wrapf(err, "Failed to bind address %s:%d", address, define.PostMessagePort)

@@ -19,11 +19,15 @@ type AccountServer struct {
 	// key1: user index, key2: account name;
 	// key1 不可變更，但 key2 可以更新
 	accounts *cntr.BikeyMap[int32, string, *pbgo.Account]
+
+	// key: server id, value: conn id
+	serverIdDict map[int32]int32
 }
 
 func NewAccountServer() *AccountServer {
 	s := &AccountServer{
-		accounts: cntr.NewBikeyMap[int32, string, *pbgo.Account](),
+		accounts:     cntr.NewBikeyMap[int32, string, *pbgo.Account](),
+		serverIdDict: make(map[int32]int32),
 	}
 	return s
 }
@@ -40,7 +44,7 @@ func (s *AccountServer) Handler(work *base.Work) {
 	}
 	switch agreement.Cmd {
 	case define.SystemCommand:
-		s.handleSystemCommand(work, agreement)
+		s.handleSystem(work, agreement)
 	case define.NormalCommand:
 		s.handleNormal(work, agreement)
 	case define.CommissionCommand:
@@ -55,7 +59,7 @@ func (rrs *AccountServer) Run() {
 
 }
 
-func (s *AccountServer) handleSystemCommand(work *base.Work, agreement *agrt.Agreement) {
+func (s *AccountServer) handleSystem(work *base.Work, agreement *agrt.Agreement) {
 	switch agreement.Service {
 	// 回應心跳包
 	case define.Heartbeat:
@@ -65,6 +69,15 @@ func (s *AccountServer) handleSystemCommand(work *base.Work, agreement *agrt.Agr
 		bs, _ := agreement.Marshal()
 		work.Body.AddByteArray(bs)
 		work.SendTransData()
+	case define.Introduction:
+		if agreement.Cipher != define.CIPHER {
+			logger.Error("Cipher: %s, Identity: %d", agreement.Cipher, agreement.Identity)
+			gos.Disconnect(define.DbaPort, work.Index)
+		} else {
+			s.serverIdDict[agreement.Identity] = work.Index
+			logger.Info("Hello %s from %d", define.ServerName(agreement.Identity), work.Index)
+		}
+		work.Finish()
 	default:
 		logger.Warn("Unsupport service: %d\n", agreement.Service)
 		work.Finish()

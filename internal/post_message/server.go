@@ -21,12 +21,16 @@ type PostMessageServer struct {
 	// 回覆他人的貼文，parent id 為被回覆的貼文的 post id
 	// key1: post id, key2: parent id
 	pmLeaves *cntr.BikeyMap[uint64, uint64, *pbgo.PostMessage]
+
+	// key: server id, value: conn id
+	serverIdDict map[int32]int32
 }
 
 func NewPostMessageServer() *PostMessageServer {
 	s := &PostMessageServer{
-		pmRoots:  make(map[uint64]*pbgo.PostMessage),
-		pmLeaves: cntr.NewBikeyMap[uint64, uint64, *pbgo.PostMessage](),
+		pmRoots:      make(map[uint64]*pbgo.PostMessage),
+		pmLeaves:     cntr.NewBikeyMap[uint64, uint64, *pbgo.PostMessage](),
+		serverIdDict: make(map[int32]int32),
 	}
 	return s
 }
@@ -43,11 +47,11 @@ func (s *PostMessageServer) Handler(work *base.Work) {
 	}
 	switch agreement.Cmd {
 	case define.SystemCommand:
-		s.handleSystemCommand(work, agreement)
+		s.handleSystem(work, agreement)
 	case define.NormalCommand:
-		s.handleNormalCommand(work, agreement)
+		s.handleNormal(work, agreement)
 	case define.CommissionCommand:
-		s.handleCommissionCommand(work, agreement)
+		s.handleCommission(work, agreement)
 	default:
 		logger.Warn("Unsupport command: %d\n", agreement.Cmd)
 		work.Finish()
@@ -58,7 +62,7 @@ func (s *PostMessageServer) Run() {
 
 }
 
-func (s *PostMessageServer) handleSystemCommand(work *base.Work, agreement *agrt.Agreement) {
+func (s *PostMessageServer) handleSystem(work *base.Work, agreement *agrt.Agreement) {
 	switch agreement.Service {
 	// 回應心跳包
 	case define.Heartbeat:
@@ -68,13 +72,22 @@ func (s *PostMessageServer) handleSystemCommand(work *base.Work, agreement *agrt
 		bs, _ := agreement.Marshal()
 		work.Body.AddByteArray(bs)
 		work.SendTransData()
+	case define.Introduction:
+		if agreement.Cipher != define.CIPHER {
+			logger.Error("Cipher: %s, Identity: %d", agreement.Cipher, agreement.Identity)
+			gos.Disconnect(define.DbaPort, work.Index)
+		} else {
+			s.serverIdDict[agreement.Identity] = work.Index
+			logger.Info("Hello %s from %d", define.ServerName(agreement.Identity), work.Index)
+		}
+		work.Finish()
 	default:
 		logger.Warn("Unsupport system service: %d\n", agreement.Service)
 		work.Finish()
 	}
 }
 
-func (s *PostMessageServer) handleNormalCommand(work *base.Work, agreement *agrt.Agreement) {
+func (s *PostMessageServer) handleNormal(work *base.Work, agreement *agrt.Agreement) {
 	switch agreement.Service {
 	default:
 		logger.Warn("Unsupport normal service: %d", agreement.Service)
@@ -82,7 +95,7 @@ func (s *PostMessageServer) handleNormalCommand(work *base.Work, agreement *agrt
 	}
 }
 
-func (s *PostMessageServer) handleCommissionCommand(work *base.Work, agreement *agrt.Agreement) {
+func (s *PostMessageServer) handleCommission(work *base.Work, agreement *agrt.Agreement) {
 	logger.Info("Service: %d, Cid: %d", agreement.Service, agreement.Cid)
 
 	switch agreement.Service {

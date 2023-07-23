@@ -20,4 +20,8 @@ message Agreement {
     repeated User users = 7;
 
     repeated PostMessage post_messages = 8;
+    
+    string cipher = 9;
+
+    int32 identity = 10;
 }

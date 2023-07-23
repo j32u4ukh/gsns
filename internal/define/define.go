@@ -25,4 +25,6 @@ const (
 	AddPost
 	// 讀取貼文
 	GetPost
+	// 自我介紹
+	Introduction
 )

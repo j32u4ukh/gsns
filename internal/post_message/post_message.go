@@ -1,6 +1,7 @@
 package pm
 
 import (
+	"internal/agrt"
 	"internal/define"
 	"time"
 
@@ -27,6 +28,26 @@ func Init() error {
 }
 
 func initGos() error {
+	td := base.NewTransData()
+	agreement := agrt.GetAgreement()
+	defer agrt.PutAgreement(agreement)
+	agreement.Cmd = define.SystemCommand
+	agreement.Service = define.Heartbeat
+	bs, _ := agreement.Marshal()
+	td.AddByteArray(bs)
+	heartbeat := td.FormData()
+	agreement.Release()
+	td.Clear()
+
+	agreement.Cmd = define.SystemCommand
+	agreement.Service = define.Introduction
+	agreement.Cipher = "GSNS"
+	agreement.Identity = define.PostMessageServer
+	bs, _ = agreement.Marshal()
+	td.AddByteArray(bs)
+	introduction := td.FormData()
+	td.Clear()
+
 	// ==================================================
 	// 與 Dba Server 建立 TCP 連線，將數據依序寫入緩存
 	// ==================================================
@@ -49,7 +70,7 @@ func initGos() error {
 		gosDefine.OnConnected: func(any) {
 			logger.Info("完成與 Dba Server 建立 TCP 連線")
 		},
-	})
+	}, &introduction, &heartbeat)
 
 	if err != nil {
 		return errors.Wrapf(err, "Failed to bind address %s:%d", address, define.DbaPort)
