@@ -53,6 +53,8 @@ func (m *PostMessageMgr) WorkHandler(work *base.Work) {
 	switch agreement.Cmd {
 	case define.SystemCommand:
 		m.handleSystem(work, agreement)
+	case define.NormalCommand:
+		m.handleNormal(work, agreement)
 	case define.CommissionCommand:
 		m.handleCommission(work, agreement)
 	default:
@@ -69,6 +71,14 @@ func (m *PostMessageMgr) handleSystem(work *base.Work, agreement *agrt.Agreement
 			m.heartbeatTime = time.Now().Add(1 * time.Minute)
 		}
 		work.Finish()
+	default:
+		fmt.Printf("Unsupport system service: %d\n", agreement.Service)
+		work.Finish()
+	}
+}
+
+func (m *PostMessageMgr) handleNormal(work *base.Work, agreement *agrt.Agreement) {
+	switch agreement.Service {
 	default:
 		fmt.Printf("Unsupport system service: %d\n", agreement.Service)
 		work.Finish()
@@ -94,6 +104,24 @@ func (m *PostMessageMgr) handleCommission(work *base.Work, agreement *agrt.Agree
 			})
 		}
 		m.httpAnswer.Send(c)
+	case define.GetPost:
+		// 利用 cid 取得對應的 Context
+		c := m.httpAnswer.GetContext(agreement.Cid)
+		m.logger.Debug("returnCode: %d", agreement.ReturnCode)
+
+		if agreement.ReturnCode != 0 {
+			c.Json(ghttp.StatusBadGateway, ghttp.H{
+				"ret": agreement.ReturnCode,
+				"msg": agreement.Msg,
+			})
+		} else {
+			c.Json(ghttp.StatusOK, ghttp.H{
+				"ret": 0,
+				"pm":  fmt.Sprintf("%+v", agreement.PostMessages[0]),
+			})
+		}
+		m.httpAnswer.Send(c)
+
 	default:
 		fmt.Printf("Unsupport commission service: %d\n", agreement.Service)
 		work.Finish()

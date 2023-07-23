@@ -11,6 +11,7 @@ import (
 	"github.com/j32u4ukh/gos"
 	"github.com/j32u4ukh/gos/ans"
 	"github.com/j32u4ukh/gos/base"
+	"google.golang.org/protobuf/proto"
 )
 
 type PostMessageServer struct {
@@ -118,6 +119,23 @@ func (s *PostMessageServer) handleCommission(work *base.Work, agreement *agrt.Ag
 			logger.Error("Failed to send to server %d: %v\nError: %+v", define.DbaServer, data, err)
 			return
 		}
+
+	case define.GetPost:
+		work.Body.Clear()
+		if len(agreement.PostMessages) == 0 {
+			agreement.ReturnCode = 1
+			agreement.Msg = "Not found posts' id."
+		} else {
+			for i, pm := range agreement.PostMessages {
+				if root, ok := s.pmRoots[pm.Id]; ok {
+					agreement.PostMessages[i] = proto.Clone(root).(*pbgo.PostMessage)
+				}
+			}
+			agreement.ReturnCode = 0
+		}
+		bs, _ := agreement.Marshal()
+		work.Body.AddByteArray(bs)
+		work.SendTransData()
 
 	default:
 		fmt.Printf("Unsupport commission service: %d", agreement.Service)

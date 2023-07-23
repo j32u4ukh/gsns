@@ -14,32 +14,8 @@ import (
 
 // TODO: HTTP 請求處理過程中若失敗，要返回錯誤訊息給客戶端，而非印出日誌或直接返回
 func (m *PostMessageMgr) HttpHandler(router *ans.Router) {
-	router.GET("/", func(c *ghttp.Context) {
-		c.Json(ghttp.StatusOK, ghttp.H{
-			"msg": "Hello post message",
-			"cid": c.GetId(),
-		})
-		m.httpAnswer.Send(c)
-	})
 	router.POST("/", m.addNewPost)
-	router.GET("/<post_id int>", func(c *ghttp.Context) {
-		// TODO: 返回指定的貼文內容
-		value := c.GetValue("post_id")
-		if value != nil {
-			post_id := value.(int)
-			m.logger.Info("post_id: %d", post_id)
-			c.Json(ghttp.StatusOK, ghttp.H{
-				"ret": 0,
-				"msg": fmt.Sprintf("post_id: %d", post_id),
-			})
-		} else {
-			c.Json(ghttp.StatusBadRequest, ghttp.H{
-				"ret": 1,
-				"msg": "Failed to get post id.",
-			})
-		}
-		m.httpAnswer.Send(c)
-	})
+	router.GET("/<post_id int>", m.getPost)
 }
 
 // 用於新增貼文
@@ -100,4 +76,45 @@ func (m *PostMessageMgr) addNewPost(c *ghttp.Context) {
 
 	// 將當前 Http 的工作結束
 	m.httpAnswer.Finish(c)
+}
+
+func (m *PostMessageMgr) getPost(c *ghttp.Context) {
+	// TODO: 返回指定的貼文內容
+	value := c.GetValue("post_id")
+	if value != nil {
+
+		post_id := value.(int)
+		m.logger.Info("post_id: %d", post_id)
+
+		agreement := agrt.GetAgreement()
+		defer agrt.PutAgreement(agreement)
+		agreement.Cmd = define.CommissionCommand
+		agreement.Service = define.GetPost
+		agreement.Cid = c.GetId()
+		pm := &pbgo.PostMessage{
+			Id: uint64(post_id),
+		}
+		agreement.PostMessages = append(agreement.PostMessages, pm)
+		bs, _ := agreement.Marshal()
+		td := base.NewTransData()
+		td.AddByteArray(bs)
+		data := td.FormData()
+		err := gos.SendToServer(define.PostMessageServer, &data, int32(len(data)))
+
+		if err != nil {
+			c.Json(ghttp.StatusBadRequest, ghttp.H{
+				"error": "Failed to send data to PostMessage server.",
+			})
+			m.httpAnswer.Send(c)
+		} else {
+			// 將當前 Http 的工作結束
+			m.httpAnswer.Finish(c)
+		}
+
+	} else {
+		c.Json(ghttp.StatusBadRequest, ghttp.H{
+			"error": "Failed to get post id.",
+		})
+		m.httpAnswer.Send(c)
+	}
 }
