@@ -23,9 +23,9 @@ func (s *PostMessageServer) DbaHandler(work *base.Work) {
 	}
 	switch agreement.Cmd {
 	case define.SystemCommand:
-		s.handleDbaSystemCommand(work, agreement)
+		s.handleDbaSystem(work, agreement)
 	case define.NormalCommand:
-		s.handleDbaNormalCommand(work, agreement)
+		s.handleDbaNormal(work, agreement)
 	case define.CommissionCommand:
 		s.handleDbaCommission(work, agreement)
 	default:
@@ -34,7 +34,7 @@ func (s *PostMessageServer) DbaHandler(work *base.Work) {
 	}
 }
 
-func (s *PostMessageServer) handleDbaSystemCommand(work *base.Work, agreement *agrt.Agreement) {
+func (s *PostMessageServer) handleDbaSystem(work *base.Work, agreement *agrt.Agreement) {
 	switch agreement.Service {
 	// 回應心跳包
 	case define.Heartbeat:
@@ -49,14 +49,16 @@ func (s *PostMessageServer) handleDbaSystemCommand(work *base.Work, agreement *a
 	}
 }
 
-func (s *PostMessageServer) handleDbaNormalCommand(work *base.Work, agreement *agrt.Agreement) {
+func (s *PostMessageServer) handleDbaNormal(work *base.Work, agreement *agrt.Agreement) {
 	switch agreement.Service {
 	case define.GetPost:
+		work.Finish()
 		if agreement.ReturnCode != 0 {
-			logger.Error("Failed to query posts, err: %s", agreement.Msg)
+			logger.Error("ReturnCode: %d, err: %s", agreement.ReturnCode, agreement.Msg)
 		} else {
 			for i, pm := range agreement.PostMessages {
 				logger.Debug("%d) %+v", i, pm)
+				s.pmRoots[pm.Id] = pm
 			}
 		}
 	default:

@@ -108,33 +108,37 @@ func (s *DbaServer) handleNormalCommand(work *base.Work, agreement *agrt.Agreeme
 
 		agreement.ReturnCode = 0
 	case define.GetPost:
-		work.Finish()
-		defer func() {
-			td := base.NewTransData()
-			bs, _ := agreement.Marshal()
-			td.AddByteArray(bs)
-			// gos.SendToClient()
-		}()
-
 		// 只有 Account: 取得這些帳號的所有貼文
 		// 有 PostMessage 列表: 取得這些 post_id 的貼文
 		if len(agreement.Accounts) > 0 {
+			work.Finish()
 			userIds := []any{}
 			for _, account := range agreement.Accounts {
 				userIds = append(userIds, account.Index)
 			}
 			selector := s.tables[TidPostMessage].GetSelector()
 			defer s.tables[TidPostMessage].PutSelector(selector)
-			selector.SetCondition(gosql.WS().In("user_id", userIds))
+			selector.SetCondition(gosql.WS().In("user_id", userIds...))
 			pms, err := selector.Query(func() any { return &pbgo.PostMessage{} })
 			if err != nil {
 				agreement.ReturnCode = 1
-				agreement.Msg = "Failed to query posts."
+				agreement.Msg = fmt.Sprintf("Failed to query posts from %+v.", userIds)
+				logger.Error("Failed to query posts, error: %v", err)
 			} else {
 				agreement.ReturnCode = 0
 				for _, pm := range pms {
 					agreement.PostMessages = append(agreement.PostMessages, pm.(*pbgo.PostMessage))
 				}
+			}
+
+			// 將用戶貼文送往 PostMessage server
+			td := base.NewTransData()
+			bs, _ := agreement.Marshal()
+			td.AddByteArray(bs)
+			data := td.FormData()
+			err = gos.SendToClient(define.DbaPort, s.serverIdDict[define.PostMessageServer], &data, int32(len(data)))
+			if err != nil {
+				logger.Error("Failed to send to PostMessage server, err: %+v", err)
 			}
 		} else if len(agreement.PostMessages) > 0 {
 			postIds := []any{}
@@ -154,9 +158,12 @@ func (s *DbaServer) handleNormalCommand(work *base.Work, agreement *agrt.Agreeme
 					agreement.PostMessages = append(agreement.PostMessages, pm.(*pbgo.PostMessage))
 				}
 			}
+			bs, _ := agreement.Marshal()
+			work.Body.AddByteArray(bs)
+			work.SendTransData()
 		} else {
-			agreement.ReturnCode = 3
-			agreement.Msg = "Undefine which posts to query."
+			logger.Error("Undefine which posts to query.")
+			work.Finish()
 		}
 	}
 }

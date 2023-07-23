@@ -63,7 +63,6 @@ func (s *AccountServer) handleDbaNormalCommand(work *base.Work, agreement *agrt.
 			}
 		}
 		work.Finish()
-
 	default:
 		logger.Warn("Unsupport service: %d\n", agreement.Service)
 		work.Finish()

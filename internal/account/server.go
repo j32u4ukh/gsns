@@ -117,14 +117,8 @@ func (s *AccountServer) handleCommission(work *base.Work, agreement *agrt.Agreem
 		}
 
 	case define.Login:
-		data := agreement.Accounts[0]
 		work.Body.Clear()
-		defer func() {
-			bs, _ := agreement.Marshal()
-			work.Body.AddByteArray(bs)
-			work.SendTransData()
-		}()
-
+		data := agreement.Accounts[0]
 		var account *pbgo.Account
 		var ok bool
 
@@ -148,20 +142,24 @@ func (s *AccountServer) handleCommission(work *base.Work, agreement *agrt.Agreem
 		agreement.ReturnCode = 0
 		agreement.Accounts[0] = account
 		logger.Info("account: %+v", account)
+		bs, _ := agreement.Marshal()
+		work.Body.AddByteArray(bs)
+		work.SendTransData()
 
 		// ==================================================
 		// 登入後，向 DBA 取得該用戶的貼文數據，將數據返回給 PostMessage server
 		// ==================================================
-		// agreement2 := agrt.GetAgreement()
-		// defer agrt.PutAgreement(agreement2)
-		// agreement2.Cmd = define.NormalCommand
-		// agreement2.Service = define.GetPost
-		// clone := proto.Clone(account).(*pbgo.Account)
-		// agreement2.Accounts = append(agreement2.Accounts, clone)
-		// td := base.NewTransData()
-		// bs, _ := agreement2.Marshal()
-		// td.AddByteArray(bs)
-		// gos.SendTransDataToServer(define.DbaServer, td)
+		agreement2 := agrt.GetAgreement()
+		defer agrt.PutAgreement(agreement2)
+		agreement2.Cmd = define.NormalCommand
+		agreement2.Service = define.GetPost
+		agreement2.Accounts = append(agreement2.Accounts, account)
+		td := base.NewTransData()
+		bs, _ = agreement2.Marshal()
+		logger.Info("agreement2: %+v", agreement2)
+		td.AddByteArray(bs)
+		bs = td.FormData()
+		gos.SendToServer(define.DbaServer, &bs, int32(len(bs)))
 
 	// 設置用戶資料
 	case define.SetUserData:
