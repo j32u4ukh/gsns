@@ -5,6 +5,7 @@ import (
 	"internal/agrt"
 	"internal/define"
 	"internal/pbgo"
+	"time"
 
 	"github.com/j32u4ukh/cntr"
 	"github.com/j32u4ukh/glog/v2"
@@ -24,14 +25,16 @@ type AccountProtocol struct {
 type AccountMgr struct {
 	httpAnswer *ans.HttpAnser
 	// key1: user id, key2: token
-	users  *cntr.BikeyMap[int32, uint64, *pbgo.SnsUser]
-	logger *glog.Logger
+	users         *cntr.BikeyMap[int32, uint64, *pbgo.SnsUser]
+	logger        *glog.Logger
+	heartbeatTime time.Time
 }
 
 func NewAccountMgr(lg *glog.Logger) *AccountMgr {
 	m := &AccountMgr{
-		users:  cntr.NewBikeyMap[int32, uint64, *pbgo.SnsUser](),
-		logger: lg,
+		users:         cntr.NewBikeyMap[int32, uint64, *pbgo.SnsUser](),
+		logger:        lg,
+		heartbeatTime: time.Now(),
 	}
 	return m
 }
@@ -52,7 +55,7 @@ func (m *AccountMgr) WorkHandler(work *base.Work) {
 	}
 	switch agreement.Cmd {
 	case define.SystemCommand:
-		m.handleSystemCommand(work, agreement)
+		m.handleSystem(work, agreement)
 	case define.CommissionCommand:
 		m.handleAccountCommission(work, agreement)
 	default:
@@ -61,10 +64,13 @@ func (m *AccountMgr) WorkHandler(work *base.Work) {
 	}
 }
 
-func (m *AccountMgr) handleSystemCommand(work *base.Work, agreement *agrt.Agreement) {
+func (m *AccountMgr) handleSystem(work *base.Work, agreement *agrt.Agreement) {
 	switch agreement.Service {
 	case define.Heartbeat:
-		fmt.Printf("Heart beat response: %s\n", agreement.Msg)
+		if time.Now().After(m.heartbeatTime) {
+			m.logger.Info("Heart response Now: %+v", time.Now())
+			m.heartbeatTime = time.Now().Add(1 * time.Minute)
+		}
 		work.Finish()
 	default:
 		fmt.Printf("Unsupport service: %d\n", agreement.Service)

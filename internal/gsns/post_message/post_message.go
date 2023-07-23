@@ -5,6 +5,7 @@ import (
 	"internal/agrt"
 	"internal/define"
 	"internal/pbgo"
+	"time"
 
 	"github.com/j32u4ukh/glog/v2"
 	"github.com/j32u4ukh/gos/ans"
@@ -21,17 +22,16 @@ type PostMessageProtocol struct {
 
 // 與 PostMessage 相關的由這個物件來管理
 type PostMessageMgr struct {
-	httpAnswer *ans.HttpAnser
-	// // key1: user id, key2: token
-	// users  *cntr.BikeyMap[int32, uint64, *pbgo.SnsUser]
+	httpAnswer         *ans.HttpAnser
 	logger             *glog.Logger
 	getUserByTokenFunc func(token uint64) (*pbgo.SnsUser, bool)
+	heartbeatTime      time.Time
 }
 
 func NewPostMessageMgr(lg *glog.Logger) *PostMessageMgr {
 	m := &PostMessageMgr{
-		// users:  cntr.NewBikeyMap[int32, uint64, *pbgo.SnsUser](),
-		logger: lg,
+		heartbeatTime: time.Now(),
+		logger:        lg,
 	}
 	return m
 }
@@ -52,7 +52,7 @@ func (m *PostMessageMgr) WorkHandler(work *base.Work) {
 	}
 	switch agreement.Cmd {
 	case define.SystemCommand:
-		m.handleSystemCommand(work, agreement)
+		m.handleSystem(work, agreement)
 	case define.CommissionCommand:
 		m.handleCommission(work, agreement)
 	default:
@@ -61,10 +61,13 @@ func (m *PostMessageMgr) WorkHandler(work *base.Work) {
 	}
 }
 
-func (m *PostMessageMgr) handleSystemCommand(work *base.Work, agreement *agrt.Agreement) {
+func (m *PostMessageMgr) handleSystem(work *base.Work, agreement *agrt.Agreement) {
 	switch agreement.Service {
 	case define.Heartbeat:
-		fmt.Printf("Heart beat response: %s\n", agreement.Msg)
+		if time.Now().After(m.heartbeatTime) {
+			m.logger.Info("Heart response Now: %+v", time.Now())
+			m.heartbeatTime = time.Now().Add(1 * time.Minute)
+		}
 		work.Finish()
 	default:
 		fmt.Printf("Unsupport system service: %d\n", agreement.Service)

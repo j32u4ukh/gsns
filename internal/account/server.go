@@ -21,13 +21,15 @@ type AccountServer struct {
 	accounts *cntr.BikeyMap[int32, string, *pbgo.Account]
 
 	// key: server id, value: conn id
-	serverIdDict map[int32]int32
+	serverIdDict  map[int32]int32
+	heartbeatTime time.Time
 }
 
 func NewAccountServer() *AccountServer {
 	s := &AccountServer{
-		accounts:     cntr.NewBikeyMap[int32, string, *pbgo.Account](),
-		serverIdDict: make(map[int32]int32),
+		accounts:      cntr.NewBikeyMap[int32, string, *pbgo.Account](),
+		serverIdDict:  make(map[int32]int32),
+		heartbeatTime: time.Now(),
 	}
 	return s
 }
@@ -63,7 +65,6 @@ func (s *AccountServer) handleSystem(work *base.Work, agreement *agrt.Agreement)
 	switch agreement.Service {
 	// 回應心跳包
 	case define.Heartbeat:
-		logger.Debug("Heart beat! Now: %+v\n", time.Now())
 		work.Body.Clear()
 		agreement.Msg = "OK"
 		bs, _ := agreement.Marshal()

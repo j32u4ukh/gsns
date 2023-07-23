@@ -23,14 +23,16 @@ type PostMessageServer struct {
 	pmLeaves *cntr.BikeyMap[uint64, uint64, *pbgo.PostMessage]
 
 	// key: server id, value: conn id
-	serverIdDict map[int32]int32
+	serverIdDict  map[int32]int32
+	heartbeatTime time.Time
 }
 
 func NewPostMessageServer() *PostMessageServer {
 	s := &PostMessageServer{
-		pmRoots:      make(map[uint64]*pbgo.PostMessage),
-		pmLeaves:     cntr.NewBikeyMap[uint64, uint64, *pbgo.PostMessage](),
-		serverIdDict: make(map[int32]int32),
+		pmRoots:       make(map[uint64]*pbgo.PostMessage),
+		pmLeaves:      cntr.NewBikeyMap[uint64, uint64, *pbgo.PostMessage](),
+		serverIdDict:  make(map[int32]int32),
+		heartbeatTime: time.Now(),
 	}
 	return s
 }
@@ -66,7 +68,6 @@ func (s *PostMessageServer) handleSystem(work *base.Work, agreement *agrt.Agreem
 	switch agreement.Service {
 	// 回應心跳包
 	case define.Heartbeat:
-		logger.Debug("Heart beat! Now: %+v\n", time.Now())
 		work.Body.Clear()
 		agreement.Msg = "OK"
 		bs, _ := agreement.Marshal()

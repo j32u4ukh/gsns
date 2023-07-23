@@ -22,7 +22,6 @@ func (s *AccountServer) DbaHandler(work *base.Work) {
 		logger.Error("Failed to unmarshal agreement, err: %+v", err)
 		return
 	}
-	logger.Info("Cmd: %d, Service: %d", agreement.Cmd, agreement.Service)
 	switch agreement.Cmd {
 	case define.SystemCommand:
 		s.handleDbaSystemCommand(work, agreement)
@@ -40,7 +39,10 @@ func (s *AccountServer) handleDbaSystemCommand(work *base.Work, agreement *agrt.
 	switch agreement.Service {
 	// 回應心跳包
 	case define.Heartbeat:
-		fmt.Printf("Heart response Now: %+v\n", time.Now())
+		if time.Now().After(s.heartbeatTime) {
+			logger.Info("Heart response Now: %+v", time.Now())
+			s.heartbeatTime = time.Now().Add(1 * time.Minute)
+		}
 		work.Finish()
 	default:
 		fmt.Printf("Unsupport service: %d\n", agreement.Service)

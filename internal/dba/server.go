@@ -5,7 +5,6 @@ import (
 	"internal/agrt"
 	"internal/define"
 	"internal/pbgo"
-	"time"
 
 	"github.com/j32u4ukh/gos"
 	"github.com/j32u4ukh/gos/base"
@@ -61,7 +60,6 @@ func (s *DbaServer) handleSystem(work *base.Work, agreement *agrt.Agreement) {
 	switch agreement.Service {
 	// 回應心跳包
 	case define.Heartbeat:
-		fmt.Printf("Heart beat! Now: %+v\n", time.Now())
 		bs, _ := agreement.Marshal()
 		work.Body.AddByteArray(bs)
 		work.SendTransData()
