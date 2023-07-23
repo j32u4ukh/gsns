@@ -14,8 +14,7 @@ import (
 )
 
 type AccountServer struct {
-	Tcp          *ans.Tcp0Anser
-	MainServerId int32
+	Tcp *ans.Tcp0Anser
 	// key1: user index, key2: account name;
 	// key1 不可變更，但 key2 可以更新
 	accounts *cntr.BikeyMap[int32, string, *pbgo.Account]
@@ -98,8 +97,6 @@ func (s *AccountServer) handleCommission(work *base.Work, agreement *agrt.Agreem
 
 	switch agreement.Service {
 	case define.Register:
-		// TODO: 伺服器之間的連線，第一次訊息中除了前導碼，還需要自我介紹。
-		s.MainServerId = work.Index
 		work.Finish()
 
 		// ==================================================

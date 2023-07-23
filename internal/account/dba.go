@@ -88,10 +88,10 @@ func (s *AccountServer) handleDbaCommission(work *base.Work, agreement *agrt.Agr
 		data := td.FormData()
 
 		// 將註冊結果回傳主伺服器
-		err := gos.SendToClient(define.AccountPort, s.MainServerId, &data, td.GetLength())
+		err := gos.SendToClient(define.AccountPort, s.serverIdDict[define.GsnsServer], &data, td.GetLength())
 
 		if err != nil {
-			logger.Error("Failed to send to client %d: %v\nError: %+v", s.MainServerId, data, err)
+			logger.Error("Failed to send to client %d: %v\nError: %+v", s.serverIdDict[define.GsnsServer], data, err)
 			return
 		}
 
@@ -120,10 +120,10 @@ func (s *AccountServer) handleDbaCommission(work *base.Work, agreement *agrt.Agr
 		data := td.FormData()
 
 		// 將註冊結果回傳主伺服器
-		err = gos.SendToClient(define.AccountPort, s.MainServerId, &data, td.GetLength())
+		err = gos.SendToClient(define.AccountPort, s.serverIdDict[define.GsnsServer], &data, td.GetLength())
 
 		if err != nil {
-			logger.Error("Failed to send to client %d: %v\nError: %+v", s.MainServerId, data, err)
+			logger.Error("Failed to send to client %d: %v\nError: %+v", s.serverIdDict[define.GsnsServer], data, err)
 			return
 		}
 

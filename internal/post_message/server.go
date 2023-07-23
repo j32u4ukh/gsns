@@ -14,8 +14,7 @@ import (
 )
 
 type PostMessageServer struct {
-	Tcp          *ans.Tcp0Anser
-	MainServerId int32
+	Tcp *ans.Tcp0Anser
 	// 獨立的貼文、不是回覆他人的貼文
 	pmRoots map[uint64]*pbgo.PostMessage
 	// 回覆他人的貼文，parent id 為被回覆的貼文的 post id
@@ -101,8 +100,6 @@ func (s *PostMessageServer) handleCommission(work *base.Work, agreement *agrt.Ag
 
 	switch agreement.Service {
 	case define.AddPost:
-		// TODO: 伺服器之間的連線，第一次訊息中除了前導碼，還需要自我介紹。
-		s.MainServerId = work.Index
 		work.Finish()
 
 		// ==================================================
