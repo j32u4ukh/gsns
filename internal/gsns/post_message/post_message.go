@@ -43,8 +43,7 @@ func (m *PostMessageMgr) SetHttpAnswer(a *ans.HttpAnser) {
 func (m *PostMessageMgr) WorkHandler(work *base.Work) {
 	agreement := agrt.GetAgreement()
 	defer agrt.PutAgreement(agreement)
-	bs := work.Body.PopByteArray()
-	err := agreement.Unmarshal(bs)
+	err := agreement.Init(work)
 	if err != nil {
 		work.Finish()
 		m.logger.Error("Failed to unmarshal agreement, err: %+v", err)
@@ -121,6 +120,7 @@ func (m *PostMessageMgr) handleCommission(work *base.Work, agreement *agrt.Agree
 			})
 		}
 		m.httpAnswer.Send(c)
+		work.Finish()
 
 	default:
 		fmt.Printf("Unsupport commission service: %d\n", agreement.Service)

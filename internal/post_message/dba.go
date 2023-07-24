@@ -93,6 +93,29 @@ func (s *PostMessageServer) handleDbaCommission(work *base.Work, agreement *agrt
 			logger.Error("Failed to send to client %d: %v\nError: %+v", s.serverIdDict[define.GsnsServer], data, err)
 			return
 		}
+	case define.GetPost:
+		work.Finish()
+
+		if agreement.ReturnCode == 0 {
+			pm := agreement.PostMessages[0]
+			s.pmRoots[pm.Id] = proto.Clone(pm).(*pbgo.PostMessage)
+		} else {
+			logger.Info("ReturnCode: %d, Msg: %s", agreement.ReturnCode, agreement.Msg)
+		}
+
+		logger.Info("Response agreement: %+v", agreement)
+		td := base.NewTransData()
+		bs, _ := agreement.Marshal()
+		td.AddByteArray(bs)
+		data := td.FormData()
+
+		// 將註冊結果回傳主伺服器
+		err := gos.SendToClient(define.PostMessagePort, s.serverIdDict[define.GsnsServer], &data, td.GetLength())
+
+		if err != nil {
+			logger.Error("Failed to send to client %d: %v\nError: %+v", s.serverIdDict[define.GsnsServer], data, err)
+			return
+		}
 	default:
 		fmt.Printf("Unsupport commission: %d\n", agreement.Service)
 		work.Finish()

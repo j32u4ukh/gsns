@@ -265,9 +265,30 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 		}
 
 		logger.Info("result: %s, post: %+v", result, agreement.PostMessages[0])
-		// returnCode
 		agreement.ReturnCode = 0
 
+	case define.GetPost:
+		defer func() {
+			bs, _ := agreement.Marshal()
+			work.Body.AddByteArray(bs)
+			work.SendTransData()
+		}()
+		pm := agreement.PostMessages[0]
+		selector := s.tables[TidPostMessage].GetSelector()
+		defer s.tables[TidPostMessage].PutSelector(selector)
+		selector.SetCondition(gosql.WS().Eq("id", pm.Id))
+		pms, err := selector.Query(func() any { return &pbgo.PostMessage{} })
+		if err != nil {
+			agreement.ReturnCode = 2
+			agreement.Msg = fmt.Sprintf("Failed to query post(%d).", pm.Id)
+		} else if len(pms) == 0 {
+			agreement.ReturnCode = 3
+			agreement.Msg = fmt.Sprintf("Not found post with id(%d).", pm.Id)
+		} else {
+			agreement.ReturnCode = 0
+			agreement.PostMessages[0] = pms[0].(*pbgo.PostMessage)
+		}
+		logger.Info("Final agreement: %+v", agreement)
 	default:
 		fmt.Printf("Unsupport commission: %d\n", agreement.Service)
 		work.Finish()

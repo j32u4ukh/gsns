@@ -126,12 +126,28 @@ func (s *PostMessageServer) handleCommission(work *base.Work, agreement *agrt.Ag
 			agreement.ReturnCode = 1
 			agreement.Msg = "Not found posts' id."
 		} else {
-			for i, pm := range agreement.PostMessages {
-				if root, ok := s.pmRoots[pm.Id]; ok {
-					agreement.PostMessages[i] = proto.Clone(root).(*pbgo.PostMessage)
+			pm := agreement.PostMessages[0]
+			if root, ok := s.pmRoots[pm.Id]; ok {
+				agreement.ReturnCode = 0
+				agreement.PostMessages[0] = proto.Clone(root).(*pbgo.PostMessage)
+			} else {
+				bs, _ := agreement.Marshal()
+				td := base.NewTransData()
+				td.AddByteArray(bs)
+				data := td.FormData()
+
+				// 將註冊數據傳到 Dba 伺服器
+				err := gos.SendToServer(define.DbaServer, &data, td.GetLength())
+
+				if err != nil {
+					agreement.ReturnCode = 2
+					agreement.Msg = "Failed to query to DbaServer."
+					logger.Error("%s, err: %+v", agreement.Msg, err)
+				} else {
+					work.Finish()
+					return
 				}
 			}
-			agreement.ReturnCode = 0
 		}
 		bs, _ := agreement.Marshal()
 		work.Body.AddByteArray(bs)
