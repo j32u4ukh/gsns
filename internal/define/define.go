@@ -25,6 +25,8 @@ const (
 	AddPost
 	// 讀取貼文
 	GetPost
+	// 讀取貼文
+	GetMyPosts
 	// 編輯貼文
 	ModifyPost
 	// 自我介紹

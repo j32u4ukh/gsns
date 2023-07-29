@@ -7,6 +7,7 @@ import (
 	"internal/pbgo"
 	"time"
 
+	"github.com/j32u4ukh/cntr"
 	"github.com/j32u4ukh/gos"
 	"github.com/j32u4ukh/gos/base"
 	"google.golang.org/protobuf/proto"
@@ -59,6 +60,10 @@ func (s *PostMessageServer) handleDbaNormal(work *base.Work, agreement *agrt.Agr
 			for i, pm := range agreement.PostMessages {
 				logger.Debug("%d) %+v", i, pm)
 				s.pmRoots[pm.Id] = pm
+				if _, ok := s.postIds[pm.UserId]; !ok {
+					s.postIds[pm.UserId] = cntr.NewSet[uint64]()
+				}
+				s.postIds[pm.UserId].Add(pm.Id)
 			}
 		}
 	default:
@@ -77,6 +82,7 @@ func (s *PostMessageServer) handleDbaCommission(work *base.Work, agreement *agrt
 
 		if post.ParentId == 0 {
 			s.pmRoots[post.Id] = post
+			s.postIds[post.UserId].Add(post.Id)
 		} else {
 			s.pmLeaves.Add(post.Id, post.ParentId, post)
 		}
@@ -96,8 +102,9 @@ func (s *PostMessageServer) handleDbaCommission(work *base.Work, agreement *agrt
 	case define.GetPost:
 		work.Finish()
 		if agreement.ReturnCode == 0 {
-			pm := agreement.PostMessages[0]
-			s.pmRoots[pm.Id] = proto.Clone(pm).(*pbgo.PostMessage)
+			pm := proto.Clone(agreement.PostMessages[0]).(*pbgo.PostMessage)
+			s.pmRoots[pm.Id] = pm
+			s.postIds[pm.UserId].Add(pm.Id)
 		} else {
 			logger.Info("ReturnCode: %d, Msg: %s", agreement.ReturnCode, agreement.Msg)
 		}
@@ -116,8 +123,9 @@ func (s *PostMessageServer) handleDbaCommission(work *base.Work, agreement *agrt
 	case define.ModifyPost:
 		work.Finish()
 		if agreement.ReturnCode == 0 {
-			pm := agreement.PostMessages[0]
-			s.pmRoots[pm.Id] = proto.Clone(pm).(*pbgo.PostMessage)
+			pm := proto.Clone(agreement.PostMessages[0]).(*pbgo.PostMessage)
+			s.pmRoots[pm.Id] = pm
+			s.postIds[pm.UserId].Add(pm.Id)
 		} else {
 			logger.Info("ReturnCode: %d, Msg: %s", agreement.ReturnCode, agreement.Msg)
 		}

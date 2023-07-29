@@ -16,6 +16,8 @@ import (
 
 type PostMessageServer struct {
 	Tcp *ans.Tcp0Anser
+	//
+	postIds map[int32]*cntr.Set[uint64]
 	// 獨立的貼文、不是回覆他人的貼文
 	pmRoots map[uint64]*pbgo.PostMessage
 	// 回覆他人的貼文，parent id 為被回覆的貼文的 post id
@@ -29,6 +31,7 @@ type PostMessageServer struct {
 
 func NewPostMessageServer() *PostMessageServer {
 	s := &PostMessageServer{
+		postIds:       make(map[int32]*cntr.Set[uint64]),
 		pmRoots:       make(map[uint64]*pbgo.PostMessage),
 		pmLeaves:      cntr.NewBikeyMap[uint64, uint64, *pbgo.PostMessage](),
 		serverIdDict:  make(map[int32]int32),
@@ -40,8 +43,7 @@ func NewPostMessageServer() *PostMessageServer {
 func (s *PostMessageServer) Handler(work *base.Work) {
 	agreement := agrt.GetAgreement()
 	defer agrt.PutAgreement(agreement)
-	bs := work.Body.PopByteArray()
-	err := agreement.Unmarshal(bs)
+	err := agreement.Init(work)
 	if err != nil {
 		work.Finish()
 		logger.Error("Failed to unmarshal agreement, err: %+v", err)
@@ -149,6 +151,25 @@ func (s *PostMessageServer) handleCommission(work *base.Work, agreement *agrt.Ag
 				}
 			}
 		}
+		bs, _ := agreement.Marshal()
+		work.Body.AddByteArray(bs)
+		work.SendTransData()
+
+	case define.GetMyPosts:
+		userId := agreement.Accounts[0].Index
+
+		if postIds, ok := s.postIds[userId]; ok {
+			agreement.ReturnCode = 0
+			for postId := range postIds.Elements {
+				if pm, ok := s.pmRoots[postId]; ok {
+					agreement.PostMessages = append(agreement.PostMessages, pm)
+				}
+			}
+		} else {
+			agreement.ReturnCode = 1
+			agreement.Msg = fmt.Sprintf("Not found posts belong to user with id: %d", userId)
+		}
+
 		bs, _ := agreement.Marshal()
 		work.Body.AddByteArray(bs)
 		work.SendTransData()
