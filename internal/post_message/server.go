@@ -113,7 +113,7 @@ func (s *PostMessageServer) handleCommission(work *base.Work, agreement *agrt.Ag
 		logger.Info("data: %+v", data)
 
 		// 將註冊數據傳到 Dba 伺服器
-		err := gos.SendToServer(define.DbaServer, &data, td.GetLength())
+		err := gos.SendToServer(define.DbaServer, &data, int32(len(data)))
 
 		if err != nil {
 			logger.Error("Failed to send to server %d: %v\nError: %+v", define.DbaServer, data, err)
@@ -137,7 +137,7 @@ func (s *PostMessageServer) handleCommission(work *base.Work, agreement *agrt.Ag
 				data := td.FormData()
 
 				// 將註冊數據傳到 Dba 伺服器
-				err := gos.SendToServer(define.DbaServer, &data, td.GetLength())
+				err := gos.SendToServer(define.DbaServer, &data, int32(len(data)))
 
 				if err != nil {
 					agreement.ReturnCode = 2
@@ -149,6 +149,34 @@ func (s *PostMessageServer) handleCommission(work *base.Work, agreement *agrt.Ag
 				}
 			}
 		}
+		bs, _ := agreement.Marshal()
+		work.Body.AddByteArray(bs)
+		work.SendTransData()
+
+	case define.ModifyPost:
+		if len(agreement.PostMessages) == 0 {
+			agreement.ReturnCode = 1
+			agreement.Msg = "Not found posts' id."
+		} else {
+			bs, _ := agreement.Marshal()
+			td := base.NewTransData()
+			td.AddByteArray(bs)
+			data := td.FormData()
+
+			// 將註冊數據傳到 Dba 伺服器
+			err := gos.SendToServer(define.DbaServer, &data, int32(len(data)))
+
+			if err != nil {
+				agreement.ReturnCode = 2
+				agreement.Msg = "Failed to query to DbaServer."
+				logger.Error("%s, err: %+v", agreement.Msg, err)
+			} else {
+				work.Finish()
+				return
+			}
+		}
+
+		// 若發生錯誤時，將錯誤訊息回傳 GSNS 伺服器
 		bs, _ := agreement.Marshal()
 		work.Body.AddByteArray(bs)
 		work.SendTransData()

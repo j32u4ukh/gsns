@@ -72,7 +72,7 @@ func (m *AccountMgr) register(c *ghttp.Context) {
 	m.logger.Info("data: %+v", data)
 
 	// 將註冊數據傳到 Account 伺服器
-	err := gos.SendToServer(define.AccountServer, &data, td.GetLength())
+	err := gos.SendToServer(define.AccountServer, &data, int32(len(data)))
 
 	if err != nil {
 		fmt.Printf("(s *MainServer) CommissionHandler | Failed to send to server %d: %v\nError: %+v\n", define.DbaServer, data, err)
@@ -122,7 +122,7 @@ func (m *AccountMgr) login(c *ghttp.Context) {
 	data := td.FormData()
 
 	// 將登入數據傳到 Account 伺服器
-	err := gos.SendToServer(define.AccountServer, &data, td.GetLength())
+	err := gos.SendToServer(define.AccountServer, &data, int32(len(data)))
 
 	if err != nil {
 		m.logger.Error("Failed to send to server %d: %v\nError: %+v", define.AccountServer, data, err)

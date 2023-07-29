@@ -288,7 +288,26 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 			agreement.ReturnCode = 0
 			agreement.PostMessages[0] = pms[0].(*pbgo.PostMessage)
 		}
-		logger.Info("Final agreement: %+v", agreement)
+
+	case define.ModifyPost:
+		defer func() {
+			bs, _ := agreement.Marshal()
+			work.Body.AddByteArray(bs)
+			work.SendTransData()
+		}()
+		pm := agreement.PostMessages[0]
+		updater := s.tables[TidPostMessage].GetUpdater()
+		defer s.tables[TidPostMessage].PutUpdater(updater)
+		updater.UpdateAny(pm)
+		updater.SetCondition(gosql.WS().Eq("id", pm.Id))
+		result, err := updater.Exec()
+		if err != nil {
+			agreement.ReturnCode = 1
+			agreement.Msg = fmt.Sprintf("Failed to modify post(%d).", pm.Id)
+		} else {
+			logger.Info("Modify result: %+v", result)
+			agreement.ReturnCode = 0
+		}
 	default:
 		fmt.Printf("Unsupport commission: %d\n", agreement.Service)
 		work.Finish()

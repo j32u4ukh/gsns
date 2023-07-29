@@ -87,7 +87,7 @@ func (s *PostMessageServer) handleDbaCommission(work *base.Work, agreement *agrt
 		data := td.FormData()
 
 		// 將註冊結果回傳主伺服器
-		err := gos.SendToClient(define.PostMessagePort, s.serverIdDict[define.GsnsServer], &data, td.GetLength())
+		err := gos.SendToClient(define.PostMessagePort, s.serverIdDict[define.GsnsServer], &data, int32(len(data)))
 
 		if err != nil {
 			logger.Error("Failed to send to client %d: %v\nError: %+v", s.serverIdDict[define.GsnsServer], data, err)
@@ -95,22 +95,39 @@ func (s *PostMessageServer) handleDbaCommission(work *base.Work, agreement *agrt
 		}
 	case define.GetPost:
 		work.Finish()
-
 		if agreement.ReturnCode == 0 {
 			pm := agreement.PostMessages[0]
 			s.pmRoots[pm.Id] = proto.Clone(pm).(*pbgo.PostMessage)
 		} else {
 			logger.Info("ReturnCode: %d, Msg: %s", agreement.ReturnCode, agreement.Msg)
 		}
-
-		logger.Info("Response agreement: %+v", agreement)
 		td := base.NewTransData()
 		bs, _ := agreement.Marshal()
 		td.AddByteArray(bs)
 		data := td.FormData()
 
 		// 將註冊結果回傳主伺服器
-		err := gos.SendToClient(define.PostMessagePort, s.serverIdDict[define.GsnsServer], &data, td.GetLength())
+		err := gos.SendToClient(define.PostMessagePort, s.serverIdDict[define.GsnsServer], &data, int32(len(data)))
+
+		if err != nil {
+			logger.Error("Failed to send to client %d: %v\nError: %+v", s.serverIdDict[define.GsnsServer], data, err)
+			return
+		}
+	case define.ModifyPost:
+		work.Finish()
+		if agreement.ReturnCode == 0 {
+			pm := agreement.PostMessages[0]
+			s.pmRoots[pm.Id] = proto.Clone(pm).(*pbgo.PostMessage)
+		} else {
+			logger.Info("ReturnCode: %d, Msg: %s", agreement.ReturnCode, agreement.Msg)
+		}
+		td := base.NewTransData()
+		bs, _ := agreement.Marshal()
+		td.AddByteArray(bs)
+		data := td.FormData()
+
+		// 將註冊結果回傳主伺服器
+		err := gos.SendToClient(define.PostMessagePort, s.serverIdDict[define.GsnsServer], &data, int32(len(data)))
 
 		if err != nil {
 			logger.Error("Failed to send to client %d: %v\nError: %+v", s.serverIdDict[define.GsnsServer], data, err)

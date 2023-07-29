@@ -82,7 +82,7 @@ func initGos() error {
 			data := td.FormData()
 
 			// 將註冊結果回傳主伺服器
-			err := gos.SendToServer(define.DbaServer, &data, td.GetLength())
+			err := gos.SendToServer(define.DbaServer, &data, int32(len(data)))
 
 			if err != nil {
 				logger.Error("Failed to send to dba %d: %v\nError: %+v", define.DbaServer, data, err)

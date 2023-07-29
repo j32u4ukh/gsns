@@ -9,6 +9,8 @@ github.com/j32u4ukh/glog/v2 v2.0.4 h1:VuL3/cFCGTppZ89R3cXwhYCp9Udj+gRjtbXVvy8Nyr
 github.com/j32u4ukh/glog/v2 v2.0.4/go.mod h1:bTSp2wHDJWYRbf8b8oX/OmDjZ/Po0vQJdvZvH8/KsBA=
 github.com/j32u4ukh/gos v1.4.1 h1:CWd6OEhNLE73VUEoVe5NCRXyd9tu/6dU4iHDwaMfzog=
 github.com/j32u4ukh/gos v1.4.1/go.mod h1:3PVeP2WdAzXAoluMMwLm21pdRW6unZfFHanvXCCHpbg=
+github.com/j32u4ukh/gos v1.4.2 h1:X/kfo2T6XphNdfGlA2nZ7eOrc0L/MVxLh2NlDosGa4w=
+github.com/j32u4ukh/gos v1.4.2/go.mod h1:3PVeP2WdAzXAoluMMwLm21pdRW6unZfFHanvXCCHpbg=
 github.com/j32u4ukh/gosql v0.2.2 h1:d25mN6AxxbLnKVZkSrTpc3LuacDlTajFM7lbL9mzxns=
 github.com/j32u4ukh/gosql v0.2.2/go.mod h1:crzQJLlvM1FdM7vUk61Tb1AKEvBQiHG/aEvgokaea/Q=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=

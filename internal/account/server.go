@@ -109,7 +109,7 @@ func (s *AccountServer) handleCommission(work *base.Work, agreement *agrt.Agreem
 		logger.Info("data: %+v", data)
 
 		// 將註冊數據傳到 Dba 伺服器
-		err := gos.SendToServer(define.DbaServer, &data, td.GetLength())
+		err := gos.SendToServer(define.DbaServer, &data, int32(len(data)))
 
 		if err != nil {
 			logger.Error("Failed to send to server %d: %v\nError: %+v", define.DbaServer, data, err)
@@ -188,7 +188,7 @@ func (s *AccountServer) handleCommission(work *base.Work, agreement *agrt.Agreem
 		logger.Info("data: %+v", data)
 
 		// 將新用戶資訊數據傳到 Account 伺服器
-		err := gos.SendTransDataToServer(define.DbaServer, td)
+		err := gos.SendToServer(define.DbaServer, &data, int32(len(data)))
 
 		if err != nil {
 			fmt.Printf("(s *MainServer) CommissionHandler | Failed to send to server %d: %v\nError: %+v\n", define.DbaServer, data, err)
