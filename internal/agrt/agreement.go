@@ -41,16 +41,17 @@ func newAgreement() *Agreement {
 			Accounts:     []*pbgo.Account{},
 			Users:        []*pbgo.User{},
 			PostMessages: []*pbgo.PostMessage{},
+			Edges:        []*pbgo.Edge{},
 		},
 	}
 }
 
 func (a *Agreement) Init(work *base.Work) error {
-	bs := work.Body.PopByteArray()
-	err := proto.Unmarshal(bs, a.Agreement)
 	defer work.Body.Clear()
+	bs := work.Body.PopByteArray()
+	err := a.Unmarshal(bs)
 	if err != nil {
-		return errors.Wrap(err, "Failed to unmarshal Agreement.")
+		return errors.Wrap(err, "Failed to init Agreement.")
 	}
 	return nil
 }
@@ -66,7 +67,7 @@ func (a *Agreement) Unmarshal(bs []byte) error {
 func (a *Agreement) Marshal() ([]byte, error) {
 	bs, err := proto.Marshal(a.Agreement)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to maeshal Agreement.")
+		return nil, errors.Wrap(err, "Failed to marshal Agreement.")
 	}
 	return bs, nil
 }
@@ -81,4 +82,5 @@ func (a *Agreement) Release() {
 	agreement.Accounts = agreement.Accounts[:0]
 	agreement.Users = agreement.Users[:0]
 	agreement.PostMessages = agreement.PostMessages[:0]
+	agreement.Edges = agreement.Edges[:0]
 }

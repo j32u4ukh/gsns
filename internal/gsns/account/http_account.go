@@ -14,7 +14,8 @@ import (
 )
 
 // TODO: HTTP 請求處理過程中若失敗，要返回錯誤訊息給客戶端，而非印出日誌或直接返回
-func (m *AccountMgr) HttpHandler(router *ans.Router) {
+// [endpoint]/account
+func (m *AccountMgr) HttpAccountHandler(router *ans.Router) {
 
 	// TODO: 註冊：帳密以及個人資訊。儲存以 SHA256 加密後的密碼，而非儲存原始密碼。
 	router.POST("/register", m.register)

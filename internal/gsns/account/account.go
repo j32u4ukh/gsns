@@ -21,6 +21,12 @@ type AccountProtocol struct {
 	Token    uint64
 }
 
+type InteractiveProtocol struct {
+	Token    uint64
+	TargetId int32
+	PostId   uint64
+}
+
 // 與 Account 相關的由這個物件來管理
 type AccountMgr struct {
 	httpAnswer *ans.HttpAnser
@@ -170,6 +176,13 @@ func (m *AccountMgr) handleAccountCommission(work *base.Work, agreement *agrt.Ag
 		}
 
 		work.Finish()
+		m.httpAnswer.Send(c)
+
+	case define.GetOtherUsers:
+		c := m.httpAnswer.GetContext(agreement.Cid)
+		c.Json(ghttp.StatusOK, ghttp.H{
+			"users": agreement.Accounts,
+		})
 		m.httpAnswer.Send(c)
 	default:
 	}

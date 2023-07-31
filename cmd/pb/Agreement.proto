@@ -3,6 +3,7 @@ option go_package = ".;pbgo";
 import "Account.proto";
 import "User.proto";
 import "PostMessage.proto";
+import "Edge.proto";
 
 message Agreement {
     int32 cmd = 1;
@@ -24,4 +25,6 @@ message Agreement {
     string cipher = 9;
 
     int32 identity = 10;
+
+    repeated Edge edges = 11;
 }

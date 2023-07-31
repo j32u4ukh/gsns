@@ -28,7 +28,9 @@ func (s *MainServer) SetHttpAnswer(a *ans.HttpAnser) {
 	// 帳號相關節點
 	s.AMgr.SetHttpAnswer(a)
 	rAccount := a.Router.NewRouter("/account")
-	s.AMgr.HttpHandler(rAccount)
+	s.AMgr.HttpAccountHandler(rAccount)
+	rSocial := a.Router.NewRouter("/social")
+	s.AMgr.HttpSocialHandler(rSocial)
 
 	// 貼文相關節點
 	s.PMgr.SetHttpAnswer(a)

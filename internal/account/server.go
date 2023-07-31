@@ -195,6 +195,21 @@ func (s *AccountServer) handleCommission(work *base.Work, agreement *agrt.Agreem
 			return
 		}
 
+	case define.GetOtherUsers:
+		bs, _ := agreement.Marshal()
+		td := base.NewTransData()
+		td.AddByteArray(bs)
+		data := td.FormData()
+		err := gos.SendToServer(define.DbaServer, &data, int32(len(data)))
+		if err != nil {
+			agreement.ReturnCode = 1
+			agreement.Msg = "Failed to send to Dba server."
+			bs, _ = agreement.Marshal()
+			work.Body.AddByteArray(bs)
+			work.SendTransData()
+		}
+		work.Finish()
+
 	default:
 		fmt.Printf("Unsupport commission: %d", agreement.Service)
 		work.Finish()

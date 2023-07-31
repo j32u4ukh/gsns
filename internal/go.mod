@@ -3,7 +3,7 @@ module internal
 go 1.18
 
 require (
-	github.com/j32u4ukh/cntr v1.2.2
+	github.com/j32u4ukh/cntr v1.2.3
 	github.com/j32u4ukh/glog/v2 v2.0.4
 	github.com/j32u4ukh/gos v1.4.2
 	github.com/j32u4ukh/gosql v0.2.2

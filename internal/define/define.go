@@ -31,4 +31,8 @@ const (
 	ModifyPost
 	// 自我介紹
 	Introduction
+	// 取得其他用戶的列表
+	GetOtherUsers
+	// 訂閱其他用戶
+	Subscribe
 )

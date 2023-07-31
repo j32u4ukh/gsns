@@ -308,6 +308,39 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 			logger.Info("Modify result: %+v", result)
 			agreement.ReturnCode = 0
 		}
+
+	case define.GetOtherUsers:
+		defer func() {
+			bs, _ := agreement.Marshal()
+			work.Body.AddByteArray(bs)
+			work.SendTransData()
+		}()
+
+		requester := agreement.Accounts[0].Index
+		selector := s.tables[TidAccount].GetSelector()
+		defer s.tables[TidAccount].PutSelector(selector)
+		// selector.SetSelectItem(stmt.NewSelectItem("id"))
+		logger.Info("requester: %d", requester)
+		selector.SetCondition(gosql.WS().Ne("index", requester))
+		results, err := selector.Query(func() any { return &pbgo.Account{} })
+		if err != nil {
+			agreement.ReturnCode = 1
+			agreement.Msg = "Failed to select other users' list."
+			logger.Error("GetOtherUsers err: %+v", err)
+			return
+		}
+		var account *pbgo.Account
+		agreement.Accounts = agreement.Accounts[:0]
+		for _, result := range results {
+			account = result.(*pbgo.Account)
+			account.Password = ""
+			account.CreateTime = nil
+			account.UpdateTime = nil
+			logger.Debug("account: %+v", account)
+			agreement.Accounts = append(agreement.Accounts, account)
+		}
+
+		agreement.ReturnCode = 0
 	default:
 		fmt.Printf("Unsupport commission: %d\n", agreement.Service)
 		work.Finish()
