@@ -32,6 +32,7 @@ type AccountMgr struct {
 	httpAnswer *ans.HttpAnser
 	// key1: user id, key2: token
 	users         *cntr.BikeyMap[int32, uint64, *pbgo.SnsUser]
+	edges         map[int32]*cntr.Set[int32]
 	logger        *glog.Logger
 	heartbeatTime time.Time
 }
@@ -39,6 +40,7 @@ type AccountMgr struct {
 func NewAccountMgr(lg *glog.Logger) *AccountMgr {
 	m := &AccountMgr{
 		users:         cntr.NewBikeyMap[int32, uint64, *pbgo.SnsUser](),
+		edges:         make(map[int32]*cntr.Set[int32]),
 		logger:        lg,
 		heartbeatTime: time.Now(),
 	}
@@ -52,8 +54,7 @@ func (m *AccountMgr) SetHttpAnswer(a *ans.HttpAnser) {
 func (m *AccountMgr) WorkHandler(work *base.Work) {
 	agreement := agrt.GetAgreement()
 	defer agrt.PutAgreement(agreement)
-	bs := work.Body.PopByteArray()
-	err := agreement.Unmarshal(bs)
+	err := agreement.Init(work)
 	if err != nil {
 		work.Finish()
 		m.logger.Error("Failed to unmarshal agreement, err: %+v", err)
@@ -179,10 +180,35 @@ func (m *AccountMgr) handleAccountCommission(work *base.Work, agreement *agrt.Ag
 		m.httpAnswer.Send(c)
 
 	case define.GetOtherUsers:
+		work.Finish()
 		c := m.httpAnswer.GetContext(agreement.Cid)
 		c.Json(ghttp.StatusOK, ghttp.H{
 			"users": agreement.Accounts,
 		})
+		m.httpAnswer.Send(c)
+
+	case define.Subscribe:
+		// 取得空閒的 HTTP 連線物件
+		c := m.httpAnswer.GetContext(agreement.Cid)
+		m.logger.Debug("returnCode: %d", agreement.ReturnCode)
+
+		if agreement.ReturnCode == 0 {
+			edge := agreement.Edges[0]
+			if _, ok := m.edges[edge.UserId]; !ok {
+				m.edges[edge.UserId] = cntr.NewSet[int32]()
+			}
+			m.edges[edge.UserId].Add(edge.Target)
+			c.Json(ghttp.StatusOK, ghttp.H{
+				"ret": 0,
+				"msg": fmt.Sprintf("User %d subscribe user %d", edge.UserId, edge.Target),
+			})
+		} else {
+			c.Json(ghttp.StatusInternalServerError, ghttp.H{
+				"err": fmt.Sprintf("Return code %d", agreement.ReturnCode),
+			})
+		}
+
+		work.Finish()
 		m.httpAnswer.Send(c)
 	default:
 	}

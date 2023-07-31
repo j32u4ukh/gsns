@@ -22,7 +22,7 @@ func main() {
 	}
 
 	dc := conf.GetDatabase()
-	gs, err = gstmt.SetGstmt(0, dc.Name, dialect.MARIA)
+	gs, err = gstmt.SetGstmt(0, dc.DbName, dialect.MARIA)
 	gs.UseAntiInjection(true)
 	var sql string
 	sql, err = gs.CreateTable(0, "../../cmd/pb", "Account")

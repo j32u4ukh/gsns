@@ -58,13 +58,13 @@ func initDatabase() error {
 	}
 
 	dc := conf.GetDatabase()
-	db, err := database.Connect(0, dc.UserName, dc.Password, dc.Server, dc.Port, dc.Name)
+	db, err := database.Connect(0, dc.User, dc.Password, dc.Host, dc.Port, dc.DbName)
 
 	if err != nil {
 		return errors.Wrapf(err, "與資料庫連線時發生錯誤, err: %+v", err)
 	}
 
-	s.initDatabase(db, dc.Name)
+	s.initDatabase(db, dc.DbName)
 
 	if err != nil {
 		return errors.Wrapf(err, "Failed to init database, err: %+v", err)

@@ -19,7 +19,7 @@ import (
 func (m *AccountMgr) HttpSocialHandler(router *ans.Router) {
 	// 取得其他用戶的清單
 	router.GET("/other_users", m.getOtherUsers)
-	router.GET("/subscribe", m.subscribe)
+	router.POST("/subscribe", m.subscribe)
 }
 
 // [endpoint]/social/other_users
@@ -121,11 +121,9 @@ func (m *AccountMgr) subscribe(c *ghttp.Context) {
 	agreement.Cmd = define.CommissionCommand
 	agreement.Service = define.Subscribe
 	agreement.Cid = c.GetId()
-	agreement.Accounts = append(agreement.Accounts, &pbgo.Account{
-		Index: user.Index,
-	})
-	agreement.Accounts = append(agreement.Accounts, &pbgo.Account{
-		Index: ip.TargetId,
+	agreement.Edges = append(agreement.Edges, &pbgo.Edge{
+		UserId: user.Index,
+		Target: ip.TargetId,
 	})
 
 	// 寫入 agreement

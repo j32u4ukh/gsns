@@ -20,6 +20,7 @@ func (s *DbaServer) initTables() error {
 	tables := map[string]int{
 		"Account":     TidAccount,
 		"PostMessage": TidPostMessage,
+		"Edge":        TidEdge,
 	}
 	var tableName string
 	var tid int

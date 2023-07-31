@@ -135,10 +135,11 @@ func (s *AccountServer) handleDbaCommission(work *base.Work, agreement *agrt.Agr
 		if agreement.ReturnCode != 0 {
 			logger.Error("ReturnCode: %d", agreement.ReturnCode)
 			agreement.Accounts = agreement.Accounts[:0]
+		} else {
+			bs, _ := agreement.Marshal()
+			td.AddByteArray(bs)
 		}
 
-		bs, _ := agreement.Marshal()
-		td.AddByteArray(bs)
 		data := td.FormData()
 
 		// 將註冊結果回傳主伺服器
@@ -149,6 +150,28 @@ func (s *AccountServer) handleDbaCommission(work *base.Work, agreement *agrt.Agr
 			return
 		}
 
+	case define.Subscribe:
+		work.Finish()
+		var err error
+		td := base.NewTransData()
+
+		if agreement.ReturnCode != 0 {
+			logger.Error("ReturnCode: %d", agreement.ReturnCode)
+			agreement.Edges = agreement.Edges[:0]
+		} else {
+			bs, _ := agreement.Marshal()
+			td.AddByteArray(bs)
+		}
+
+		data := td.FormData()
+
+		// 將註冊結果回傳主伺服器
+		err = gos.SendToClient(define.AccountPort, s.serverIdDict[define.GsnsServer], &data, int32(len(data)))
+
+		if err != nil {
+			logger.Error("Failed to send to client %d: %v\nError: %+v", s.serverIdDict[define.GsnsServer], data, err)
+			return
+		}
 	default:
 		fmt.Printf("Unsupport commission: %d\n", agreement.Service)
 		work.Finish()

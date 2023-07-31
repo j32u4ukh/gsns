@@ -341,6 +341,41 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 		}
 
 		agreement.ReturnCode = 0
+
+	case define.Subscribe:
+		defer func() {
+			bs, _ := agreement.Marshal()
+			work.Body.AddByteArray(bs)
+			work.SendTransData()
+		}()
+
+		edge := agreement.Edges[0]
+		inserter := s.tables[TidEdge].GetInserter()
+		defer s.tables[TidEdge].PutInserter(inserter)
+		err := inserter.Insert(edge)
+
+		if err != nil {
+			agreement.ReturnCode = 1
+			agreement.Msg = "Failed to insert edge."
+			agreement.Edges = agreement.Edges[:0]
+			logger.Error("Subscribe err: %+v", err)
+			return
+		}
+
+		var result *database.SqlResult
+		result, err = inserter.Exec()
+
+		if err != nil {
+			fmt.Printf("Insert Exec err: %+v\n", err)
+			agreement.ReturnCode = 2
+			agreement.Msg = "Failed to execute insert statement."
+			agreement.Edges = agreement.Edges[:0]
+			return
+		}
+
+		logger.Info("result: %s, edge: %+v", result, edge)
+		agreement.ReturnCode = 0
+
 	default:
 		fmt.Printf("Unsupport commission: %d\n", agreement.Service)
 		work.Finish()

@@ -10,6 +10,7 @@ import (
 const (
 	TidAccount int = iota
 	TidPostMessage
+	TidEdge
 )
 
 func GetSnowflake(machineId byte, seqId byte) uint64 {
