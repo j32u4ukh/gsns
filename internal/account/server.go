@@ -148,6 +148,7 @@ func (s *AccountServer) handleCommission(work *base.Work, agreement *agrt.Agreem
 			bs, err = agreement.Marshal()
 			if err != nil {
 				logger.Error("Failed to marshal agreement, err: %+v", err)
+				work.Finish()
 				return
 			}
 			work.Body.AddByteArray(bs)
@@ -162,6 +163,7 @@ func (s *AccountServer) handleCommission(work *base.Work, agreement *agrt.Agreem
 		bs, err = agreement.Marshal()
 		if err != nil {
 			logger.Error("Failed to marshal agreement, err: %+v", err)
+			work.Finish()
 			return
 		}
 		td.AddByteArray(bs)
@@ -175,6 +177,7 @@ func (s *AccountServer) handleCommission(work *base.Work, agreement *agrt.Agreem
 			bs, err = agreement.Marshal()
 			if err != nil {
 				logger.Error("Failed to marshal agreement, err: %+v", err)
+				work.Finish()
 				return
 			}
 			work.Body.AddByteArray(bs)
@@ -196,6 +199,7 @@ func (s *AccountServer) handleCommission(work *base.Work, agreement *agrt.Agreem
 			bs, err = agreement.Marshal()
 			if err != nil {
 				logger.Error("Failed to marshal agreement, err: %+v", err)
+				work.Finish()
 				return
 			}
 			work.Body.AddByteArray(bs)
@@ -227,6 +231,7 @@ func (s *AccountServer) handleCommission(work *base.Work, agreement *agrt.Agreem
 			bs, err = agreement.Marshal()
 			if err != nil {
 				logger.Error("Failed to marshal agreement, err: %+v", err)
+				work.Finish()
 				return
 			}
 			work.Body.AddByteArray(bs)

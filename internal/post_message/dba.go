@@ -98,24 +98,32 @@ func (s *PostMessageServer) handleDbaCommission(work *base.Work, agreement *agrt
 		}
 	case define.GetPost:
 		work.Finish()
+		logger.Info("Receive define.GetPost response(%d): %+v", agreement.ReturnCode, agreement)
+
 		if agreement.ReturnCode == 0 {
 			pm := proto.Clone(agreement.PostMessages[0]).(*pbgo.PostMessage)
-			s.pmRoots[pm.Id] = pm
-			s.postIds[pm.UserId].Add(pm.Id)
-		} else {
-			logger.Info("ReturnCode: %d, Msg: %s", agreement.ReturnCode, agreement.Msg)
+			// s.pmRoots[pm.Id] = pm
+			// s.postIds[pm.UserId].Add(pm.Id)
+			s.cachePost(pm)
 		}
+
 		td := base.NewTransData()
-		bs, _ := agreement.Marshal()
+		bs, err := agreement.Marshal()
+		if err != nil {
+			logger.Error("Failed to marshal agreement, err: %+v", err)
+			return
+		}
 		td.AddByteArray(bs)
 		data := td.FormData()
 
 		// 將註冊結果回傳主伺服器
-		err := gos.SendToClient(define.PostMessagePort, s.serverIdDict[define.GsnsServer], &data, int32(len(data)))
+		err = gos.SendToClient(define.PostMessagePort, s.serverIdDict[define.GsnsServer], &data, int32(len(data)))
 
 		if err != nil {
 			logger.Error("Failed to send to client %d: %v\nError: %+v", s.serverIdDict[define.GsnsServer], data, err)
 			return
+		} else {
+			logger.Info("Send define.GetPost response: %+v", agreement)
 		}
 	case define.ModifyPost:
 		work.Finish()

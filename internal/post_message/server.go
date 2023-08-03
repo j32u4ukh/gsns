@@ -126,43 +126,52 @@ func (s *PostMessageServer) handleCommission(work *base.Work, agreement *agrt.Ag
 		}
 
 	case define.GetPost:
-		work.Body.Clear()
-		if len(agreement.PostMessages) == 0 {
-			agreement.ReturnCode = 1
-			agreement.Msg = "Not found posts' id."
+		var bs []byte
+		var err error
+		pm := agreement.PostMessages[0]
+		if root, ok := s.pmRoots[pm.Id]; ok {
+			agreement.ReturnCode = 0
+			agreement.PostMessages[0] = proto.Clone(root).(*pbgo.PostMessage)
 		} else {
-			pm := agreement.PostMessages[0]
-			if root, ok := s.pmRoots[pm.Id]; ok {
-				agreement.ReturnCode = 0
-				agreement.PostMessages[0] = proto.Clone(root).(*pbgo.PostMessage)
+			bs, err = agreement.Marshal()
+			if err != nil {
+				logger.Error("Failed to marshal agreement, err: %+v", err)
+				work.Finish()
+				return
+			}
+			td := base.NewTransData()
+			td.AddByteArray(bs)
+			data := td.FormData()
+
+			// 將註冊數據傳到 Dba 伺服器
+			err = gos.SendToServer(define.DbaServer, &data, int32(len(data)))
+
+			if err != nil {
+				agreement.ReturnCode = 2
+				agreement.Msg = "Failed to query to DbaServer."
+				logger.Error("%s, err: %+v", agreement.Msg, err)
 			} else {
-				bs, _ := agreement.Marshal()
-				td := base.NewTransData()
-				td.AddByteArray(bs)
-				data := td.FormData()
-
-				// 將註冊數據傳到 Dba 伺服器
-				err := gos.SendToServer(define.DbaServer, &data, int32(len(data)))
-
-				if err != nil {
-					agreement.ReturnCode = 2
-					agreement.Msg = "Failed to query to DbaServer."
-					logger.Error("%s, err: %+v", agreement.Msg, err)
-				} else {
-					work.Finish()
-					return
-				}
+				work.Finish()
+				return
 			}
 		}
-		bs, _ := agreement.Marshal()
+		bs, err = agreement.Marshal()
+		if err != nil {
+			logger.Error("Failed to marshal agreement, err: %+v", err)
+			work.Finish()
+			return
+		}
 		work.Body.AddByteArray(bs)
 		work.SendTransData()
 
 	case define.GetMyPosts:
 		userId := agreement.Accounts[0].Index
 
+		// 取得用戶 userId 的貼文 ID 列表
 		if postIds, ok := s.postIds[userId]; ok {
 			agreement.ReturnCode = 0
+
+			// 根據貼文 ID 列表，依序讀取對應的貼文
 			for postId := range postIds.Elements {
 				if pm, ok := s.pmRoots[postId]; ok {
 					agreement.PostMessages = append(agreement.PostMessages, pm)
@@ -173,7 +182,12 @@ func (s *PostMessageServer) handleCommission(work *base.Work, agreement *agrt.Ag
 			agreement.Msg = fmt.Sprintf("Not found posts belong to user with id: %d", userId)
 		}
 
-		bs, _ := agreement.Marshal()
+		bs, err := agreement.Marshal()
+		if err != nil {
+			logger.Error("Failed to marshal agreement, err: %+v", err)
+			work.Finish()
+			return
+		}
 		work.Body.AddByteArray(bs)
 		work.SendTransData()
 

@@ -85,42 +85,53 @@ func (m *PostMessageMgr) addNewPost(c *ghttp.Context) {
 // 用於讀取特定貼文
 // [endpoint]/post/<post_id int>
 func (m *PostMessageMgr) getPost(c *ghttp.Context) {
-	// TODO: 返回指定的貼文內容
 	value := c.GetValue("post_id")
-	if value != nil {
-		post_id := value.(int64)
-		m.logger.Info("post_id: %d", post_id)
-
-		agreement := agrt.GetAgreement()
-		defer agrt.PutAgreement(agreement)
-		agreement.Cmd = define.CommissionCommand
-		agreement.Service = define.GetPost
-		agreement.Cid = c.GetId()
-		pm := &pbgo.PostMessage{
-			Id: uint64(post_id),
-		}
-		agreement.PostMessages = append(agreement.PostMessages, pm)
-		bs, _ := agreement.Marshal()
-		td := base.NewTransData()
-		td.AddByteArray(bs)
-		data := td.FormData()
-		err := gos.SendToServer(define.PostMessageServer, &data, int32(len(data)))
-
-		if err != nil {
-			c.Json(ghttp.StatusBadRequest, ghttp.H{
-				"error": "Failed to send data to PostMessage server.",
-			})
-			m.httpAnswer.Send(c)
-		} else {
-			// 將當前 Http 的工作結束
-			m.httpAnswer.Finish(c)
-		}
-
-	} else {
+	if value == nil {
+		msg := "Failed to get post id."
+		m.logger.Error(msg)
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
-			"error": "Failed to get post id.",
+			"ret": 1,
+			"msg": msg,
 		})
 		m.httpAnswer.Send(c)
+		return
+	}
+
+	post_id := value.(int64)
+	m.logger.Info("post_id: %d", post_id)
+
+	agreement := agrt.GetAgreement()
+	defer agrt.PutAgreement(agreement)
+	agreement.Cmd = define.CommissionCommand
+	agreement.Service = define.GetPost
+	agreement.Cid = c.GetId()
+	agreement.PostMessages = append(agreement.PostMessages, &pbgo.PostMessage{
+		Id: uint64(post_id),
+	})
+	bs, err := agreement.Marshal()
+	if err != nil {
+		c.Json(ghttp.StatusBadRequest, ghttp.H{
+			"ret": 2,
+			"msg": "Failed to marshal agreement.",
+		})
+		m.httpAnswer.Send(c)
+		return
+	}
+	td := base.NewTransData()
+	td.AddByteArray(bs)
+	data := td.FormData()
+	err = gos.SendToServer(define.PostMessageServer, &data, int32(len(data)))
+
+	if err != nil {
+		c.Json(ghttp.StatusBadRequest, ghttp.H{
+			"ret": 3,
+			"msg": "Failed to send data to PostMessage server.",
+		})
+		m.httpAnswer.Send(c)
+	} else {
+		m.logger.Info("Send define.GetPost request: %+v", agreement)
+		// 將當前 Http 的工作結束
+		m.httpAnswer.Finish(c)
 	}
 }
 
@@ -131,18 +142,24 @@ func (m *PostMessageMgr) getMyPosts(c *ghttp.Context) {
 	c.ReadJson(pmp)
 	m.logger.Info("PostMessageProtocol: %+v", pmp)
 	if pmp.Token == 0 {
+		msg := fmt.Sprintf("缺少參數, PostMessage: %+v", pmp)
+		m.logger.Error(msg)
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
 			"ret": 1,
-			"msg": fmt.Sprintf("缺少參數, PostMessage: %+v", pmp),
+			"msg": msg,
 		})
 		m.httpAnswer.Send(c)
 		return
 	}
 
 	user, ok := m.getUserByTokenFunc(pmp.Token)
+
 	if !ok {
+		msg := fmt.Sprintf("Not found token %d", pmp.Token)
+		m.logger.Error(msg)
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
-			"msg": fmt.Sprintf("Not found token %d", pmp.Token),
+			"ret": 2,
+			"msg": msg,
 		})
 		m.httpAnswer.Send(c)
 		return
@@ -153,32 +170,41 @@ func (m *PostMessageMgr) getMyPosts(c *ghttp.Context) {
 	agreement.Cmd = define.CommissionCommand
 	agreement.Service = define.GetMyPosts
 	agreement.Cid = c.GetId()
-	account := &pbgo.Account{
+	agreement.Accounts = append(agreement.Accounts, &pbgo.Account{
 		Index: user.Index,
-	}
-	agreement.Accounts = append(agreement.Accounts, account)
+	})
 
 	// 寫入 agreement
 	td := base.NewTransData()
-	bs, _ := agreement.Marshal()
+	bs, err := agreement.Marshal()
+	if err != nil {
+		msg := "Failed to marshal agreement"
+		m.logger.Error(fmt.Sprintf("%s, err: %+v", msg, err))
+		c.Json(ghttp.StatusBadRequest, ghttp.H{
+			"ret": 2,
+			"msg": msg,
+		})
+		m.httpAnswer.Send(c)
+	}
+
 	td.AddByteArray(bs)
 	data := td.FormData()
 	m.logger.Info("data: %+v", data)
 
 	// 將數據傳到 PostMessage 伺服器
-	err := gos.SendToServer(define.PostMessageServer, &data, int32(len(data)))
+	err = gos.SendToServer(define.PostMessageServer, &data, int32(len(data)))
 
 	if err != nil {
-		m.logger.Error("Failed to send to server %d: %v\nError: %+v", define.PostMessageServer, data, err)
+		m.logger.Error("Failed to send to PostMessage, err: %+v", err)
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
 			"err": "Failed to send to server.",
 		})
 		m.httpAnswer.Send(c)
-		return
+	} else {
+		m.logger.Info("Send define.GetMyPosts request: %+v", agreement)
+		// 將當前 Http 的工作結束
+		m.httpAnswer.Finish(c)
 	}
-
-	// 將當前 Http 的工作結束
-	m.httpAnswer.Finish(c)
 }
 
 // 用於編輯貼文

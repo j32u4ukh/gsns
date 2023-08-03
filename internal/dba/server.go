@@ -175,6 +175,7 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 			bs, err := agreement.Marshal()
 			if err != nil {
 				logger.Error("Failed to marshal agreement, err: %+v", err)
+				work.Finish()
 				return
 			}
 			logger.Info("Send define.Register response:  %+v", agreement)
@@ -213,6 +214,7 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 			bs, err = agreement.Marshal()
 			if err != nil {
 				logger.Error("Failed to marshal agreement, err: %+v", err)
+				work.Finish()
 				return
 			}
 			logger.Info("Send define.Login response: %+v", agreement)
@@ -309,6 +311,7 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 			bs, err := agreement.Marshal()
 			if err != nil {
 				logger.Error("Failed to marshal agreement, err: %+v", err)
+				work.Finish()
 				return
 			}
 			work.Body.AddByteArray(bs)
@@ -400,9 +403,11 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 		if err != nil {
 			agreement.ReturnCode = 2
 			agreement.Msg = fmt.Sprintf("Failed to query post(%d).", pm.Id)
+			agreement.PostMessages = agreement.PostMessages[:0]
 		} else if len(pms) == 0 {
 			agreement.ReturnCode = 3
 			agreement.Msg = fmt.Sprintf("Not found post with id(%d).", pm.Id)
+			agreement.PostMessages = agreement.PostMessages[:0]
 		} else {
 			agreement.ReturnCode = 0
 			agreement.PostMessages[0] = pms[0].(*pbgo.PostMessage)

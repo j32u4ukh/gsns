@@ -104,9 +104,10 @@ func (m *PostMessageMgr) handleCommission(work *base.Work, agreement *agrt.Agree
 		}
 		m.httpAnswer.Send(c)
 	case define.GetPost:
+		work.Finish()
 		// 利用 cid 取得對應的 Context
 		c := m.httpAnswer.GetContext(agreement.Cid)
-		m.logger.Debug("returnCode: %d", agreement.ReturnCode)
+		m.logger.Debug("Receive define.GetPost response(%d): %+v", agreement.ReturnCode, agreement)
 
 		if agreement.ReturnCode != 0 {
 			c.Json(ghttp.StatusBadGateway, ghttp.H{
@@ -120,7 +121,6 @@ func (m *PostMessageMgr) handleCommission(work *base.Work, agreement *agrt.Agree
 			})
 		}
 		m.httpAnswer.Send(c)
-		work.Finish()
 	case define.GetMyPosts:
 		// 利用 cid 取得對應的 Context
 		c := m.httpAnswer.GetContext(agreement.Cid)
