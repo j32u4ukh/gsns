@@ -335,25 +335,8 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 		}
 
 		agreement.ReturnCode = 0
-		// selector := s.tables[TidAccount].GetSelector()
-		// defer s.tables[TidAccount].PutSelector(selector)
-		// selector.SetCondition(gosql.WS().Eq("index", account.Index))
-		// objs, err := selector.Query(func() any { return &pbgo.Account{} })
-
-		// if err != nil {
-		// 	agreement.ReturnCode = 2
-		// 	agreement.Msg = fmt.Sprintf("Failed to update account: %+v", account)
-		// 	logger.Error("%s, err: %+v", agreement.Msg, err)
-		// 	return
-		// }
-
-		// agreement.Accounts[0] = objs[0].(*pbgo.Account)
-		// logger.Info("Update result: %+v", agreement.Accounts[0])
-
-		// returnCode
 
 	case define.AddPost:
-		// work.Body.Clear()
 		defer func() {
 			bs, _ := agreement.Marshal()
 			work.Body.AddByteArray(bs)
@@ -415,9 +398,15 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 
 	case define.ModifyPost:
 		defer func() {
-			bs, _ := agreement.Marshal()
+			bs, err := agreement.Marshal()
+			if err != nil {
+				logger.Error("Failed to marshal agreement, err: %+v", err)
+				work.Finish()
+				return
+			}
 			work.Body.AddByteArray(bs)
 			work.SendTransData()
+			logger.Info("Send define.ModifyPost response: %+v", agreement)
 		}()
 		pm := agreement.PostMessages[0]
 		updater := s.tables[TidPostMessage].GetUpdater()

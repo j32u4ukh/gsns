@@ -29,9 +29,11 @@ func (m *PostMessageMgr) addNewPost(c *ghttp.Context) {
 	m.logger.Info("PostMessageProtocol: %+v", pmp)
 
 	if pmp.Token == 0 || pmp.Content == "" {
+		msg := fmt.Sprintf("缺少參數, PostMessage: %+v", pmp)
+		m.logger.Error(msg)
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
 			"ret": 1,
-			"msg": fmt.Sprintf("缺少參數, PostMessage: %+v", pmp),
+			"msg": msg,
 		})
 		m.httpAnswer.Send(c)
 		return
@@ -39,8 +41,10 @@ func (m *PostMessageMgr) addNewPost(c *ghttp.Context) {
 	user, ok := m.getUserByTokenFunc(pmp.Token)
 
 	if !ok {
+		msg := fmt.Sprintf("Not found token %d", pmp.Token)
+		m.logger.Error(msg)
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
-			"msg": fmt.Sprintf("Not found token %d", pmp.Token),
+			"msg": msg,
 		})
 		m.httpAnswer.Send(c)
 		return
@@ -51,35 +55,42 @@ func (m *PostMessageMgr) addNewPost(c *ghttp.Context) {
 	agreement.Cmd = define.CommissionCommand
 	agreement.Service = define.AddPost
 	agreement.Cid = c.GetId()
-	pm := &pbgo.PostMessage{
+	agreement.PostMessages = append(agreement.PostMessages, &pbgo.PostMessage{
 		ParentId: pmp.ParentId,
 		UserId:   user.Index,
 		Content:  pmp.Content,
-	}
-	m.logger.Info("PostMessage: %+v", pm)
-	agreement.PostMessages = append(agreement.PostMessages, pm)
+	})
 
 	// 寫入 agreement
 	td := base.NewTransData()
-	bs, _ := agreement.Marshal()
-	td.AddByteArray(bs)
-	data := td.FormData()
-	m.logger.Info("data: %+v", data)
-
-	// 將註冊數據傳到 PostMessage 伺服器
-	err := gos.SendToServer(define.PostMessageServer, &data, int32(len(data)))
-
+	bs, err := agreement.Marshal()
 	if err != nil {
-		m.logger.Error("Failed to send to server %d: %v\nError: %+v", define.PostMessageServer, data, err)
+		msg := "Failed to marshal agreement"
+		m.logger.Error(fmt.Sprintf("%s, err: %+v", msg, err))
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
-			"err": "Failed to send to server.",
+			"msg": msg,
 		})
 		m.httpAnswer.Send(c)
 		return
 	}
+	td.AddByteArray(bs)
+	data := td.FormData()
 
-	// 將當前 Http 的工作結束
-	m.httpAnswer.Finish(c)
+	// 將註冊數據傳到 PostMessage 伺服器
+	err = gos.SendToServer(define.PostMessageServer, &data, int32(len(data)))
+
+	if err != nil {
+		msg := "Failed to send to PostMessage server"
+		m.logger.Error(fmt.Sprintf("%s, err: %+v", msg, err))
+		c.Json(ghttp.StatusBadRequest, ghttp.H{
+			"err": msg,
+		})
+		m.httpAnswer.Send(c)
+	} else {
+		m.logger.Info("Send define.AddPost request: %+v", agreement)
+		// 將當前 Http 的工作結束
+		m.httpAnswer.Finish(c)
+	}
 }
 
 // 用於讀取特定貼文
@@ -212,20 +223,25 @@ func (m *PostMessageMgr) getMyPosts(c *ghttp.Context) {
 func (m *PostMessageMgr) modifyPost(c *ghttp.Context) {
 	pmp := &PostMessageProtocol{}
 	c.ReadJson(pmp)
-	m.logger.Info("PostMessageProtocol: %+v", pmp)
+
 	if pmp.Token == 0 || pmp.PostId == 0 || pmp.Content == "" {
+		msg := fmt.Sprintf("缺少參數, PostMessage: %+v", pmp)
+		m.logger.Error(msg)
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
 			"ret": 1,
-			"msg": fmt.Sprintf("缺少參數, PostMessage: %+v", pmp),
+			"msg": msg,
 		})
 		m.httpAnswer.Send(c)
 		return
 	}
 
 	user, ok := m.getUserByTokenFunc(pmp.Token)
+
 	if !ok {
+		msg := fmt.Sprintf("Not found token %d", pmp.Token)
+		m.logger.Error(msg)
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
-			"msg": fmt.Sprintf("Not found token %d", pmp.Token),
+			"msg": msg,
 		})
 		m.httpAnswer.Send(c)
 		return
@@ -236,34 +252,32 @@ func (m *PostMessageMgr) modifyPost(c *ghttp.Context) {
 	agreement.Cmd = define.CommissionCommand
 	agreement.Service = define.ModifyPost
 	agreement.Cid = c.GetId()
-	pm := &pbgo.PostMessage{
+	agreement.PostMessages = append(agreement.PostMessages, &pbgo.PostMessage{
 		Id:       pmp.PostId,
 		ParentId: pmp.ParentId,
 		UserId:   user.Index,
 		Content:  pmp.Content,
-	}
-	m.logger.Info("PostMessage: %+v", pm)
-	agreement.PostMessages = append(agreement.PostMessages, pm)
+	})
 
 	// 寫入 agreement
 	td := base.NewTransData()
 	bs, _ := agreement.Marshal()
 	td.AddByteArray(bs)
 	data := td.FormData()
-	m.logger.Info("data: %+v", data)
 
 	// 將註冊數據傳到 PostMessage 伺服器
 	err := gos.SendToServer(define.PostMessageServer, &data, int32(len(data)))
 
 	if err != nil {
-		m.logger.Error("Failed to send to server %d: %v\nError: %+v", define.PostMessageServer, data, err)
+		msg := "Failed to send to PostMessage server"
+		m.logger.Error("%s, err: %+v", msg, err)
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
-			"err": "Failed to send to server.",
+			"msg": msg,
 		})
 		m.httpAnswer.Send(c)
-		return
+	} else {
+		m.logger.Info("Send define.ModifyPost request: %+v", agreement)
+		// 將當前 Http 的工作結束
+		m.httpAnswer.Finish(c)
 	}
-
-	// 將當前 Http 的工作結束
-	m.httpAnswer.Finish(c)
 }

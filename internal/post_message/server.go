@@ -106,23 +106,31 @@ func (s *PostMessageServer) handleCommission(work *base.Work, agreement *agrt.Ag
 
 	switch agreement.Service {
 	case define.AddPost:
-		work.Finish()
-
 		// ==================================================
 		// 準備將請求轉送給 DBA server
 		// ==================================================
 		td := base.NewTransData()
-		bs, _ := agreement.Marshal()
+		bs, err := agreement.Marshal()
+		if err != nil {
+			agreement.Msg = "Failed to marshal agreement"
+			logger.Error("%s, err: %+v", agreement.Msg, err)
+			work.Finish()
+			return
+		}
 		td.AddByteArray(bs)
 		data := td.FormData()
-		logger.Info("data: %+v", data)
 
 		// 將註冊數據傳到 Dba 伺服器
-		err := gos.SendToServer(define.DbaServer, &data, int32(len(data)))
+		err = gos.SendToServer(define.DbaServer, &data, int32(len(data)))
 
 		if err != nil {
-			logger.Error("Failed to send to server %d: %v\nError: %+v", define.DbaServer, data, err)
+			agreement.ReturnCode = 1
+			agreement.Msg = "Failed to send to Dba server"
+			logger.Error("%s, err: %+v", agreement.Msg, err)
 			return
+		} else {
+			logger.Info("Send define.AddPost request: %+v", agreement)
+			work.Finish()
 		}
 
 	case define.GetPost:
@@ -192,30 +200,41 @@ func (s *PostMessageServer) handleCommission(work *base.Work, agreement *agrt.Ag
 		work.SendTransData()
 
 	case define.ModifyPost:
-		if len(agreement.PostMessages) == 0 {
-			agreement.ReturnCode = 1
-			agreement.Msg = "Not found posts' id."
-		} else {
-			bs, _ := agreement.Marshal()
+		var bs []byte
+		var err error
+		if len(agreement.PostMessages) == 1 {
+			bs, err = agreement.Marshal()
+			if err != nil {
+				logger.Error("Failed to marshal agreement, err: %+v", err)
+				return
+			}
 			td := base.NewTransData()
 			td.AddByteArray(bs)
 			data := td.FormData()
 
 			// 將註冊數據傳到 Dba 伺服器
-			err := gos.SendToServer(define.DbaServer, &data, int32(len(data)))
+			err = gos.SendToServer(define.DbaServer, &data, int32(len(data)))
 
 			if err != nil {
 				agreement.ReturnCode = 2
 				agreement.Msg = "Failed to query to DbaServer."
 				logger.Error("%s, err: %+v", agreement.Msg, err)
 			} else {
+				logger.Info("Send define.ModifyPost request: %+v", agreement)
 				work.Finish()
 				return
 			}
+		} else {
+			agreement.ReturnCode = 1
+			agreement.Msg = "Not found posts' id."
 		}
 
 		// 若發生錯誤時，將錯誤訊息回傳 GSNS 伺服器
-		bs, _ := agreement.Marshal()
+		bs, err = agreement.Marshal()
+		if err != nil {
+			logger.Error("Failed to marshal agreement, err: %+v", err)
+			return
+		}
 		work.Body.AddByteArray(bs)
 		work.SendTransData()
 
