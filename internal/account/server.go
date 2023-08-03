@@ -186,36 +186,55 @@ func (s *AccountServer) handleCommission(work *base.Work, agreement *agrt.Agreem
 
 	// 設置用戶資料
 	case define.SetUserData:
+		var bs []byte
+		var err error
 		newAccount := agreement.Accounts[0]
 		account, ok := s.accounts.GetByKey1(newAccount.Index)
 		if !ok {
+			agreement.ReturnCode = 1
+			agreement.Msg = fmt.Sprintf("找不到 user(%d)", newAccount.Index)
+			bs, err = agreement.Marshal()
+			if err != nil {
+				logger.Error("Failed to marshal agreement, err: %+v", err)
+				return
+			}
+			work.Body.AddByteArray(bs)
+			work.SendTransData()
 			return
 		}
+
 		// 填入原始密碼
 		newAccount.Password = account.Password
-		logger.Info("newData: %+v", newAccount)
+		logger.Info("newAccount: %+v", newAccount)
 		logger.Info("Accounts[0]: %+v", agreement.Accounts[0])
-
-		// 當前工作直接結束，無須回應
-		work.Finish()
 
 		// ==================================================
 		// 更新緩存後，再將更新請求傳送給 DBA server
 		// ==================================================
 		// 寫入 pbgo.Account
 		td := base.NewTransData()
-		bs, _ := agreement.Marshal()
+		bs, _ = agreement.Marshal()
 		td.AddByteArray(bs)
 		data := td.FormData()
 
-		logger.Info("data: %+v", data)
-
-		// 將新用戶資訊數據傳到 Account 伺服器
-		err := gos.SendToServer(define.DbaServer, &data, int32(len(data)))
+		// 將新用戶資訊數據傳到 Dba 伺服器
+		err = gos.SendToServer(define.DbaServer, &data, int32(len(data)))
 
 		if err != nil {
-			fmt.Printf("(s *MainServer) CommissionHandler | Failed to send to server %d: %v\nError: %+v\n", define.DbaServer, data, err)
-			return
+			agreement.ReturnCode = 2
+			agreement.Msg = fmt.Sprintf("Failed to send to %s", define.ServerName(define.DbaServer))
+			logger.Error("%s, err: %+v", agreement.Msg, err)
+			bs, err = agreement.Marshal()
+			if err != nil {
+				logger.Error("Failed to marshal agreement, err: %+v", err)
+				return
+			}
+			work.Body.AddByteArray(bs)
+			work.SendTransData()
+		} else {
+			logger.Info("Send define.SetUserData request: %+v", agreement)
+			// 當前工作直接結束，無須回應
+			work.Finish()
 		}
 
 	case define.GetOtherUsers:

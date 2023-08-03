@@ -138,7 +138,6 @@ func (s *AccountServer) handleDbaCommission(work *base.Work, agreement *agrt.Agr
 
 		if agreement.ReturnCode != 0 {
 			logger.Error("ReturnCode: %d", agreement.ReturnCode)
-			agreement.Accounts = agreement.Accounts[:0]
 		} else {
 			account := proto.Clone(agreement.Accounts[0]).(*pbgo.Account)
 			logger.Debug("New account: %+v", account)
@@ -151,7 +150,11 @@ func (s *AccountServer) handleDbaCommission(work *base.Work, agreement *agrt.Agr
 			agreement.Accounts[0].Password = ""
 		}
 
-		bs, _ := agreement.Marshal()
+		bs, err := agreement.Marshal()
+		if err != nil {
+			logger.Error("Failed to marshal agreement, err: %+v", err)
+			return
+		}
 		td.AddByteArray(bs)
 		data := td.FormData()
 
@@ -159,8 +162,9 @@ func (s *AccountServer) handleDbaCommission(work *base.Work, agreement *agrt.Agr
 		err = gos.SendToClient(define.AccountPort, s.serverIdDict[define.GsnsServer], &data, int32(len(data)))
 
 		if err != nil {
-			logger.Error("Failed to send to client %d: %v\nError: %+v", s.serverIdDict[define.GsnsServer], data, err)
-			return
+			logger.Error("Failed to send to %s, err: %+v", define.ServerName(define.GsnsServer), err)
+		} else {
+			logger.Info("Send define.SetUserData response: %+v", agreement)
 		}
 
 	case define.GetOtherUsers:

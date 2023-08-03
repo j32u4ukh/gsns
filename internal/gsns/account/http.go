@@ -157,7 +157,6 @@ func (m *AccountMgr) logout(c *ghttp.Context) {
 			"msg": fmt.Sprintf("User %s logout success.", user.Name),
 		})
 	}
-	// TODO: 通知 Account server 將用戶登出。
 }
 
 func (m *AccountMgr) getUserInfo(c *ghttp.Context) {
@@ -166,12 +165,18 @@ func (m *AccountMgr) getUserInfo(c *ghttp.Context) {
 	var ok bool
 
 	if sToken, ok = c.Params["token"]; !ok {
+		c.Json(ghttp.StatusBadRequest, ghttp.H{
+			"msg": "缺少參數: token",
+		})
 		return
 	}
 
 	token, err := strconv.ParseUint(sToken, 10, 64)
 
 	if err != nil {
+		c.Json(ghttp.StatusBadRequest, ghttp.H{
+			"msg": fmt.Sprintf("無效 token %s", sToken),
+		})
 		return
 	}
 
@@ -228,14 +233,11 @@ func (m *AccountMgr) setUserInfo(c *ghttp.Context) {
 		user.Info = ap.Info
 	}
 
-	account := &pbgo.Account{
+	agreement.Accounts = append(agreement.Accounts, &pbgo.Account{
 		Index:   user.Index,
 		Account: user.Name,
 		Info:    user.Info,
-	}
-	m.logger.Info("account: %+v", account)
-
-	agreement.Accounts = append(agreement.Accounts, account)
+	})
 
 	// 寫入 agreement
 	td := base.NewTransData()
@@ -244,16 +246,16 @@ func (m *AccountMgr) setUserInfo(c *ghttp.Context) {
 	data := td.FormData()
 
 	// 將新用戶資訊數據傳到 Account 伺服器
-	err := gos.SendTransDataToServer(define.AccountServer, td)
+	err := gos.SendToServer(define.AccountServer, &data, int32(len(data)))
 
 	if err != nil {
-		fmt.Printf("(s *MainServer) CommissionHandler | Failed to send to server %d: %v\nError: %+v\n", define.DbaServer, data, err)
+		m.logger.Error("Failed to send to %s, err: %+v", define.ServerName(define.AccountServer), err)
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
 			"err": "Failed to send to server",
 		})
 		m.httpAnswer.Send(c)
-		return
+	} else {
+		m.logger.Info("Send define.SetUserData request: %+v", agreement)
+		m.httpAnswer.Finish(c)
 	}
-
-	m.httpAnswer.Finish(c)
 }

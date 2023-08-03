@@ -304,10 +304,16 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 		}
 
 	case define.SetUserData:
+		var err error
 		defer func() {
-			bs, _ := agreement.Marshal()
+			bs, err := agreement.Marshal()
+			if err != nil {
+				logger.Error("Failed to marshal agreement, err: %+v", err)
+				return
+			}
 			work.Body.AddByteArray(bs)
 			work.SendTransData()
+			logger.Info("Send define.SetUserData response: %+v", agreement)
 		}()
 
 		account := agreement.Accounts[0]
@@ -315,18 +321,33 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 		defer s.tables[TidAccount].PutUpdater(updater)
 		updater.UpdateAny(account)
 		updater.SetCondition(gosql.WS().Eq("index", account.Index))
-		sr, err := updater.Exec()
-		logger.Info("Update result: %+v, err: %+v", sr, err)
+		_, err = updater.Exec()
 
-		selector := s.tables[TidAccount].GetSelector()
-		defer s.tables[TidAccount].PutSelector(selector)
-		selector.SetCondition(gosql.WS().Eq("index", account.Index))
-		objs, _ := selector.Query(func() any { return &pbgo.Account{} })
-		agreement.Accounts[0] = objs[0].(*pbgo.Account)
-		logger.Info("Update result: %+v", agreement.Accounts[0])
+		if err != nil {
+			agreement.ReturnCode = 1
+			agreement.Msg = fmt.Sprintf("Failed to update account: %+v", account)
+			agreement.Accounts = agreement.Accounts[:0]
+			logger.Error("%s, err: %+v", agreement.Msg, err)
+			return
+		}
+
+		agreement.ReturnCode = 0
+		// selector := s.tables[TidAccount].GetSelector()
+		// defer s.tables[TidAccount].PutSelector(selector)
+		// selector.SetCondition(gosql.WS().Eq("index", account.Index))
+		// objs, err := selector.Query(func() any { return &pbgo.Account{} })
+
+		// if err != nil {
+		// 	agreement.ReturnCode = 2
+		// 	agreement.Msg = fmt.Sprintf("Failed to update account: %+v", account)
+		// 	logger.Error("%s, err: %+v", agreement.Msg, err)
+		// 	return
+		// }
+
+		// agreement.Accounts[0] = objs[0].(*pbgo.Account)
+		// logger.Info("Update result: %+v", agreement.Accounts[0])
 
 		// returnCode
-		agreement.ReturnCode = 0
 
 	case define.AddPost:
 		// work.Body.Clear()

@@ -145,6 +145,8 @@ func (m *AccountMgr) handleAccountCommission(work *base.Work, agreement *agrt.Ag
 		}
 
 	case define.SetUserData:
+		work.Finish()
+
 		// 取得空閒的 HTTP 連線物件
 		c := m.httpAnswer.GetContext(agreement.Cid)
 		m.logger.Debug("returnCode: %d", agreement.ReturnCode)
@@ -152,10 +154,11 @@ func (m *AccountMgr) handleAccountCommission(work *base.Work, agreement *agrt.Ag
 		if agreement.ReturnCode == 0 {
 			account := agreement.Accounts[0]
 			m.logger.Info("index: %d, name: %s", account.Index, account.Account)
+			// 檢查緩存中是否存在
 			user, ok := m.users.GetByKey1(account.Index)
 			if !ok {
 				c.Json(ghttp.StatusInternalServerError, ghttp.H{
-					"err": fmt.Sprintf("Not found user %s.", account.Account),
+					"err": fmt.Sprintf("Not found user %s in cache.", account.Account),
 				})
 			} else {
 				user.Name = account.Account
@@ -176,8 +179,6 @@ func (m *AccountMgr) handleAccountCommission(work *base.Work, agreement *agrt.Ag
 				"err": fmt.Sprintf("Return code %d", agreement.ReturnCode),
 			})
 		}
-
-		work.Finish()
 		m.httpAnswer.Send(c)
 
 	case define.GetOtherUsers:
