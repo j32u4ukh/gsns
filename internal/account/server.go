@@ -11,6 +11,7 @@ import (
 	"github.com/j32u4ukh/gos"
 	"github.com/j32u4ukh/gos/ans"
 	"github.com/j32u4ukh/gos/base"
+	"google.golang.org/protobuf/proto"
 )
 
 type AccountServer struct {
@@ -36,8 +37,7 @@ func NewAccountServer() *AccountServer {
 func (s *AccountServer) Handler(work *base.Work) {
 	agreement := agrt.GetAgreement()
 	defer agrt.PutAgreement(agreement)
-	bs := work.Body.PopByteArray()
-	err := agreement.Unmarshal(bs)
+	err := agreement.Init(work)
 	if err != nil {
 		work.Finish()
 		logger.Error("Failed to unmarshal agreement, err: %+v", err)
@@ -97,8 +97,6 @@ func (s *AccountServer) handleCommission(work *base.Work, agreement *agrt.Agreem
 
 	switch agreement.Service {
 	case define.Register:
-		work.Finish()
-
 		// ==================================================
 		// 準備將請求轉送給 DBA server
 		// ==================================================
@@ -106,60 +104,85 @@ func (s *AccountServer) handleCommission(work *base.Work, agreement *agrt.Agreem
 		bs, _ := agreement.Marshal()
 		td.AddByteArray(bs)
 		data := td.FormData()
-		logger.Info("data: %+v", data)
 
 		// 將註冊數據傳到 Dba 伺服器
 		err := gos.SendToServer(define.DbaServer, &data, int32(len(data)))
 
 		if err != nil {
+			agreement.ReturnCode = 1
+			agreement.Msg = fmt.Sprintf("Failed to send to server: %d", define.DbaServer)
 			logger.Error("Failed to send to server %d: %v\nError: %+v", define.DbaServer, data, err)
-			return
+			work.Body.AddByteArray(data)
+			work.SendTransData()
+		} else {
+			logger.Info("Send define.Register request: %+v", agreement)
+			work.Finish()
 		}
 
 	case define.Login:
-		work.Body.Clear()
+		defer logger.Info("Check Login agreement: %+v", agreement)
 		data := agreement.Accounts[0]
 		var account *pbgo.Account
 		var ok bool
+		var bs []byte
+		var err error
 
-		if account, ok = s.accounts.GetByKey2(data.Account); !ok {
-			// Return code
-			agreement.ReturnCode = 2
-			agreement.Msg = fmt.Sprintf("Account %s not exists.", data.Account)
-			logger.Error(agreement.Msg)
+		// 檢查是否有用戶帳號緩存
+		if account, ok = s.accounts.GetByKey2(data.Account); ok {
+			logger.Info("Account in cache: %+v", account)
+
+			// 檢查密碼是否正確
+			if data.Password != account.Password {
+				// Return code
+				agreement.ReturnCode = 1
+				agreement.Msg = fmt.Sprintf("Password %s is not correct.", data.Password)
+				agreement.Accounts = agreement.Accounts[:0]
+				logger.Error(agreement.Msg)
+			} else {
+				agreement.ReturnCode = 0
+				agreement.Accounts[0] = proto.Clone(account).(*pbgo.Account)
+				agreement.Accounts[0].Password = ""
+				// TODO: 載入訂閱關係
+			}
+
+			bs, err = agreement.Marshal()
+			if err != nil {
+				logger.Error("Failed to marshal agreement, err: %+v", err)
+				return
+			}
+			work.Body.AddByteArray(bs)
+			work.SendTransData()
+			logger.Info("Send define.Login response: (%d) %+v", agreement.ReturnCode, agreement)
 			return
 		}
 
-		if data.Password != account.Password {
-			// Return code
-			agreement.ReturnCode = 3
-			agreement.Msg = fmt.Sprintf("Password %s is not correct.", data.Password)
-			logger.Error(agreement.Msg)
-			return
-		}
-
-		// Return code
-		agreement.ReturnCode = 0
-		agreement.Accounts[0] = account
-		logger.Info("account: %+v", account)
-		bs, _ := agreement.Marshal()
-		work.Body.AddByteArray(bs)
-		work.SendTransData()
-
-		// ==================================================
-		// 登入後，向 DBA 取得該用戶的貼文數據，將數據返回給 PostMessage server
-		// ==================================================
-		agreement2 := agrt.GetAgreement()
-		defer agrt.PutAgreement(agreement2)
-		agreement2.Cmd = define.NormalCommand
-		agreement2.Service = define.GetPost
-		agreement2.Accounts = append(agreement2.Accounts, account)
+		// 若不存在用戶帳號緩存
+		logger.Info("不存在用戶帳號緩存")
 		td := base.NewTransData()
-		bs, _ = agreement2.Marshal()
-		logger.Info("agreement2: %+v", agreement2)
+		bs, err = agreement.Marshal()
+		if err != nil {
+			logger.Error("Failed to marshal agreement, err: %+v", err)
+			return
+		}
 		td.AddByteArray(bs)
 		bs = td.FormData()
-		gos.SendToServer(define.DbaServer, &bs, int32(len(bs)))
+		err = gos.SendToServer(define.DbaServer, &bs, int32(len(bs)))
+		if err != nil {
+			logger.Error("Failed to send to Dba server, err: %+v", err)
+			agreement.ReturnCode = 2
+			agreement.Msg = "Failed to send to Dba server"
+			agreement.Accounts = agreement.Accounts[:0]
+			bs, err = agreement.Marshal()
+			if err != nil {
+				logger.Error("Failed to marshal agreement, err: %+v", err)
+				return
+			}
+			work.Body.AddByteArray(bs)
+			work.SendTransData()
+		} else {
+			logger.Info("Send define.Login request: %+v", agreement)
+			work.Finish()
+		}
 
 	// 設置用戶資料
 	case define.SetUserData:

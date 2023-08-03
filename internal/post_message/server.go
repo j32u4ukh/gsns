@@ -16,13 +16,16 @@ import (
 
 type PostMessageServer struct {
 	Tcp *ans.Tcp0Anser
-	//
+	// key: user id; value: post ids
 	postIds map[int32]*cntr.Set[uint64]
-	// 獨立的貼文、不是回覆他人的貼文
+
+	// pmRoots 以 post id 為鍵值來管理貼文，包含所有貼文緩存，也包含 pmLeaves 中的所有貼文
+	// pmLeaves 以 parent id 為鍵值來管理貼文，只包含有 parent id 的貼文緩存
+	// key: post id; value: PostMessage
 	pmRoots map[uint64]*pbgo.PostMessage
 	// 回覆他人的貼文，parent id 為被回覆的貼文的 post id
-	// key1: post id, key2: parent id
-	pmLeaves *cntr.BikeyMap[uint64, uint64, *pbgo.PostMessage]
+	// key1: parent id, key2: post ids
+	pmLeaves map[uint64][]*pbgo.PostMessage
 
 	// key: server id, value: conn id
 	serverIdDict  map[int32]int32
@@ -33,7 +36,7 @@ func NewPostMessageServer() *PostMessageServer {
 	s := &PostMessageServer{
 		postIds:       make(map[int32]*cntr.Set[uint64]),
 		pmRoots:       make(map[uint64]*pbgo.PostMessage),
-		pmLeaves:      cntr.NewBikeyMap[uint64, uint64, *pbgo.PostMessage](),
+		pmLeaves:      make(map[uint64][]*pbgo.PostMessage),
 		serverIdDict:  make(map[int32]int32),
 		heartbeatTime: time.Now(),
 	}

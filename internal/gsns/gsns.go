@@ -25,10 +25,6 @@ func Init() error {
 	if err != nil {
 		return errors.Wrap(err, "初始化網路底層時發生錯誤")
 	}
-	err = initData()
-	if err != nil {
-		return errors.Wrap(err, "載入數據時發生錯誤")
-	}
 	return nil
 }
 
@@ -126,27 +122,7 @@ func initGos() error {
 	}
 	return nil
 }
-
-func initData() error {
-	// TODO: 生成向 DBA 取得數據的請求
-	// TODO: 生成向 Account 取得數據的請求
-	return nil
-}
-
 func Run() {
-	var start time.Time
-	var during, frameTime time.Duration = 0, 20 * time.Millisecond
-
-	for {
-		start = time.Now()
-
-		gos.RunAns()
-		gos.RunAsk()
-		ms.Run()
-
-		during = time.Since(start)
-		if during < frameTime {
-			time.Sleep(frameTime - during)
-		}
-	}
+	gos.SetFrameTime(20 * time.Millisecond)
+	gos.Run(nil)
 }

@@ -18,10 +18,11 @@ func (m *PostMessageMgr) HttpHandler(router *ans.Router) {
 	router.POST("/", m.addNewPost)
 	router.PATCH("/", m.modifyPost)
 	router.GET("/<post_id int>", m.getPost)
-	router.GET("/all", m.getMyPosts)
+	router.GET("/mine", m.getMyPosts)
 }
 
 // 用於新增貼文
+// [endpoint]/post
 func (m *PostMessageMgr) addNewPost(c *ghttp.Context) {
 	pmp := &PostMessageProtocol{}
 	c.ReadJson(pmp)
@@ -82,6 +83,7 @@ func (m *PostMessageMgr) addNewPost(c *ghttp.Context) {
 }
 
 // 用於讀取特定貼文
+// [endpoint]/post/<post_id int>
 func (m *PostMessageMgr) getPost(c *ghttp.Context) {
 	// TODO: 返回指定的貼文內容
 	value := c.GetValue("post_id")
@@ -123,6 +125,7 @@ func (m *PostMessageMgr) getPost(c *ghttp.Context) {
 }
 
 // 用於讀取貼文
+// [endpoint]/post/mine
 func (m *PostMessageMgr) getMyPosts(c *ghttp.Context) {
 	pmp := &PostMessageProtocol{}
 	c.ReadJson(pmp)
@@ -179,6 +182,7 @@ func (m *PostMessageMgr) getMyPosts(c *ghttp.Context) {
 }
 
 // 用於編輯貼文
+// [endpoint]/post
 func (m *PostMessageMgr) modifyPost(c *ghttp.Context) {
 	pmp := &PostMessageProtocol{}
 	c.ReadJson(pmp)

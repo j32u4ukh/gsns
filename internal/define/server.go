@@ -25,9 +25,9 @@ func ServerName(id int32) string {
 	case DbaServer:
 		return "DbaServer"
 	case AccountServer:
-		return "DbaServer"
+		return "AccountServer"
 	case PostMessageServer:
-		return "DbaServer"
+		return "PostMessageServer"
 	case GsnsServer:
 		return "GsnsServer"
 	default:

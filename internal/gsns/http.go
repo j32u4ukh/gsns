@@ -1,4 +1,4 @@
-package account
+package gsns
 
 import (
 	"fmt"
@@ -16,14 +16,14 @@ import (
 
 // TODO: HTTP 請求處理過程中若失敗，要返回錯誤訊息給客戶端，而非印出日誌或直接返回
 // [endpoint]/social
-func (m *AccountMgr) HttpSocialHandler(router *ans.Router) {
+func (s *MainServer) HttpSocialHandler(router *ans.Router) {
 	// 取得其他用戶的清單
-	router.GET("/other_users", m.getOtherUsers)
-	router.POST("/subscribe", m.subscribe)
+	router.GET("/other_users", s.getOtherUsers)
+	router.POST("/subscribe", s.subscribe)
 }
 
 // [endpoint]/social/other_users
-func (m *AccountMgr) getOtherUsers(c *ghttp.Context) {
+func (s *MainServer) getOtherUsers(c *ghttp.Context) {
 	var sToken string
 	var ok bool
 
@@ -32,7 +32,7 @@ func (m *AccountMgr) getOtherUsers(c *ghttp.Context) {
 			"ret": 1,
 			"msg": "Not found parameter token",
 		})
-		m.httpAnswer.Send(c)
+		s.HttpAnswer.Send(c)
 		return
 	}
 
@@ -43,18 +43,18 @@ func (m *AccountMgr) getOtherUsers(c *ghttp.Context) {
 			"ret": 2,
 			"msg": "Invalid token",
 		})
-		m.httpAnswer.Send(c)
+		s.HttpAnswer.Send(c)
 		return
 	}
 
-	user, ok := m.users.GetByKey2(token)
+	user, ok := s.AMgr.GetUserByToken(token)
 
 	if !ok {
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
 			"ret": 3,
 			"msg": fmt.Sprintf("Not found user with token(%d)", token),
 		})
-		m.httpAnswer.Send(c)
+		s.HttpAnswer.Send(c)
 		return
 	}
 
@@ -74,7 +74,7 @@ func (m *AccountMgr) getOtherUsers(c *ghttp.Context) {
 	td := base.NewTransData()
 	td.AddByteArray(bs)
 	data := td.FormData()
-	m.logger.Info("data: %+v", data)
+	logger.Info("data: %+v", data)
 
 	// 將註冊數據傳到 Account 伺服器
 	err = gos.SendToServer(define.AccountServer, &data, int32(len(data)))
@@ -85,15 +85,15 @@ func (m *AccountMgr) getOtherUsers(c *ghttp.Context) {
 			"ret": 4,
 			"msg": "Failed to send request to account server",
 		})
-		m.httpAnswer.Send(c)
+		s.HttpAnswer.Send(c)
 		return
 	}
-	m.httpAnswer.Finish(c)
+	s.HttpAnswer.Finish(c)
 }
 
 // [endpoint]/social/subscribe
-func (m *AccountMgr) subscribe(c *ghttp.Context) {
-	ip := &InteractiveProtocol{}
+func (s *MainServer) subscribe(c *ghttp.Context) {
+	ip := &SocialProtocol{}
 	c.ReadJson(ip)
 
 	if ip.Token == 0 || ip.TargetId == 0 {
@@ -101,20 +101,22 @@ func (m *AccountMgr) subscribe(c *ghttp.Context) {
 			"ret": 1,
 			"msg": "缺少參數",
 		})
-		m.httpAnswer.Send(c)
+		s.HttpAnswer.Send(c)
 		return
 	}
 
-	user, ok := m.users.GetByKey2(ip.Token)
+	user, ok := s.AMgr.GetUserByToken(ip.Token)
 
 	if !ok {
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
 			"ret": 2,
 			"msg": fmt.Sprintf("Not found token %d", ip.Token),
 		})
-		m.httpAnswer.Send(c)
+		s.HttpAnswer.Send(c)
 		return
 	}
+
+	// TODO: 應避免重複訂閱，先檢查訂閱對象的 ID 再送出請求
 
 	agreement := agrt.GetAgreement()
 	defer agrt.PutAgreement(agreement)
@@ -131,7 +133,7 @@ func (m *AccountMgr) subscribe(c *ghttp.Context) {
 	td := base.NewTransData()
 	td.AddByteArray(bs)
 	data := td.FormData()
-	m.logger.Info("data: %+v", data)
+	logger.Info("data: %+v", data)
 
 	// 將註冊數據傳到 Account 伺服器
 	err := gos.SendToServer(define.AccountServer, &data, int32(len(data)))
@@ -142,8 +144,8 @@ func (m *AccountMgr) subscribe(c *ghttp.Context) {
 			"ret": 3,
 			"msg": "Failed to send request to account server",
 		})
-		m.httpAnswer.Send(c)
+		s.HttpAnswer.Send(c)
 		return
 	}
-	m.httpAnswer.Finish(c)
+	s.HttpAnswer.Finish(c)
 }

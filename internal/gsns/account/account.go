@@ -21,12 +21,6 @@ type AccountProtocol struct {
 	Token    uint64
 }
 
-type InteractiveProtocol struct {
-	Token    uint64
-	TargetId int32
-	PostId   uint64
-}
-
 // 與 Account 相關的由這個物件來管理
 type AccountMgr struct {
 	httpAnswer *ans.HttpAnser
@@ -107,8 +101,11 @@ func (m *AccountMgr) handleAccountCommission(work *base.Work, agreement *agrt.Ag
 		m.httpAnswer.Send(c)
 
 	case define.Login:
+		work.Finish()
+
 		// 取得空閒的 HTTP 連線物件
 		c := m.httpAnswer.GetContext(agreement.Cid)
+		defer m.httpAnswer.Send(c)
 		m.logger.Debug("returnCode: %d", agreement.ReturnCode)
 
 		if agreement.ReturnCode == 0 {
@@ -121,12 +118,18 @@ func (m *AccountMgr) handleAccountCommission(work *base.Work, agreement *agrt.Ag
 				Token: m.getToken(),
 			}
 			m.logger.Info("New user: %+v", user)
-			err := m.AddUser(user)
-			if err != nil {
-				c.Json(ghttp.StatusInternalServerError, ghttp.H{
-					"msg":   "Login failed",
-					"token": -1,
-				})
+			if m.users.ContainKey1(account.Index) {
+				m.users.UpdateByKey1(account.Index, cntr.NewBivalue(account.Index, user.Token, user))
+			} else {
+				err := m.users.Add(user.Index, user.Token, user)
+				if err != nil {
+					m.logger.Error("Failed to add user, err: %+v", err)
+					c.Json(ghttp.StatusInternalServerError, ghttp.H{
+						"msg":   "Login failed",
+						"token": -1,
+					})
+					return
+				}
 			}
 			c.Json(ghttp.StatusOK, ghttp.H{
 				"msg":   fmt.Sprintf("User %s login success", account.Account),
@@ -134,14 +137,12 @@ func (m *AccountMgr) handleAccountCommission(work *base.Work, agreement *agrt.Ag
 				"info":  user.Info,
 			})
 		} else {
+			m.logger.Error("Failed to login, ReturnCode: %d", agreement.ReturnCode)
 			c.Json(ghttp.StatusInternalServerError, ghttp.H{
 				"msg":   "Login failed",
 				"token": -1,
 			})
 		}
-
-		work.Finish()
-		m.httpAnswer.Send(c)
 
 	case define.SetUserData:
 		// 取得空閒的 HTTP 連線物件

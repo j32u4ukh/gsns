@@ -94,6 +94,43 @@ func (s *AccountServer) handleDbaCommission(work *base.Work, agreement *agrt.Agr
 			return
 		}
 
+	case define.Login:
+		work.Finish()
+		logger.Info("Recieved login response: %+v", agreement)
+
+		if agreement.ReturnCode == 0 {
+			// 將新註冊用戶加入緩存管理
+			account := proto.Clone(agreement.Accounts[0]).(*pbgo.Account)
+			if !s.accounts.ContainKey1(account.Index) {
+				logger.Info("加入緩存")
+				s.accounts.Add(account.Index, account.Account, account)
+			} else {
+				logger.Info("更新緩存")
+				s.accounts.UpdateByKey1(account.Index, cntr.NewBivalue(account.Index, account.Account, account))
+			}
+			logger.Info("Login account: %+v", account)
+
+			// 隱藏密碼相關資訊，無須提供給 GSNS
+			agreement.Accounts[0].Password = ""
+		} else {
+			logger.Info("Failed to login, ReturnCode: %d", agreement.ReturnCode)
+		}
+
+		td := base.NewTransData()
+		bs, _ := agreement.Marshal()
+		td.AddByteArray(bs)
+		data := td.FormData()
+
+		// 將註冊結果回傳主伺服器
+		err := gos.SendToClient(define.AccountPort, s.serverIdDict[define.GsnsServer], &data, int32(len(data)))
+
+		if err != nil {
+			logger.Error("Failed to send to client %d\nError: %+v", s.serverIdDict[define.GsnsServer], err)
+			return
+		} else {
+			logger.Info("Send define.Login response: %+v", agreement)
+		}
+
 	case define.SetUserData:
 		var err error
 		work.Finish()

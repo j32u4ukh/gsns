@@ -9,9 +9,11 @@ import (
 )
 
 func (m *AccountMgr) AddUser(user *pbgo.SnsUser) error {
-	err := m.users.Add(user.Index, user.Token, user)
-	if err != nil {
-		return errors.Wrapf(err, "Failed to add user(%+v)", user)
+	if !m.users.ContainKey1(user.Index) {
+		err := m.users.Add(user.Index, user.Token, user)
+		if err != nil {
+			return errors.Wrapf(err, "Failed to add user(%+v)", user)
+		}
 	}
 	return nil
 }

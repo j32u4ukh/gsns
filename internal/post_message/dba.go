@@ -59,12 +59,15 @@ func (s *PostMessageServer) handleDbaNormal(work *base.Work, agreement *agrt.Agr
 		} else {
 			for i, pm := range agreement.PostMessages {
 				logger.Debug("%d) %+v", i, pm)
-				s.pmRoots[pm.Id] = pm
-				if _, ok := s.postIds[pm.UserId]; !ok {
-					s.postIds[pm.UserId] = cntr.NewSet[uint64]()
-				}
-				s.postIds[pm.UserId].Add(pm.Id)
+				s.cachePost(pm)
 			}
+		}
+	// 用戶登入後，取得貼文數據並緩存下來
+	case define.GetMyPosts:
+		work.Finish()
+		for i, pm := range agreement.PostMessages {
+			logger.Debug("%d) %+v", i, pm)
+			s.cachePost(pm)
 		}
 	default:
 		logger.Warn("Unsupport service: %d\n", agreement.Service)
@@ -79,13 +82,7 @@ func (s *PostMessageServer) handleDbaCommission(work *base.Work, agreement *agrt
 		logger.Debug("#post: %d, returnCode: %d", len(agreement.PostMessages), agreement.ReturnCode)
 		post := proto.Clone(agreement.PostMessages[0]).(*pbgo.PostMessage)
 		logger.Info("New post: %+v", post)
-
-		if post.ParentId == 0 {
-			s.pmRoots[post.Id] = post
-			s.postIds[post.UserId].Add(post.Id)
-		} else {
-			s.pmLeaves.Add(post.Id, post.ParentId, post)
-		}
+		s.cachePost(post)
 
 		td := base.NewTransData()
 		bs, _ := agreement.Marshal()
@@ -145,4 +142,19 @@ func (s *PostMessageServer) handleDbaCommission(work *base.Work, agreement *agrt
 		fmt.Printf("Unsupport commission: %d\n", agreement.Service)
 		work.Finish()
 	}
+}
+
+func (s *PostMessageServer) cachePost(pm *pbgo.PostMessage) {
+	logger.Info("Cache post: %+v", pm)
+	s.pmRoots[pm.Id] = pm
+	if pm.ParentId != 0 {
+		if _, ok := s.pmLeaves[pm.ParentId]; !ok {
+			s.pmLeaves[pm.ParentId] = []*pbgo.PostMessage{}
+		}
+		s.pmLeaves[pm.ParentId] = append(s.pmLeaves[pm.ParentId], pm)
+	}
+	if _, ok := s.postIds[pm.UserId]; !ok {
+		s.postIds[pm.UserId] = cntr.NewSet[uint64]()
+	}
+	s.postIds[pm.UserId].Add(pm.Id)
 }

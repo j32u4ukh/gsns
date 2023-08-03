@@ -171,9 +171,13 @@ func (s *DbaServer) handleNormalCommand(work *base.Work, agreement *agrt.Agreeme
 func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement) {
 	switch agreement.Service {
 	case define.Register:
-		// work.Body.Clear()
 		defer func() {
-			bs, _ := agreement.Marshal()
+			bs, err := agreement.Marshal()
+			if err != nil {
+				logger.Error("Failed to marshal agreement, err: %+v", err)
+				return
+			}
+			logger.Info("Send define.Register response:  %+v", agreement)
 			work.Body.AddByteArray(bs)
 			work.SendTransData()
 		}()
@@ -183,7 +187,7 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 		defer s.tables[TidAccount].PutInserter(inserter)
 		err := inserter.Insert(account)
 		if err != nil {
-			fmt.Printf("Insert err: %+v", err)
+			logger.Error("Insert err: %+v", err)
 			agreement.ReturnCode = 1
 			agreement.Msg = "Failed to insert account."
 			return
@@ -193,19 +197,113 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 		result, err = inserter.Exec()
 
 		if err != nil {
-			fmt.Printf("Insert Exec err: %+v\n", err)
+			logger.Error("Insert exec err: %+v", err)
 			agreement.ReturnCode = 2
 			agreement.Msg = "Failed to execute insert statement."
 			return
 		}
 
-		logger.Info("result: %s", result)
-		// returnCode
 		agreement.ReturnCode = 0
 		account.Index = int32(result.LastInsertId)
 
+	case define.Login:
+		var bs []byte
+		var err error
+		defer func() {
+			bs, err = agreement.Marshal()
+			if err != nil {
+				logger.Error("Failed to marshal agreement, err: %+v", err)
+				return
+			}
+			logger.Info("Send define.Login response: %+v", agreement)
+			work.Body.AddByteArray(bs)
+			work.SendTransData()
+		}()
+		account := agreement.Accounts[0]
+
+		//////////////////////////////////////////////////
+		// 開始讀取帳號資料
+		//////////////////////////////////////////////////
+		accountSelector := s.tables[TidAccount].GetSelector()
+		defer s.tables[TidAccount].PutSelector(accountSelector)
+		accountSelector.SetCondition(gosql.WS().
+			AddAndCondtion(gosql.WS().Eq("account", account.Account)).
+			AddAndCondtion(gosql.WS().Eq("password", account.Password)))
+		results, err := accountSelector.Query(func() any { return &pbgo.Account{} })
+		if err != nil {
+			agreement.ReturnCode = 1
+			agreement.Msg = "Failed to query account data."
+			logger.Error(agreement.Msg)
+			return
+		}
+		if len(results) != 1 {
+			agreement.ReturnCode = 2
+			agreement.Msg = fmt.Sprintf("讀取的結果數量不正確, #account: %d", len(results))
+			logger.Error(agreement.Msg)
+			return
+		}
+		account = results[0].(*pbgo.Account)
+		agreement.Accounts[0] = account
+		//////////////////////////////////////////////////
+		// 完成帳號資料讀取
+		//////////////////////////////////////////////////
+		//////////////////////////////////////////////////
+		// 開始讀取社群資料
+		//////////////////////////////////////////////////
+		edgeSelector := s.tables[TidEdge].GetSelector()
+		defer s.tables[TidEdge].PutSelector(edgeSelector)
+		edgeSelector.SetCondition(gosql.WS().Eq("user_id", account.Index))
+		results, err = edgeSelector.Query(func() any { return &pbgo.Edge{} })
+		if err != nil {
+			agreement.ReturnCode = 3
+			agreement.Msg = "Failed to query edge data."
+			logger.Error(agreement.Msg)
+			return
+		}
+		for _, result := range results {
+			agreement.Edges = append(agreement.Edges, result.(*pbgo.Edge))
+		}
+		agreement.ReturnCode = 0
+		//////////////////////////////////////////////////
+		// 完成社群資料讀取
+		//////////////////////////////////////////////////
+		//////////////////////////////////////////////////
+		// 開始讀取貼文資料
+		//////////////////////////////////////////////////
+		pmSelector := s.tables[TidPostMessage].GetSelector()
+		defer s.tables[TidPostMessage].PutSelector(pmSelector)
+		pmSelector.SetCondition(gosql.WS().Eq("user_id", account.Index))
+		results, err = pmSelector.Query(func() any { return &pbgo.PostMessage{} })
+		if err != nil {
+			logger.Error("Failed to query post data.")
+			return
+		}
+		agreement2 := agrt.GetAgreement()
+		defer agrt.PutAgreement(agreement2)
+		agreement2.Cmd = define.NormalCommand
+		agreement2.Service = define.GetMyPosts
+		for i, result := range results {
+			pm := result.(*pbgo.PostMessage)
+			logger.Debug("%d) pm: %+v", i, pm)
+			agreement2.PostMessages = append(agreement2.PostMessages, pm)
+		}
+		bs, err = agreement2.Marshal()
+		if err != nil {
+			logger.Error("Failed to marshal agreement2, err: %+v", err)
+			return
+		}
+		td := base.NewTransData()
+		td.AddByteArray(bs)
+		data := td.FormData()
+		err = gos.SendToClient(define.DbaPort, s.serverIdDict[define.PostMessageServer], &data, int32(len(data)))
+		if err != nil {
+			logger.Error("Failed to marshal agreement2, err: %+v", err)
+			return
+		} else {
+			logger.Info("Send to PostMessage server define.Login response: %+v", agreement2)
+		}
+
 	case define.SetUserData:
-		// work.Body.Clear()
 		defer func() {
 			bs, _ := agreement.Marshal()
 			work.Body.AddByteArray(bs)
@@ -343,6 +441,7 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 		agreement.ReturnCode = 0
 
 	case define.Subscribe:
+		// TODO: 避免重複訂閱，先讀取再插入
 		defer func() {
 			bs, _ := agreement.Marshal()
 			work.Body.AddByteArray(bs)

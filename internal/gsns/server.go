@@ -29,15 +29,19 @@ func (s *MainServer) SetHttpAnswer(a *ans.HttpAnser) {
 	s.AMgr.SetHttpAnswer(a)
 	rAccount := a.Router.NewRouter("/account")
 	s.AMgr.HttpAccountHandler(rAccount)
-	rSocial := a.Router.NewRouter("/social")
-	s.AMgr.HttpSocialHandler(rSocial)
 
 	// 貼文相關節點
 	s.PMgr.SetHttpAnswer(a)
 	rPost := a.Router.NewRouter("/post")
 	s.PMgr.HttpHandler(rPost)
+
+	// 社群相關節點
+	rSocial := a.Router.NewRouter("/social")
+	s.HttpSocialHandler(rSocial)
 }
 
-func (s *MainServer) Run() {
-
+type SocialProtocol struct {
+	Token    uint64
+	TargetId int32
+	PostId   uint64
 }

@@ -4,31 +4,65 @@ import (
 	"internal/pbgo"
 	"sync"
 
+	"github.com/j32u4ukh/gos"
 	"github.com/j32u4ukh/gos/base"
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/proto"
 )
 
 var once sync.Once
-var pool sync.Pool
+var agrementPool sync.Pool
+var transdataPool sync.Pool
 
 func init() {
 	once.Do(func() {
-		pool = sync.Pool{
+		agrementPool = sync.Pool{
 			New: func() any {
 				return newAgreement()
+			},
+		}
+		transdataPool = sync.Pool{
+			New: func() any {
+				return base.NewTransData()
 			},
 		}
 	})
 }
 
+func SendAgreement(arg0 int32, arg1 int32, agreement *Agreement) ([]byte, error) {
+	// 寫入 agreement
+	td := transdataPool.Get().(*base.TransData)
+	defer func() {
+		td.Clear()
+		transdataPool.Put(td)
+	}()
+	bs, err := agreement.Marshal()
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to marshal agreement")
+	}
+	td.AddByteArray(bs)
+	data := td.FormData()
+
+	// 將註冊數據傳到伺服器
+	if arg1 == -1 {
+		err = gos.SendToServer(arg0, &data, int32(len(data)))
+	} else {
+		err = gos.SendToClient(arg0, arg1, &data, int32(len(data)))
+	}
+
+	if err != nil {
+		return nil, errors.Wrapf(err, "Failed to sned to server %d", arg0)
+	}
+	return data, nil
+}
+
 func GetAgreement() *Agreement {
-	return pool.Get().(*Agreement)
+	return agrementPool.Get().(*Agreement)
 }
 
 func PutAgreement(a *Agreement) {
 	a.Release()
-	pool.Put(a)
+	agrementPool.Put(a)
 }
 
 type Agreement struct {
@@ -78,9 +112,11 @@ func (a *Agreement) Release() {
 	agreement.Service = -1
 	agreement.ReturnCode = -1
 	agreement.Msg = ""
-	agreement.Cid = -1
+	agreement.Cid = 0
 	agreement.Accounts = agreement.Accounts[:0]
 	agreement.Users = agreement.Users[:0]
 	agreement.PostMessages = agreement.PostMessages[:0]
+	agreement.Cipher = ""
+	agreement.Identity = 0
 	agreement.Edges = agreement.Edges[:0]
 }
