@@ -2,15 +2,17 @@ syntax = "proto3";
 option go_package = ".;pbgo";
 import "TimeStamp.proto";
 
-message Account {
-    // {"default": "AI", "primary_key": "default"}
-    int32 index = 1;
+message PostMessage {
+    // {"primary_key": "default"}
+    uint64 id = 1;
     
-    string account = 2;
+    // parent id 為被回覆的貼文的 post id
+    uint64 parent_id = 2;
     
-    string password = 3;
+    int32 user_id = 3;
     
-    string info = 4;
+    // {"size": 500}
+    string content = 4;
 
     // {"default": "current_timestamp()"}
     TimeStamp create_time = 5;

@@ -1,7 +1,0 @@
-syntax = "proto3";
-option go_package = ".;pbgo";
-import "Account.proto";
-
-message AccountArray {
-    repeated Account accounts = 1;
-}

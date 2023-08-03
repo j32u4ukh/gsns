@@ -2,15 +2,16 @@ syntax = "proto3";
 option go_package = ".;pbgo";
 import "TimeStamp.proto";
 
-message Account {
+message Edge {
     // {"default": "AI", "primary_key": "default"}
     int32 index = 1;
     
-    string account = 2;
+    int32 user_id = 2;
     
-    string password = 3;
+    int32 target = 3;
     
-    string info = 4;
+    // {"ignore": "true"}
+    repeated int32 targets = 4;
 
     // {"default": "current_timestamp()"}
     TimeStamp create_time = 5;

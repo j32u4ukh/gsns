@@ -22,7 +22,6 @@ func (s *AccountServer) DbaHandler(work *base.Work) {
 		logger.Error("Failed to unmarshal agreement, err: %+v", err)
 		return
 	}
-	logger.Info("Cmd: %d, Service: %d", agreement.Cmd, agreement.Service)
 	switch agreement.Cmd {
 	case define.SystemCommand:
 		s.handleDbaSystemCommand(work, agreement)
@@ -40,7 +39,10 @@ func (s *AccountServer) handleDbaSystemCommand(work *base.Work, agreement *agrt.
 	switch agreement.Service {
 	// 回應心跳包
 	case define.Heartbeat:
-		fmt.Printf("Heart response Now: %+v\n", time.Now())
+		if time.Now().After(s.heartbeatTime) {
+			logger.Info("Heart response Now: %+v", time.Now())
+			s.heartbeatTime = time.Now().Add(1 * time.Minute)
+		}
 		work.Finish()
 	default:
 		fmt.Printf("Unsupport service: %d\n", agreement.Service)
@@ -53,15 +55,14 @@ func (s *AccountServer) handleDbaNormalCommand(work *base.Work, agreement *agrt.
 	// 取得用戶資訊
 	case define.GetUserData:
 		logger.Debug("GetUserData")
-		if agreement.ReturnCode != 0 {
-			work.Finish()
-			return
+		if agreement.ReturnCode == 0 {
+			for _, account := range agreement.Accounts {
+				logger.Debug("account: %+v", account)
+				// 將用戶資訊加入緩存
+				s.accounts.Set(account.Index, account.Account, account)
+			}
 		}
-		for _, account := range agreement.Accounts {
-			logger.Debug("account: %+v", account)
-			// 將用戶資訊加入緩存
-			s.accounts.Set(account.Index, account.Account, account)
-		}
+		work.Finish()
 	default:
 		logger.Warn("Unsupport service: %d\n", agreement.Service)
 		work.Finish()
@@ -86,11 +87,48 @@ func (s *AccountServer) handleDbaCommission(work *base.Work, agreement *agrt.Agr
 		data := td.FormData()
 
 		// 將註冊結果回傳主伺服器
-		err := gos.SendToClient(define.AccountPort, s.MainServerId, &data, td.GetLength())
+		err := gos.SendToClient(define.AccountPort, s.serverIdDict[define.GsnsServer], &data, int32(len(data)))
 
 		if err != nil {
-			logger.Error("Failed to send to client %d: %v\nError: %+v", s.MainServerId, data, err)
+			logger.Error("Failed to send to client %d: %v\nError: %+v", s.serverIdDict[define.GsnsServer], data, err)
 			return
+		}
+
+	case define.Login:
+		work.Finish()
+		logger.Info("Recieved login response: %+v", agreement)
+
+		if agreement.ReturnCode == 0 {
+			// 將新註冊用戶加入緩存管理
+			account := proto.Clone(agreement.Accounts[0]).(*pbgo.Account)
+			if !s.accounts.ContainKey1(account.Index) {
+				logger.Info("加入緩存")
+				s.accounts.Add(account.Index, account.Account, account)
+			} else {
+				logger.Info("更新緩存")
+				s.accounts.UpdateByKey1(account.Index, cntr.NewBivalue(account.Index, account.Account, account))
+			}
+			logger.Info("Login account: %+v", account)
+
+			// 隱藏密碼相關資訊，無須提供給 GSNS
+			agreement.Accounts[0].Password = ""
+		} else {
+			logger.Info("Failed to login, ReturnCode: %d", agreement.ReturnCode)
+		}
+
+		td := base.NewTransData()
+		bs, _ := agreement.Marshal()
+		td.AddByteArray(bs)
+		data := td.FormData()
+
+		// 將註冊結果回傳主伺服器
+		err := gos.SendToClient(define.AccountPort, s.serverIdDict[define.GsnsServer], &data, int32(len(data)))
+
+		if err != nil {
+			logger.Error("Failed to send to client %d\nError: %+v", s.serverIdDict[define.GsnsServer], err)
+			return
+		} else {
+			logger.Info("Send define.Login response: %+v", agreement)
 		}
 
 	case define.SetUserData:
@@ -100,7 +138,6 @@ func (s *AccountServer) handleDbaCommission(work *base.Work, agreement *agrt.Agr
 
 		if agreement.ReturnCode != 0 {
 			logger.Error("ReturnCode: %d", agreement.ReturnCode)
-			agreement.Accounts = agreement.Accounts[:0]
 		} else {
 			account := proto.Clone(agreement.Accounts[0]).(*pbgo.Account)
 			logger.Debug("New account: %+v", account)
@@ -113,18 +150,69 @@ func (s *AccountServer) handleDbaCommission(work *base.Work, agreement *agrt.Agr
 			agreement.Accounts[0].Password = ""
 		}
 
-		bs, _ := agreement.Marshal()
+		bs, err := agreement.Marshal()
+		if err != nil {
+			logger.Error("Failed to marshal agreement, err: %+v", err)
+			return
+		}
 		td.AddByteArray(bs)
 		data := td.FormData()
 
 		// 將註冊結果回傳主伺服器
-		err = gos.SendToClient(define.AccountPort, s.MainServerId, &data, td.GetLength())
+		err = gos.SendToClient(define.AccountPort, s.serverIdDict[define.GsnsServer], &data, int32(len(data)))
 
 		if err != nil {
-			logger.Error("Failed to send to client %d: %v\nError: %+v", s.MainServerId, data, err)
+			logger.Error("Failed to send to %s, err: %+v", define.ServerName(define.GsnsServer), err)
+		} else {
+			logger.Info("Send define.SetUserData response: %+v", agreement)
+		}
+
+	case define.GetOtherUsers:
+		work.Finish()
+
+		var err error
+		td := base.NewTransData()
+
+		if agreement.ReturnCode != 0 {
+			logger.Error("ReturnCode: %d", agreement.ReturnCode)
+			agreement.Accounts = agreement.Accounts[:0]
+		} else {
+			bs, _ := agreement.Marshal()
+			td.AddByteArray(bs)
+		}
+
+		data := td.FormData()
+
+		// 將註冊結果回傳主伺服器
+		err = gos.SendToClient(define.AccountPort, s.serverIdDict[define.GsnsServer], &data, int32(len(data)))
+
+		if err != nil {
+			logger.Error("Failed to send to client %d: %v\nError: %+v", s.serverIdDict[define.GsnsServer], data, err)
 			return
 		}
 
+	case define.Subscribe:
+		work.Finish()
+		var err error
+		td := base.NewTransData()
+
+		if agreement.ReturnCode != 0 {
+			logger.Error("ReturnCode: %d", agreement.ReturnCode)
+			agreement.Edges = agreement.Edges[:0]
+		} else {
+			bs, _ := agreement.Marshal()
+			td.AddByteArray(bs)
+		}
+
+		data := td.FormData()
+
+		// 將註冊結果回傳主伺服器
+		err = gos.SendToClient(define.AccountPort, s.serverIdDict[define.GsnsServer], &data, int32(len(data)))
+
+		if err != nil {
+			logger.Error("Failed to send to client %d: %v\nError: %+v", s.serverIdDict[define.GsnsServer], data, err)
+			return
+		}
 	default:
 		fmt.Printf("Unsupport commission: %d\n", agreement.Service)
 		work.Finish()

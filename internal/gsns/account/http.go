@@ -14,7 +14,8 @@ import (
 )
 
 // TODO: HTTP 請求處理過程中若失敗，要返回錯誤訊息給客戶端，而非印出日誌或直接返回
-func (m *AccountMgr) HttpHandler(router *ans.Router) {
+// [endpoint]/account
+func (m *AccountMgr) HttpAccountHandler(router *ans.Router) {
 
 	// TODO: 註冊：帳密以及個人資訊。儲存以 SHA256 加密後的密碼，而非儲存原始密碼。
 	router.POST("/register", m.register)
@@ -38,102 +39,97 @@ func (m *AccountMgr) register(c *ghttp.Context) {
 	// 帳號名稱(Account) 和 密碼原文(Password) 為必須，個人資訊(Info) 可以不填
 	// TODO: 在前端就加密
 	if ap.Account == "" || ap.Password == "" {
+		msg := fmt.Sprintf("缺少參數, account: %+v", ap)
+		m.logger.Error(msg)
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
 			"ret": 1,
-			"msg": fmt.Sprintf("缺少參數, account: %+v", ap),
+			"msg": msg,
 		})
 		m.httpAnswer.Send(c)
 		return
 	}
 
-	// 將當前 Http 的工作結束
-	m.httpAnswer.Finish(c)
-
 	agreement := agrt.GetAgreement()
 	defer agrt.PutAgreement(agreement)
-	agreement.Cmd = int32(define.CommissionCommand)
-	agreement.Service = int32(define.Register)
+	agreement.Cmd = define.CommissionCommand
+	agreement.Service = define.Register
 	agreement.Cid = c.GetId()
-
-	account := &pbgo.Account{
+	agreement.Accounts = append(agreement.Accounts, &pbgo.Account{
 		Account:  ap.Account,
 		Password: ap.Password,
 		Info:     ap.Info,
-	}
-
-	m.logger.Info("Register account: %+v", account)
-	agreement.Accounts = append(agreement.Accounts, account)
+	})
 
 	// 寫入 agreement
 	td := base.NewTransData()
 	bs, _ := agreement.Marshal()
 	td.AddByteArray(bs)
 	data := td.FormData()
-	m.logger.Info("data: %+v", data)
 
 	// 將註冊數據傳到 Account 伺服器
-	err := gos.SendToServer(define.AccountServer, &data, td.GetLength())
+	err := gos.SendToServer(define.AccountServer, &data, int32(len(data)))
 
 	if err != nil {
-		fmt.Printf("(s *MainServer) CommissionHandler | Failed to send to server %d: %v\nError: %+v\n", define.DbaServer, data, err)
+		m.logger.Error("Failed to send to server %d\nError: %+v", define.AccountServer, err)
+		c.Json(ghttp.StatusInternalServerError, ghttp.H{
+			"ret": 2,
+			"msg": "Failed to send to Account server",
+		})
+		m.httpAnswer.Send(c)
 		return
+	} else {
+		m.logger.Info("Send define.Register request: %+v", agreement)
+		// 將當前 Http 的工作結束
+		m.httpAnswer.Finish(c)
 	}
 }
 
 func (m *AccountMgr) login(c *ghttp.Context) {
-	agreement := agrt.GetAgreement()
-	defer agrt.PutAgreement(agreement)
-	agreement.Cmd = int32(define.CommissionCommand)
-	agreement.Service = int32(define.Login)
-	agreement.Cid = c.GetId()
-
-	td := base.NewTransData()
-
 	ap := &AccountProtocol{}
 	c.ReadJson(ap)
 	m.logger.Info("AccountProtocol: %+v", ap)
 
 	if ap.Account == "" || ap.Password == "" {
-		var ret string
-		if ap.Account == "" && ap.Password == "" {
-			ret = "Account & password are empty."
-		} else if ap.Account == "" {
-			ret = "Account is empty."
-		} else {
-			ret = "Password is empty."
-		}
+		msg := fmt.Sprintf("缺少參數, ap: %+v", ap)
+		m.logger.Error(msg)
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
-			"err": ret,
+			"ret": 1,
+			"msg": msg,
 		})
 		m.httpAnswer.Send(c)
 		return
 	}
 
-	account := &pbgo.Account{
+	agreement := agrt.GetAgreement()
+	defer agrt.PutAgreement(agreement)
+	agreement.Cmd = int32(define.CommissionCommand)
+	agreement.Service = int32(define.Login)
+	agreement.Cid = c.GetId()
+	agreement.Accounts = append(agreement.Accounts, &pbgo.Account{
 		Account:  ap.Account,
 		Password: ap.Password,
-	}
-
-	agreement.Accounts = append(agreement.Accounts, account)
+	})
 
 	// 寫入 agreement
+	td := base.NewTransData()
 	bs, _ := agreement.Marshal()
 	td.AddByteArray(bs)
 	data := td.FormData()
 
 	// 將登入數據傳到 Account 伺服器
-	err := gos.SendToServer(define.AccountServer, &data, td.GetLength())
+	err := gos.SendToServer(define.AccountServer, &data, int32(len(data)))
 
 	if err != nil {
-		m.logger.Error("Failed to send to server %d: %v\nError: %+v", define.DbaServer, data, err)
+		m.logger.Error("Failed to send to server %d: %v\nError: %+v", define.AccountServer, data, err)
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
 			"err": "Failed to send to server.",
 		})
 		m.httpAnswer.Send(c)
-		return
+	} else {
+		m.logger.Info("Send define.Login request: %+v", agreement)
+		// 將當前 Http 的工作結束
+		m.httpAnswer.Finish(c)
 	}
-	// 將當前 Http 的工作結束
-	m.httpAnswer.Finish(c)
 }
 
 func (m *AccountMgr) logout(c *ghttp.Context) {
@@ -161,7 +157,6 @@ func (m *AccountMgr) logout(c *ghttp.Context) {
 			"msg": fmt.Sprintf("User %s logout success.", user.Name),
 		})
 	}
-	// TODO: 通知 Account server 將用戶登出。
 }
 
 func (m *AccountMgr) getUserInfo(c *ghttp.Context) {
@@ -170,12 +165,18 @@ func (m *AccountMgr) getUserInfo(c *ghttp.Context) {
 	var ok bool
 
 	if sToken, ok = c.Params["token"]; !ok {
+		c.Json(ghttp.StatusBadRequest, ghttp.H{
+			"msg": "缺少參數: token",
+		})
 		return
 	}
 
 	token, err := strconv.ParseUint(sToken, 10, 64)
 
 	if err != nil {
+		c.Json(ghttp.StatusBadRequest, ghttp.H{
+			"msg": fmt.Sprintf("無效 token %s", sToken),
+		})
 		return
 	}
 
@@ -232,14 +233,11 @@ func (m *AccountMgr) setUserInfo(c *ghttp.Context) {
 		user.Info = ap.Info
 	}
 
-	account := &pbgo.Account{
+	agreement.Accounts = append(agreement.Accounts, &pbgo.Account{
 		Index:   user.Index,
 		Account: user.Name,
 		Info:    user.Info,
-	}
-	m.logger.Info("account: %+v", account)
-
-	agreement.Accounts = append(agreement.Accounts, account)
+	})
 
 	// 寫入 agreement
 	td := base.NewTransData()
@@ -248,16 +246,16 @@ func (m *AccountMgr) setUserInfo(c *ghttp.Context) {
 	data := td.FormData()
 
 	// 將新用戶資訊數據傳到 Account 伺服器
-	err := gos.SendTransDataToServer(define.AccountServer, td)
+	err := gos.SendToServer(define.AccountServer, &data, int32(len(data)))
 
 	if err != nil {
-		fmt.Printf("(s *MainServer) CommissionHandler | Failed to send to server %d: %v\nError: %+v\n", define.DbaServer, data, err)
+		m.logger.Error("Failed to send to %s, err: %+v", define.ServerName(define.AccountServer), err)
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
 			"err": "Failed to send to server",
 		})
 		m.httpAnswer.Send(c)
-		return
+	} else {
+		m.logger.Info("Send define.SetUserData request: %+v", agreement)
+		m.httpAnswer.Finish(c)
 	}
-
-	m.httpAnswer.Finish(c)
 }

@@ -2,6 +2,8 @@ syntax = "proto3";
 option go_package = ".;pbgo";
 import "Account.proto";
 import "User.proto";
+import "PostMessage.proto";
+import "Edge.proto";
 
 message Agreement {
     int32 cmd = 1;
@@ -17,4 +19,12 @@ message Agreement {
     repeated Account accounts = 6;
 
     repeated User users = 7;
+
+    repeated PostMessage post_messages = 8;
+    
+    string cipher = 9;
+
+    int32 identity = 10;
+
+    repeated Edge edges = 11;
 }

@@ -1,6 +1,7 @@
 package gsns
 
 import (
+	"internal/agrt"
 	"internal/define"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 
 var ms *MainServer
 var accountAsker *ask.Tcp0Asker
+var pmAsker *ask.Tcp0Asker
 var logger *glog.Logger
 
 func Init() error {
@@ -23,15 +25,34 @@ func Init() error {
 	if err != nil {
 		return errors.Wrap(err, "初始化網路底層時發生錯誤")
 	}
-	err = initData()
-	if err != nil {
-		return errors.Wrap(err, "載入數據時發生錯誤")
-	}
 	return nil
 }
 
 func initGos() error {
 	ms = newMainServer()
+	td := base.NewTransData()
+	agreement := agrt.GetAgreement()
+	defer agrt.PutAgreement(agreement)
+	agreement.Cmd = define.SystemCommand
+	agreement.Service = define.Heartbeat
+	bs, _ := agreement.Marshal()
+	td.AddByteArray(bs)
+	data := td.FormData()
+	agreement.Release()
+	td.Clear()
+	heartbeat := make([]byte, len(data))
+	copy(heartbeat, data)
+
+	agreement.Cmd = define.SystemCommand
+	agreement.Service = define.Introduction
+	agreement.Cipher = "GSNS"
+	agreement.Identity = define.GsnsServer
+	bs, _ = agreement.Marshal()
+	td.AddByteArray(bs)
+	data = td.FormData()
+	td.Clear()
+	introduction := make([]byte, len(data))
+	copy(introduction, data)
 
 	// ==================================================
 	// Http Server: 接受來自客戶端的請求
@@ -45,7 +66,6 @@ func initGos() error {
 	}
 
 	ms.SetHttpAnswer(anser.(*ans.HttpAnser))
-	ms.HttpHandler(ms.HttpAnswer.Router)
 	logger.Info("Http Anser 伺服器初始化完成")
 
 	// ==================================================
@@ -57,7 +77,7 @@ func initGos() error {
 		gosDefine.OnConnected: func(any) {
 			logger.Info("成功與 AccountServer 連線")
 		},
-	})
+	}, &introduction, &heartbeat)
 
 	if err != nil {
 		return errors.Wrapf(err, "Failed to bind address %s:%d", address, port)
@@ -65,6 +85,24 @@ func initGos() error {
 
 	accountAsker = askAccount.(*ask.Tcp0Asker)
 	accountAsker.SetWorkHandler(ms.AMgr.WorkHandler)
+
+	// ==================================================
+	// 與 PostMessage Server 建立 TCP 連線，將數據依序寫入緩存
+	// ==================================================
+	askPostMessage, err := gos.Bind(define.PostMessageServer, address, define.PostMessagePort, gosDefine.Tcp0, base.OnEventsFunc{
+		gosDefine.OnConnected: func(any) {
+			logger.Info("成功與 PostMessage Server 連線")
+		},
+	}, &introduction, &heartbeat)
+
+	if err != nil {
+		return errors.Wrapf(err, "Failed to bind address %s:%d", address, define.PostMessagePort)
+	}
+
+	pmAsker = askPostMessage.(*ask.Tcp0Asker)
+	pmAsker.SetWorkHandler(ms.PMgr.WorkHandler)
+
+	// =============================================
 	logger.Info("伺服器初始化完成")
 
 	// =============================================
@@ -84,27 +122,7 @@ func initGos() error {
 	}
 	return nil
 }
-
-func initData() error {
-	// TODO: 生成向 DBA 取得數據的請求
-	// TODO: 生成向 Account 取得數據的請求
-	return nil
-}
-
 func Run() {
-	var start time.Time
-	var during, frameTime time.Duration = 0, 20 * time.Millisecond
-
-	for {
-		start = time.Now()
-
-		gos.RunAns()
-		gos.RunAsk()
-		ms.Run()
-
-		during = time.Since(start)
-		if during < frameTime {
-			time.Sleep(frameTime - during)
-		}
-	}
+	gos.SetFrameTime(20 * time.Millisecond)
+	gos.Run(nil)
 }

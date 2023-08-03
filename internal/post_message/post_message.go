@@ -1,7 +1,6 @@
-package account
+package pm
 
 import (
-	"fmt"
 	"internal/agrt"
 	"internal/define"
 	"time"
@@ -15,7 +14,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-var as *AccountServer
+var server *PostMessageServer
 var dbaAsker *ask.Tcp0Asker
 var logger *glog.Logger
 
@@ -43,7 +42,7 @@ func initGos() error {
 	agreement.Cmd = define.SystemCommand
 	agreement.Service = define.Introduction
 	agreement.Cipher = "GSNS"
-	agreement.Identity = define.AccountServer
+	agreement.Identity = define.PostMessageServer
 	bs, _ = agreement.Marshal()
 	td.AddByteArray(bs)
 	introduction := td.FormData()
@@ -52,16 +51,16 @@ func initGos() error {
 	// ==================================================
 	// 與 Dba Server 建立 TCP 連線，將數據依序寫入緩存
 	// ==================================================
-	anser, err := gos.Listen(gosDefine.Tcp0, define.AccountPort)
-	fmt.Printf("AccountServer | Listen to port %d\n", define.AccountPort)
+	anser, err := gos.Listen(gosDefine.Tcp0, define.PostMessagePort)
+	logger.Info("Listen to port %d", define.PostMessagePort)
 
 	if err != nil {
-		return errors.Wrapf(err, "Failed to listen port %d", define.AccountPort)
+		return errors.Wrapf(err, "Failed to listen port %d", define.PostMessagePort)
 	}
 
-	as = NewAccountServer()
-	as.Tcp = anser.(*ans.Tcp0Anser)
-	as.Tcp.SetWorkHandler(as.Handler)
+	server = NewPostMessageServer()
+	server.Tcp = anser.(*ans.Tcp0Anser)
+	server.Tcp.SetWorkHandler(server.Handler)
 
 	// ==================================================
 	// 與 Dba Server 建立 TCP 連線，將數據依序寫入緩存
@@ -70,24 +69,6 @@ func initGos() error {
 	asker, err := gos.Bind(define.DbaServer, address, define.DbaPort, gosDefine.Tcp0, base.OnEventsFunc{
 		gosDefine.OnConnected: func(any) {
 			logger.Info("完成與 Dba Server 建立 TCP 連線")
-			// agreement := agrt.GetAgreement()
-			// defer agrt.PutAgreement(agreement)
-			// agreement.Cmd = int32(define.NormalCommand)
-			// agreement.Service = int32(define.GetUserData)
-
-			// // 請求取得用戶資料
-			// td := base.NewTransData()
-			// bs, _ := agreement.Marshal()
-			// td.AddByteArray(bs)
-			// data := td.FormData()
-
-			// // 將註冊結果回傳主伺服器
-			// err := gos.SendToServer(define.DbaServer, &data, int32(len(data)))
-
-			// if err != nil {
-			// 	logger.Error("Failed to send to dba %d: %v\nError: %+v", define.DbaServer, data, err)
-			// 	return
-			// }
 		},
 	}, &introduction, &heartbeat)
 
@@ -96,11 +77,9 @@ func initGos() error {
 	}
 
 	dbaAsker = asker.(*ask.Tcp0Asker)
-	dbaAsker.SetWorkHandler(as.DbaHandler)
+	dbaAsker.SetWorkHandler(server.DbaHandler)
 	logger.Info("DbaServer Asker 伺服器初始化完成")
 	logger.Info("伺服器初始化完成")
-
-	fmt.Printf("AccountServer | 伺服器初始化完成\n")
 
 	// =============================================
 	// 開始所有已註冊的監聽
@@ -130,7 +109,7 @@ func Run() {
 
 		gos.RunAns()
 		gos.RunAsk()
-		as.Run()
+		server.Run()
 
 		during = time.Since(start)
 		if during < frameTime {
