@@ -15,8 +15,8 @@ import (
 
 type PostMessageProtocol struct {
 	Token    uint64
-	ParentId uint64
-	PostId   uint64
+	ParentId uint64 `json:"parent_id"`
+	PostId   uint64 `json:"post_id"`
 	Content  string
 }
 
@@ -118,7 +118,7 @@ func (m *PostMessageMgr) handleCommission(work *base.Work, agreement *agrt.Agree
 		} else {
 			c.Json(ghttp.StatusOK, ghttp.H{
 				"ret": 0,
-				"pm":  fmt.Sprintf("%+v", agreement.PostMessages[0]),
+				"pms": agreement.PostMessages,
 			})
 		}
 		m.httpAnswer.Send(c)
