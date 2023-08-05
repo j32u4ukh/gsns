@@ -8,9 +8,9 @@ import (
 )
 
 type MainServer struct {
-	HttpAnswer *ans.HttpAnser
-	AMgr       *account.AccountMgr
-	PMgr       *pm.PostMessageMgr
+	Http *ans.HttpAnser
+	AMgr *account.AccountMgr
+	PMgr *pm.PostMessageMgr
 }
 
 func newMainServer() *MainServer {
@@ -23,7 +23,7 @@ func newMainServer() *MainServer {
 }
 
 func (s *MainServer) SetHttpAnswer(a *ans.HttpAnser) {
-	s.HttpAnswer = a
+	s.Http = a
 
 	// 帳號相關節點
 	s.AMgr.SetHttpAnswer(a)

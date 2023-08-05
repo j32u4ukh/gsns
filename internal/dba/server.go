@@ -423,8 +423,15 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 		}
 
 	case define.GetOtherUsers:
+		var bs []byte
+		var err error
 		defer func() {
-			bs, _ := agreement.Marshal()
+			bs, err = agreement.Marshal()
+			if err != nil {
+				logger.Error("Failed to marshal agreement, err: %+v", err)
+				work.Finish()
+				return
+			}
 			work.Body.AddByteArray(bs)
 			work.SendTransData()
 		}()
@@ -456,17 +463,23 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 		agreement.ReturnCode = 0
 
 	case define.Subscribe:
-		// TODO: 避免重複訂閱，先讀取再插入
+		var bs []byte
+		var err error
 		defer func() {
-			bs, _ := agreement.Marshal()
+			bs, err = agreement.Marshal()
+			if err != nil {
+				work.Finish()
+				return
+			}
 			work.Body.AddByteArray(bs)
 			work.SendTransData()
+			logger.Info("Send define.Subscribe response: %+v", agreement)
 		}()
 
 		edge := agreement.Edges[0]
 		inserter := s.tables[TidEdge].GetInserter()
 		defer s.tables[TidEdge].PutInserter(inserter)
-		err := inserter.Insert(edge)
+		err = inserter.Insert(edge)
 
 		if err != nil {
 			agreement.ReturnCode = 1

@@ -26,7 +26,7 @@ type AccountMgr struct {
 	httpAnswer *ans.HttpAnser
 	// key1: user id, key2: token
 	users         *cntr.BikeyMap[int32, uint64, *pbgo.SnsUser]
-	edges         map[int32]*cntr.Set[int32]
+	Edges         map[int32]*cntr.Set[int32]
 	logger        *glog.Logger
 	heartbeatTime time.Time
 }
@@ -34,7 +34,7 @@ type AccountMgr struct {
 func NewAccountMgr(lg *glog.Logger) *AccountMgr {
 	m := &AccountMgr{
 		users:         cntr.NewBikeyMap[int32, uint64, *pbgo.SnsUser](),
-		edges:         make(map[int32]*cntr.Set[int32]),
+		Edges:         make(map[int32]*cntr.Set[int32]),
 		logger:        lg,
 		heartbeatTime: time.Now(),
 	}
@@ -196,10 +196,10 @@ func (m *AccountMgr) handleAccountCommission(work *base.Work, agreement *agrt.Ag
 
 		if agreement.ReturnCode == 0 {
 			edge := agreement.Edges[0]
-			if _, ok := m.edges[edge.UserId]; !ok {
-				m.edges[edge.UserId] = cntr.NewSet[int32]()
+			if _, ok := m.Edges[edge.UserId]; !ok {
+				m.Edges[edge.UserId] = cntr.NewSet[int32]()
 			}
-			m.edges[edge.UserId].Add(edge.Target)
+			m.Edges[edge.UserId].Add(edge.Target)
 			c.Json(ghttp.StatusOK, ghttp.H{
 				"ret": 0,
 				"msg": fmt.Sprintf("User %d subscribe user %d", edge.UserId, edge.Target),
