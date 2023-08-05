@@ -14,6 +14,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+// TODO: 不緩存別人的貼文，因為不知道是否完整，每次讀取別人緩存時，都會再問一次 DBA，沒有在此緩存別人貼文的必要。
 type PostMessageServer struct {
 	Tcp *ans.Tcp0Anser
 	// key: user id; value: post ids
@@ -237,6 +238,43 @@ func (s *PostMessageServer) handleCommission(work *base.Work, agreement *agrt.Ag
 		}
 		work.Body.AddByteArray(bs)
 		work.SendTransData()
+
+	case define.GetSubscribedPosts:
+		// ==================================================
+		// 準備將請求轉送給 DBA server
+		// ==================================================
+		td := base.NewTransData()
+		bs, err := agreement.Marshal()
+		if err != nil {
+			agreement.Msg = "Failed to marshal agreement"
+			logger.Error("%s, err: %+v", agreement.Msg, err)
+			work.Finish()
+			return
+		}
+		td.AddByteArray(bs)
+		data := td.FormData()
+
+		// 將註冊數據傳到 Dba 伺服器
+		err = gos.SendToServer(define.DbaServer, &data, int32(len(data)))
+
+		if err != nil {
+			agreement.ReturnCode = 1
+			agreement.Msg = "Failed to send to Dba server"
+			logger.Error("%s, err: %+v", agreement.Msg, err)
+			bs, err = agreement.Marshal()
+			if err != nil {
+				agreement.Msg = "Failed to marshal agreement"
+				logger.Error("%s, err: %+v", agreement.Msg, err)
+				work.Finish()
+				return
+			}
+			work.Body.AddByteArray(bs)
+			work.SendTransData()
+			return
+		} else {
+			logger.Info("Send define.GetSubscribedPosts request: %+v", agreement)
+			work.Finish()
+		}
 
 	default:
 		fmt.Printf("Unsupport commission service: %d", agreement.Service)

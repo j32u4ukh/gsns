@@ -5,6 +5,7 @@ import (
 	"internal/agrt"
 	"internal/define"
 	"internal/pbgo"
+	"internal/utils"
 
 	"github.com/j32u4ukh/gos"
 	"github.com/j32u4ukh/gos/base"
@@ -244,6 +245,7 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 			logger.Error(agreement.Msg)
 			return
 		}
+		// 保留帳號的 Index 即可
 		account = results[0].(*pbgo.Account)
 		agreement.Accounts[0] = account
 		//////////////////////////////////////////////////
@@ -502,6 +504,45 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 
 		logger.Info("result: %s, edge: %+v", result, edge)
 		agreement.ReturnCode = 0
+
+	case define.GetSubscribedPosts:
+		var bs []byte
+		var err error
+		defer func() {
+			bs, err = agreement.Marshal()
+			if err != nil {
+				logger.Error("Failed to marshal agreement, err: %+v", err)
+				work.Finish()
+				return
+			}
+			work.Body.AddByteArray(bs)
+			work.SendTransData()
+			logger.Info("Send define.GetSubscribedPosts response: %+v", agreement)
+		}()
+
+		userIds := []any{}
+		for _, account := range agreement.Accounts {
+			userIds = append(userIds, account.Index)
+		}
+		selector := s.tables[TidPostMessage].GetSelector()
+		defer s.tables[TidPostMessage].PutSelector(selector)
+		startTime := utils.TimeToString(utils.TimestampToTime(agreement.StartTime))
+		stopTime := utils.TimeToString(utils.TimestampToTime(agreement.StopTime))
+		selector.SetCondition(gosql.WS().
+			AddAndCondtion(gosql.WS().In("user_id", userIds...)).
+			AddAndCondtion(gosql.WS().Ge("update_time", startTime)).
+			AddAndCondtion(gosql.WS().Le("update_time", stopTime)))
+		pms, err := selector.Query(func() any { return &pbgo.PostMessage{} })
+		if err != nil {
+			agreement.ReturnCode = 1
+			agreement.Msg = fmt.Sprintf("Failed to query posts from %+v.", userIds)
+			logger.Error("%s, err: %v", agreement.Msg, err)
+		} else {
+			agreement.ReturnCode = 0
+			for _, pm := range pms {
+				agreement.PostMessages = append(agreement.PostMessages, pm.(*pbgo.PostMessage))
+			}
+		}
 
 	default:
 		fmt.Printf("Unsupport commission: %d\n", agreement.Service)

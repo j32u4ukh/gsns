@@ -159,6 +159,27 @@ func (s *PostMessageServer) handleDbaCommission(work *base.Work, agreement *agrt
 		} else {
 			logger.Info("Send define.ModifyPost response: %+v", agreement)
 		}
+	case define.GetSubscribedPosts:
+		work.Finish()
+		logger.Info("Receive define.GetSubscribedPosts response(%d): %+v", agreement.ReturnCode, agreement)
+		td := base.NewTransData()
+		bs, err := agreement.Marshal()
+		if err != nil {
+			logger.Error("Failed to marshal agreement, err: %+v", err)
+			return
+		}
+		td.AddByteArray(bs)
+		data := td.FormData()
+
+		// 將註冊結果回傳主伺服器
+		err = gos.SendToClient(define.PostMessagePort, s.serverIdDict[define.GsnsServer], &data, int32(len(data)))
+
+		if err != nil {
+			logger.Error("Failed to send to Gsns server, err: %+v", err)
+		} else {
+			logger.Info("Send define.GetSubscribedPosts response: %+v", agreement)
+		}
+
 	default:
 		fmt.Printf("Unsupport commission: %d\n", agreement.Service)
 		work.Finish()

@@ -5,8 +5,11 @@ import (
 	"internal/agrt"
 	"internal/define"
 	"internal/pbgo"
+	"internal/utils"
 	"strconv"
+	"time"
 
+	"github.com/j32u4ukh/cntr"
 	"github.com/j32u4ukh/gos"
 	"github.com/j32u4ukh/gos/ans"
 	"github.com/j32u4ukh/gos/base"
@@ -19,6 +22,7 @@ func (s *MainServer) HttpSocialHandler(router *ans.Router) {
 	// 取得其他用戶的清單
 	router.GET("/other_users", s.getOtherUsers)
 	router.POST("/subscribe", s.subscribe)
+	router.POST("/subscribed_posts", s.getSubscribedPosts)
 }
 
 // [endpoint]/social/other_users
@@ -191,6 +195,126 @@ func (s *MainServer) subscribe(c *ghttp.Context) {
 		return
 	} else {
 		logger.Info("Send define.Subscribe request: %+v", agreement)
+		s.Http.Finish(c)
+	}
+}
+
+// [endpoint]/social/subscribed_posts
+func (s *MainServer) getSubscribedPosts(c *ghttp.Context) {
+	ip := &SocialProtocol{}
+	c.ReadJson(ip)
+
+	if ip.Token == 0 {
+		msg := "缺少參數"
+		logger.Error(msg)
+		c.Json(ghttp.StatusBadRequest, ghttp.H{
+			"ret": 1,
+			"msg": msg,
+		})
+		s.Http.Send(c)
+		return
+	}
+
+	var user *pbgo.SnsUser
+	var ok bool
+	user, ok = s.AMgr.GetUserByToken(ip.Token)
+
+	if !ok {
+		msg := fmt.Sprintf("Not found token %d", ip.Token)
+		logger.Error(msg)
+		c.Json(ghttp.StatusBadRequest, ghttp.H{
+			"ret": 2,
+			"msg": msg,
+		})
+		s.Http.Send(c)
+		return
+	}
+
+	agreement := agrt.GetAgreement()
+	defer agrt.PutAgreement(agreement)
+
+	// 取得訂閱對象的 ID
+	var edges *cntr.Set[int32]
+	returnImmediate := false
+
+	if edges, ok = s.AMgr.Edges[user.Index]; !ok {
+		returnImmediate = true
+	} else if edges.Length() == 0 {
+		returnImmediate = true
+	}
+
+	if returnImmediate {
+		c.Json(ghttp.StatusOK, ghttp.H{
+			"n_post": len(agreement.PostMessages),
+			"posts":  agreement.PostMessages,
+		})
+		s.Http.Send(c)
+		return
+	}
+
+	agreement.Cmd = define.CommissionCommand
+	agreement.Service = define.GetSubscribedPosts
+	agreement.Cid = c.GetId()
+	var err error
+	var sTime time.Time
+
+	if ip.StartTime != "" {
+		sTime, err = utils.StringToTime(ip.StartTime)
+
+		if err != nil {
+			logger.Warn("Invalied start time fotmat, StartTime: %s", ip.StartTime)
+			agreement.StartTime = utils.TimeToTimestamp(time.Date(1970, time.January, 1, 0, 0, 0, 0, time.UTC))
+		} else {
+			agreement.StartTime = utils.TimeToTimestamp(sTime)
+		}
+	} else {
+		agreement.StartTime = utils.TimeToTimestamp(time.Date(1970, time.January, 1, 0, 0, 0, 0, time.UTC))
+	}
+
+	if ip.StopTime != "" {
+		sTime, err = utils.StringToTime(ip.StopTime)
+
+		if err != nil {
+			logger.Warn("Invalied start time fotmat, StopTime: %s", ip.StopTime)
+			agreement.StopTime = utils.TimeToTimestamp(time.Now().UTC())
+		} else {
+			agreement.StopTime = utils.TimeToTimestamp(sTime)
+		}
+	} else {
+		agreement.StopTime = utils.TimeToTimestamp(time.Now().UTC())
+	}
+
+	for edge := range edges.Elements {
+		agreement.Accounts = append(agreement.Accounts, &pbgo.Account{
+			Index: edge,
+		})
+	}
+
+	bs, err := agreement.Marshal()
+	if err != nil {
+		msg := "Failed to marshal agreement"
+		logger.Error("%s, err: %+v", msg, err)
+		c.Json(ghttp.StatusInternalServerError, ghttp.H{
+			"ret": 3,
+			"msg": msg,
+		})
+		s.Http.Send(c)
+		return
+	}
+	td := base.NewTransData()
+	td.AddByteArray(bs)
+	data := td.FormData()
+	err = gos.SendToServer(define.PostMessageServer, &data, int32(len(data)))
+	if err != nil {
+		msg := "Failed to sned to PostMessage server."
+		logger.Error("%s, err: %+v", msg, err)
+		c.Json(ghttp.StatusInternalServerError, ghttp.H{
+			"ret": 4,
+			"msg": msg,
+		})
+		s.Http.Send(c)
+	} else {
+		logger.Info("Send define.GetSubscribedPosts request: %+v", agreement)
 		s.Http.Finish(c)
 	}
 }

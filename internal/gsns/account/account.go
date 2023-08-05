@@ -131,10 +131,22 @@ func (m *AccountMgr) handleAccountCommission(work *base.Work, agreement *agrt.Ag
 					return
 				}
 			}
+
+			// 初始化用戶的 Edges
+			if _, ok := m.Edges[account.Index]; !ok {
+				m.Edges[account.Index] = cntr.NewSet[int32]()
+			}
+
+			// 寫入社群資訊
+			for _, edge := range agreement.Edges {
+				m.Edges[account.Index].Add(edge.Target)
+			}
+
 			c.Json(ghttp.StatusOK, ghttp.H{
-				"msg":   fmt.Sprintf("User %s login success", account.Account),
-				"token": user.Token,
-				"info":  user.Info,
+				"msg":    fmt.Sprintf("User %s login success", account.Account),
+				"token":  user.Token,
+				"info":   user.Info,
+				"n_edge": len(agreement.Edges),
 			})
 		} else {
 			m.logger.Error("Failed to login, ReturnCode: %d", agreement.ReturnCode)

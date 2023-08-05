@@ -158,6 +158,28 @@ func (m *PostMessageMgr) handleCommission(work *base.Work, agreement *agrt.Agree
 			})
 		}
 		m.httpAnswer.Send(c)
+	case define.GetSubscribedPosts:
+		work.Finish()
+		// 利用 cid 取得對應的 Context
+		c := m.httpAnswer.GetContext(agreement.Cid)
+		m.logger.Debug("returnCode: %d", agreement.ReturnCode)
+
+		if agreement.ReturnCode != 0 {
+			c.Json(ghttp.StatusBadGateway, ghttp.H{
+				"ret": agreement.ReturnCode,
+				"msg": agreement.Msg,
+			})
+		} else {
+			for i, pm := range agreement.PostMessages {
+				m.logger.Debug("%d) pm: %+v", i, pm)
+			}
+			c.Json(ghttp.StatusOK, ghttp.H{
+				"n_post": len(agreement.PostMessages),
+				"posts":  agreement.PostMessages,
+			})
+		}
+		m.httpAnswer.Send(c)
+
 	default:
 		fmt.Printf("Unsupport commission service: %d\n", agreement.Service)
 		work.Finish()
