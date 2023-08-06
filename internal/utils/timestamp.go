@@ -20,6 +20,24 @@ func StringToTime(s string) (time.Time, error) {
 	return t, nil
 }
 
+func TimeToUtc(t time.Time) int64 {
+	return t.Unix()
+}
+
+func UtcToTime(utc int64) time.Time {
+	t := time.Unix(utc, 0).UTC()
+	return t
+}
+
+func UtcToTimestamp(utc int64) *pbgo.TimeStamp {
+	return TimeToTimestamp(UtcToTime(utc))
+}
+
+func TimestampToUtc(ts *pbgo.TimeStamp) int64 {
+	t := TimestampToTime(ts)
+	return TimeToUtc(t)
+}
+
 func TimeToTimestamp(t time.Time) *pbgo.TimeStamp {
 	return &pbgo.TimeStamp{
 		Year:   int32(t.Year()),
@@ -32,7 +50,11 @@ func TimeToTimestamp(t time.Time) *pbgo.TimeStamp {
 }
 
 func TimestampToTime(t *pbgo.TimeStamp) time.Time {
-	return time.Date(int(t.Year), time.Month(t.Month), int(t.Day), int(t.Hour), int(t.Minute), int(t.Second), 0, time.UTC)
+	if t == nil {
+		return time.Date(1970, time.January, 1, 0, 0, 0, 0, time.UTC)
+	} else {
+		return time.Date(int(t.Year), time.Month(t.Month), int(t.Day), int(t.Hour), int(t.Minute), int(t.Second), 0, time.UTC)
+	}
 }
 
 func TimeToString(t time.Time) string {

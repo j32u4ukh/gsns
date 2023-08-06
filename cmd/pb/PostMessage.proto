@@ -19,4 +19,10 @@ message PostMessage {
 
     // {"default": "current_timestamp()", "update": "current_timestamp()"}
     TimeStamp update_time = 6;
+    
+    // {"ignore": "true"}
+    int64 create_utc = 7;
+    
+    // {"ignore": "true"}
+    int64 update_utc = 8;
 }

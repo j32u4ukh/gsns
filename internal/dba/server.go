@@ -81,91 +81,95 @@ func (s *DbaServer) handleSystem(work *base.Work, agreement *agrt.Agreement) {
 
 func (s *DbaServer) handleNormalCommand(work *base.Work, agreement *agrt.Agreement) {
 	switch agreement.Service {
-	case define.GetUserData:
-		logger.Debug("GetUserData")
-		defer func() {
-			bs, _ := agreement.Marshal()
-			work.Body.AddByteArray(bs)
-			work.SendTransData()
-		}()
+	// case define.GetUserData:
+	// 	logger.Debug("GetUserData")
+	// 	defer func() {
+	// 		bs, _ := agreement.Marshal()
+	// 		work.Body.AddByteArray(bs)
+	// 		work.SendTransData()
+	// 	}()
 
-		selector := s.tables[TidAccount].GetSelector()
-		defer s.tables[TidAccount].PutSelector(selector)
-		results, err := selector.Query(func() any { return &pbgo.Account{} })
-		if err != nil {
-			agreement.ReturnCode = 1
-			agreement.Msg = "Failed to select data."
-			logger.Error("Select err: %+v", err)
-			return
-		}
+	// 	selector := s.tables[TidAccount].GetSelector()
+	// 	defer s.tables[TidAccount].PutSelector(selector)
+	// 	results, err := selector.Query(func() any { return &pbgo.Account{} })
+	// 	if err != nil {
+	// 		agreement.ReturnCode = 1
+	// 		agreement.Msg = "Failed to select data."
+	// 		logger.Error("Select err: %+v", err)
+	// 		return
+	// 	}
 
-		var account *pbgo.Account
-		for _, result := range results {
-			account = result.(*pbgo.Account)
-			account.CreateTime = nil
-			logger.Debug("account: %+v", account)
-			agreement.Accounts = append(agreement.Accounts, account)
-		}
+	// 	var account *pbgo.Account
+	// 	for _, result := range results {
+	// 		account = result.(*pbgo.Account)
+	// 		account.CreateTime = nil
+	// 		logger.Debug("account: %+v", account)
+	// 		agreement.Accounts = append(agreement.Accounts, account)
+	// 	}
 
-		agreement.ReturnCode = 0
-		// case define.GetPost:
-		// 	// 只有 Account: 取得這些帳號的所有貼文
-		// 	// 有 PostMessage 列表: 取得這些 post_id 的貼文
-		// 	if len(agreement.Accounts) > 0 {
-		// 		work.Finish()
-		// 		userIds := []any{}
-		// 		for _, account := range agreement.Accounts {
-		// 			userIds = append(userIds, account.Index)
-		// 		}
-		// 		selector := s.tables[TidPostMessage].GetSelector()
-		// 		defer s.tables[TidPostMessage].PutSelector(selector)
-		// 		selector.SetCondition(gosql.WS().In("user_id", userIds...))
-		// 		pms, err := selector.Query(func() any { return &pbgo.PostMessage{} })
-		// 		if err != nil {
-		// 			agreement.ReturnCode = 1
-		// 			agreement.Msg = fmt.Sprintf("Failed to query posts from %+v.", userIds)
-		// 			logger.Error("Failed to query posts, error: %v", err)
-		// 		} else {
-		// 			agreement.ReturnCode = 0
-		// 			for _, pm := range pms {
-		// 				agreement.PostMessages = append(agreement.PostMessages, pm.(*pbgo.PostMessage))
-		// 			}
-		// 		}
+	// 	agreement.ReturnCode = 0
+	// case define.GetPost:
+	// 	// 只有 Account: 取得這些帳號的所有貼文
+	// 	// 有 PostMessage 列表: 取得這些 post_id 的貼文
+	// 	if len(agreement.Accounts) > 0 {
+	// 		work.Finish()
+	// 		userIds := []any{}
+	// 		for _, account := range agreement.Accounts {
+	// 			userIds = append(userIds, account.Index)
+	// 		}
+	// 		selector := s.tables[TidPostMessage].GetSelector()
+	// 		defer s.tables[TidPostMessage].PutSelector(selector)
+	// 		selector.SetCondition(gosql.WS().In("user_id", userIds...))
+	// 		pms, err := selector.Query(func() any { return &pbgo.PostMessage{} })
+	// 		if err != nil {
+	// 			agreement.ReturnCode = 1
+	// 			agreement.Msg = fmt.Sprintf("Failed to query posts from %+v.", userIds)
+	// 			logger.Error("Failed to query posts, error: %v", err)
+	// 		} else {
+	// 			agreement.ReturnCode = 0
+	// 			for _, pm := range pms {
+	// 				agreement.PostMessages = append(agreement.PostMessages, pm.(*pbgo.PostMessage))
+	// 			}
+	// 		}
 
-		// 		// 將用戶貼文送往 PostMessage server
-		// 		td := base.NewTransData()
-		// 		bs, _ := agreement.Marshal()
-		// 		td.AddByteArray(bs)
-		// 		data := td.FormData()
-		// 		err = gos.SendToClient(define.DbaPort, s.serverIdDict[define.PostMessageServer], &data, int32(len(data)))
-		// 		if err != nil {
-		// 			logger.Error("Failed to send to PostMessage server, err: %+v", err)
-		// 		}
-		// 	} else if len(agreement.PostMessages) > 0 {
-		// 		postIds := []any{}
-		// 		for _, pm := range agreement.PostMessages {
-		// 			postIds = append(postIds, pm.Id)
-		// 		}
-		// 		selector := s.tables[TidPostMessage].GetSelector()
-		// 		defer s.tables[TidPostMessage].PutSelector(selector)
-		// 		selector.SetCondition(gosql.WS().In("id", postIds))
-		// 		pms, err := selector.Query(func() any { return &pbgo.PostMessage{} })
-		// 		if err != nil {
-		// 			agreement.ReturnCode = 2
-		// 			agreement.Msg = "Failed to query posts."
-		// 		} else {
-		// 			agreement.ReturnCode = 0
-		// 			for _, pm := range pms {
-		// 				agreement.PostMessages = append(agreement.PostMessages, pm.(*pbgo.PostMessage))
-		// 			}
-		// 		}
-		// 		bs, _ := agreement.Marshal()
-		// 		work.Body.AddByteArray(bs)
-		// 		work.SendTransData()
-		// 	} else {
-		// 		logger.Error("Undefine which posts to query.")
-		// 		work.Finish()
-		// 	}
+	// 		// 將用戶貼文送往 PostMessage server
+	// 		td := base.NewTransData()
+	// 		bs, _ := agreement.Marshal()
+	// 		td.AddByteArray(bs)
+	// 		data := td.FormData()
+	// 		err = gos.SendToClient(define.DbaPort, s.serverIdDict[define.PostMessageServer], &data, int32(len(data)))
+	// 		if err != nil {
+	// 			logger.Error("Failed to send to PostMessage server, err: %+v", err)
+	// 		}
+	// 	} else if len(agreement.PostMessages) > 0 {
+	// 		postIds := []any{}
+	// 		for _, pm := range agreement.PostMessages {
+	// 			postIds = append(postIds, pm.Id)
+	// 		}
+	// 		selector := s.tables[TidPostMessage].GetSelector()
+	// 		defer s.tables[TidPostMessage].PutSelector(selector)
+	// 		selector.SetCondition(gosql.WS().In("id", postIds))
+	// 		pms, err := selector.Query(func() any { return &pbgo.PostMessage{} })
+	// 		if err != nil {
+	// 			agreement.ReturnCode = 2
+	// 			agreement.Msg = "Failed to query posts."
+	// 		} else {
+	// 			agreement.ReturnCode = 0
+	// 			for _, pm := range pms {
+	// 				agreement.PostMessages = append(agreement.PostMessages, pm.(*pbgo.PostMessage))
+	// 			}
+	// 		}
+	// 		bs, _ := agreement.Marshal()
+	// 		work.Body.AddByteArray(bs)
+	// 		work.SendTransData()
+	// 	} else {
+	// 		logger.Error("Undefine which posts to query.")
+	// 		work.Finish()
+	// 	}
+
+	default:
+		logger.Debug("Unsupport service: %d", agreement.Service)
+		work.Finish()
 	}
 }
 
@@ -245,8 +249,11 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 			logger.Error(agreement.Msg)
 			return
 		}
-		// 保留帳號的 Index 即可
 		account = results[0].(*pbgo.Account)
+		account.CreateUtc = utils.TimestampToUtc(account.CreateTime)
+		account.CreateTime = nil
+		account.UpdateUtc = utils.TimestampToUtc(account.UpdateTime)
+		account.UpdateTime = nil
 		agreement.Accounts[0] = account
 		//////////////////////////////////////////////////
 		// 完成帳號資料讀取
@@ -264,8 +271,15 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 			logger.Error(agreement.Msg)
 			return
 		}
+		var edge *pbgo.Edge
 		for _, result := range results {
-			agreement.Edges = append(agreement.Edges, result.(*pbgo.Edge))
+			edge = result.(*pbgo.Edge)
+			logger.Info("edge: %+v", edge)
+			edge.CreateUtc = utils.TimestampToUtc(edge.CreateTime)
+			edge.CreateTime = nil
+			edge.UpdateUtc = utils.TimestampToUtc(edge.UpdateTime)
+			edge.UpdateTime = nil
+			agreement.Edges = append(agreement.Edges, edge)
 		}
 		agreement.ReturnCode = 0
 		//////////////////////////////////////////////////
@@ -286,9 +300,13 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 		defer agrt.PutAgreement(agreement2)
 		agreement2.Cmd = define.NormalCommand
 		agreement2.Service = define.GetMyPosts
-		for i, result := range results {
-			pm := result.(*pbgo.PostMessage)
-			logger.Debug("%d) pm: %+v", i, pm)
+		var pm *pbgo.PostMessage
+		for _, result := range results {
+			pm = result.(*pbgo.PostMessage)
+			pm.CreateUtc = utils.TimestampToUtc(pm.CreateTime)
+			pm.CreateTime = nil
+			pm.UpdateUtc = utils.TimestampToUtc(pm.UpdateTime)
+			pm.UpdateTime = nil
 			agreement2.PostMessages = append(agreement2.PostMessages, pm)
 		}
 		bs, err = agreement2.Marshal()
@@ -308,9 +326,10 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 		}
 
 	case define.SetUserData:
+		var bs []byte
 		var err error
 		defer func() {
-			bs, err := agreement.Marshal()
+			bs, err = agreement.Marshal()
 			if err != nil {
 				logger.Error("Failed to marshal agreement, err: %+v", err)
 				work.Finish()
@@ -398,25 +417,31 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 			work.SendTransData()
 			logger.Info("Send define.GetPost response(%d): %+v", agreement.ReturnCode, agreement)
 		}()
-		pm := agreement.PostMessages[0]
+		var pm *pbgo.PostMessage
+		pm = agreement.PostMessages[0]
 		selector := s.tables[TidPostMessage].GetSelector()
 		defer s.tables[TidPostMessage].PutSelector(selector)
 		// 貼文 ID 或親貼文 ID 與 pm.Id 相符都讀取
 		selector.SetCondition(gosql.WS().
 			AddOrCondtion(gosql.WS().Eq("id", pm.Id)).
 			AddOrCondtion(gosql.WS().Eq("parent_id", pm.Id)))
-		pms, err := selector.Query(func() any { return &pbgo.PostMessage{} })
+		results, err := selector.Query(func() any { return &pbgo.PostMessage{} })
 		agreement.PostMessages = agreement.PostMessages[:0]
 		if err != nil {
 			agreement.ReturnCode = 2
 			agreement.Msg = fmt.Sprintf("Failed to query post(%d).", pm.Id)
-		} else if len(pms) == 0 {
+		} else if len(results) == 0 {
 			agreement.ReturnCode = 3
 			agreement.Msg = fmt.Sprintf("Not found post with id(%d).", pm.Id)
 		} else {
 			agreement.ReturnCode = 0
-			for _, pm := range pms {
-				agreement.PostMessages = append(agreement.PostMessages, pm.(*pbgo.PostMessage))
+			for _, result := range results {
+				pm = result.(*pbgo.PostMessage)
+				pm.CreateUtc = utils.TimestampToUtc(pm.CreateTime)
+				pm.CreateTime = nil
+				pm.UpdateUtc = utils.TimestampToUtc(pm.UpdateTime)
+				pm.UpdateTime = nil
+				agreement.PostMessages = append(agreement.PostMessages, pm)
 			}
 		}
 
@@ -548,26 +573,36 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 		}
 		selector := s.tables[TidPostMessage].GetSelector()
 		defer s.tables[TidPostMessage].PutSelector(selector)
-		startTime := utils.TimeToString(utils.TimestampToTime(agreement.StartTime))
-		stopTime := utils.TimeToString(utils.TimestampToTime(agreement.StopTime))
+
+		startTime := utils.TimeToString(utils.UtcToTime(agreement.StartUtc))
+		stopTime := utils.TimeToString(utils.UtcToTime(agreement.StopUtc))
+		logger.Info("startTime: %s", startTime)
+		logger.Info("stopTime: %s", stopTime)
 		selector.SetCondition(gosql.WS().
 			AddAndCondtion(gosql.WS().In("user_id", userIds...)).
 			AddAndCondtion(gosql.WS().Ge("update_time", startTime)).
 			AddAndCondtion(gosql.WS().Le("update_time", stopTime)))
-		pms, err := selector.Query(func() any { return &pbgo.PostMessage{} })
+		results, err := selector.Query(func() any { return &pbgo.PostMessage{} })
 		if err != nil {
 			agreement.ReturnCode = 1
 			agreement.Msg = fmt.Sprintf("Failed to query posts from %+v.", userIds)
 			logger.Error("%s, err: %v", agreement.Msg, err)
 		} else {
 			agreement.ReturnCode = 0
-			for _, pm := range pms {
-				agreement.PostMessages = append(agreement.PostMessages, pm.(*pbgo.PostMessage))
+			var pm *pbgo.PostMessage
+			for _, result := range results {
+				pm = result.(*pbgo.PostMessage)
+				logger.Info("pm: %+v", pm)
+				pm.CreateUtc = utils.TimestampToUtc(pm.CreateTime)
+				pm.CreateTime = nil
+				pm.UpdateUtc = utils.TimestampToUtc(pm.UpdateTime)
+				pm.UpdateTime = nil
+				agreement.PostMessages = append(agreement.PostMessages, pm)
 			}
 		}
 
 	default:
-		fmt.Printf("Unsupport commission: %d\n", agreement.Service)
+		logger.Error("Unsupport commission: %d", agreement.Service)
 		work.Finish()
 	}
 }

@@ -5,7 +5,6 @@ import (
 	"internal/agrt"
 	"internal/define"
 	"internal/pbgo"
-	"internal/utils"
 	"strconv"
 	"time"
 
@@ -27,11 +26,11 @@ func (s *MainServer) HttpSocialHandler(router *ans.Router) {
 
 // [endpoint]/social/other_users
 func (s *MainServer) getOtherUsers(c *ghttp.Context) {
-	var sToken string
+	var sUserId string
 	var ok bool
 
-	if sToken, ok = c.Params["token"]; !ok {
-		msg := "Not found parameter token"
+	if sUserId, ok = c.Params["user_id"]; !ok {
+		msg := "Not found parameter user_id"
 		logger.Error(msg)
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
 			"ret": 1,
@@ -41,26 +40,13 @@ func (s *MainServer) getOtherUsers(c *ghttp.Context) {
 		return
 	}
 
-	token, err := strconv.ParseUint(sToken, 10, 64)
+	userId, err := strconv.ParseInt(sUserId, 10, 64)
 
 	if err != nil {
-		msg := "Invalid token"
+		msg := "Invalid user id."
 		logger.Error(msg)
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
 			"ret": 2,
-			"msg": msg,
-		})
-		s.Http.Send(c)
-		return
-	}
-
-	user, ok := s.AMgr.GetUserByToken(token)
-
-	if !ok {
-		msg := fmt.Sprintf("Not found user with token(%d)", token)
-		logger.Error(msg)
-		c.Json(ghttp.StatusBadRequest, ghttp.H{
-			"ret": 3,
 			"msg": msg,
 		})
 		s.Http.Send(c)
@@ -73,7 +59,7 @@ func (s *MainServer) getOtherUsers(c *ghttp.Context) {
 	agreement.Service = define.GetOtherUsers
 	agreement.Cid = c.GetId()
 	agreement.Accounts = append(agreement.Accounts, &pbgo.Account{
-		Index: user.Index,
+		Index: int32(userId),
 	})
 	bs, err := agreement.Marshal()
 
@@ -139,6 +125,17 @@ func (s *MainServer) subscribe(c *ghttp.Context) {
 		return
 	}
 
+	if user.Index == ip.TargetId {
+		msg := fmt.Sprintf("不能訂閱自己 User(%d), Target(%d)", user.Index, ip.TargetId)
+		logger.Error(msg)
+		c.Json(ghttp.StatusBadRequest, ghttp.H{
+			"ret": 3,
+			"msg": msg,
+		})
+		s.Http.Send(c)
+		return
+	}
+
 	// 避免重複訂閱，先檢查訂閱對象的 ID 再送出請求
 	if edges, ok := s.AMgr.Edges[user.Index]; ok {
 		if edges.Contains(ip.TargetId) {
@@ -170,7 +167,7 @@ func (s *MainServer) subscribe(c *ghttp.Context) {
 		msg := "Failed to marshal agreement."
 		logger.Error(fmt.Sprintf("%s, err: %+v", msg, err))
 		c.Json(ghttp.StatusInternalServerError, ghttp.H{
-			"ret": 3,
+			"ret": 4,
 			"msg": msg,
 		})
 		s.Http.Send(c)
@@ -188,7 +185,7 @@ func (s *MainServer) subscribe(c *ghttp.Context) {
 		msg := "Failed to send request to account server"
 		logger.Error("%s, err: %+v", msg, err)
 		c.Json(ghttp.StatusInternalServerError, ghttp.H{
-			"ret": 4,
+			"ret": 5,
 			"msg": msg,
 		})
 		s.Http.Send(c)
@@ -256,32 +253,17 @@ func (s *MainServer) getSubscribedPosts(c *ghttp.Context) {
 	agreement.Service = define.GetSubscribedPosts
 	agreement.Cid = c.GetId()
 	var err error
-	var sTime time.Time
 
-	if ip.StartTime != "" {
-		sTime, err = utils.StringToTime(ip.StartTime)
-
-		if err != nil {
-			logger.Warn("Invalied start time fotmat, StartTime: %s", ip.StartTime)
-			agreement.StartTime = utils.TimeToTimestamp(time.Date(1970, time.January, 1, 0, 0, 0, 0, time.UTC))
-		} else {
-			agreement.StartTime = utils.TimeToTimestamp(sTime)
-		}
+	if ip.StartUtc != 0 {
+		agreement.StartUtc = ip.StartUtc
 	} else {
-		agreement.StartTime = utils.TimeToTimestamp(time.Date(1970, time.January, 1, 0, 0, 0, 0, time.UTC))
+		agreement.StartUtc = time.Date(1970, time.January, 1, 0, 0, 0, 0, time.UTC).Unix()
 	}
 
-	if ip.StopTime != "" {
-		sTime, err = utils.StringToTime(ip.StopTime)
-
-		if err != nil {
-			logger.Warn("Invalied start time fotmat, StopTime: %s", ip.StopTime)
-			agreement.StopTime = utils.TimeToTimestamp(time.Now().UTC())
-		} else {
-			agreement.StopTime = utils.TimeToTimestamp(sTime)
-		}
+	if ip.StopUtc != 0 {
+		agreement.StopUtc = ip.StopUtc
 	} else {
-		agreement.StopTime = utils.TimeToTimestamp(time.Now().UTC())
+		agreement.StopUtc = time.Now().UTC().Unix()
 	}
 
 	for edge := range edges.Elements {

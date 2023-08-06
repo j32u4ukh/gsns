@@ -5,7 +5,6 @@ import (
 	"internal/agrt"
 	"internal/define"
 	"internal/pbgo"
-	"strconv"
 
 	"github.com/j32u4ukh/gos"
 	"github.com/j32u4ukh/gos/ans"
@@ -27,8 +26,8 @@ func (m *AccountMgr) HttpAccountHandler(router *ans.Router) {
 	router.POST("/logout", m.logout)
 
 	// 取得用戶資訊
-	router.GET("/user_info", m.getUserInfo)
-	router.POST("/user_info", m.setUserInfo)
+	router.POST("/get_user_info", m.getUserInfo)
+	router.POST("/set_user_info", m.setUserInfo)
 }
 
 func (m *AccountMgr) register(c *ghttp.Context) {
@@ -161,26 +160,19 @@ func (m *AccountMgr) logout(c *ghttp.Context) {
 
 func (m *AccountMgr) getUserInfo(c *ghttp.Context) {
 	defer m.httpAnswer.Send(c)
-	var sToken string
-	var ok bool
+	ap := &AccountProtocol{}
+	c.ReadJson(ap)
 
-	if sToken, ok = c.Params["token"]; !ok {
+	if ap.Token == 0 {
+		m.logger.Error("Not found param: token")
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
-			"msg": "缺少參數: token",
+			"err": "Not found token parameter.",
 		})
+		m.httpAnswer.Send(c)
 		return
 	}
 
-	token, err := strconv.ParseUint(sToken, 10, 64)
-
-	if err != nil {
-		c.Json(ghttp.StatusBadRequest, ghttp.H{
-			"msg": fmt.Sprintf("無效 token %s", sToken),
-		})
-		return
-	}
-
-	user, ok := m.users.GetByKey2(token)
+	user, ok := m.users.GetByKey2(ap.Token)
 
 	if ok {
 		c.Json(ghttp.StatusOK, ghttp.H{
@@ -189,7 +181,7 @@ func (m *AccountMgr) getUserInfo(c *ghttp.Context) {
 		})
 	} else {
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
-			"msg": fmt.Sprintf("Not found token %d", token),
+			"msg": fmt.Sprintf("Not found token %d", ap.Token),
 		})
 	}
 }

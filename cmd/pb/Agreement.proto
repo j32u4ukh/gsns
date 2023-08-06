@@ -4,7 +4,6 @@ import "Account.proto";
 import "User.proto";
 import "PostMessage.proto";
 import "Edge.proto";
-import "TimeStamp.proto";
 
 message Agreement {
     int32 cmd = 1;
@@ -29,7 +28,7 @@ message Agreement {
 
     repeated Edge edges = 11;
 
-    TimeStamp start_time = 12;
+    int64 start_utc = 12;
 
-    TimeStamp stop_time = 13;
+    int64 stop_utc = 13;
 }

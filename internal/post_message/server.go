@@ -134,6 +134,7 @@ func (s *PostMessageServer) handleCommission(work *base.Work, agreement *agrt.Ag
 			work.Finish()
 		}
 
+	// TODO: 若該 post id 存在於緩存當中，則可直接返回，不需要再問 DBA
 	case define.GetPost:
 		var bs []byte
 		var err error

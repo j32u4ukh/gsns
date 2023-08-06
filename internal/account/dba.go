@@ -52,17 +52,17 @@ func (s *AccountServer) handleDbaSystemCommand(work *base.Work, agreement *agrt.
 
 func (s *AccountServer) handleDbaNormalCommand(work *base.Work, agreement *agrt.Agreement) {
 	switch agreement.Service {
-	// 取得用戶資訊
-	case define.GetUserData:
-		logger.Debug("GetUserData")
-		if agreement.ReturnCode == 0 {
-			for _, account := range agreement.Accounts {
-				logger.Debug("account: %+v", account)
-				// 將用戶資訊加入緩存
-				s.accounts.Set(account.Index, account.Account, account)
-			}
-		}
-		work.Finish()
+	// // 取得用戶資訊
+	// case define.GetUserData:
+	// 	logger.Debug("GetUserData")
+	// 	if agreement.ReturnCode == 0 {
+	// 		for _, account := range agreement.Accounts {
+	// 			logger.Debug("account: %+v", account)
+	// 			// 將用戶資訊加入緩存
+	// 			s.accounts.Set(account.Index, account.Account, account)
+	// 		}
+	// 	}
+	// 	work.Finish()
 	default:
 		logger.Warn("Unsupport service: %d\n", agreement.Service)
 		work.Finish()
@@ -127,15 +127,19 @@ func (s *AccountServer) handleDbaCommission(work *base.Work, agreement *agrt.Agr
 		}
 
 		td := base.NewTransData()
-		bs, _ := agreement.Marshal()
+		bs, err := agreement.Marshal()
+		if err != nil {
+			logger.Error("Failed to marshal agreement, err: %+v", err)
+			return
+		}
 		td.AddByteArray(bs)
 		data := td.FormData()
 
 		// 將註冊結果回傳主伺服器
-		err := gos.SendToClient(define.AccountPort, s.serverIdDict[define.GsnsServer], &data, int32(len(data)))
+		err = gos.SendToClient(define.AccountPort, s.serverIdDict[define.GsnsServer], &data, int32(len(data)))
 
 		if err != nil {
-			logger.Error("Failed to send to client %d\nError: %+v", s.serverIdDict[define.GsnsServer], err)
+			logger.Error("Failed to send to Gsns server, err: %+v", err)
 			return
 		} else {
 			logger.Info("Send define.Login response: %+v", agreement)
