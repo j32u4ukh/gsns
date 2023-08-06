@@ -112,6 +112,16 @@ func (s *AccountServer) handleDbaCommission(work *base.Work, agreement *agrt.Agr
 
 			// 隱藏密碼相關資訊，無須提供給 GSNS
 			agreement.Accounts[0].Password = ""
+
+			// 載入社群關係
+			if _, ok := s.Edges[account.Index]; !ok {
+				s.Edges[account.Index] = cntr.NewSet[int32]()
+			}
+
+			for _, edge := range agreement.Edges {
+				s.Edges[edge.UserId].Add(edge.Target)
+			}
+
 		} else {
 			logger.Info("Failed to login, ReturnCode: %d", agreement.ReturnCode)
 		}

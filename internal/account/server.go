@@ -19,7 +19,8 @@ type AccountServer struct {
 	// key1: user index, key2: account name;
 	// key1 不可變更，但 key2 可以更新
 	accounts *cntr.BikeyMap[int32, string, *pbgo.Account]
-
+	// 社群關係
+	Edges map[int32]*cntr.Set[int32]
 	// key: server id, value: conn id
 	serverIdDict  map[int32]int32
 	heartbeatTime time.Time
@@ -28,6 +29,7 @@ type AccountServer struct {
 func NewAccountServer() *AccountServer {
 	s := &AccountServer{
 		accounts:      cntr.NewBikeyMap[int32, string, *pbgo.Account](),
+		Edges:         make(map[int32]*cntr.Set[int32]),
 		serverIdDict:  make(map[int32]int32),
 		heartbeatTime: time.Now(),
 	}
@@ -142,7 +144,17 @@ func (s *AccountServer) handleCommission(work *base.Work, agreement *agrt.Agreem
 				agreement.ReturnCode = 0
 				agreement.Accounts[0] = proto.Clone(account).(*pbgo.Account)
 				agreement.Accounts[0].Password = ""
-				// TODO: 載入訂閱關係
+				// 載入社群關係
+				if edges, ok := s.Edges[account.Index]; ok {
+					for edge := range edges.Elements {
+						agreement.Edges = append(agreement.Edges, &pbgo.Edge{
+							UserId: account.Index,
+							Target: edge,
+						})
+					}
+				} else {
+					s.Edges[account.Index] = cntr.NewSet[int32]()
+				}
 			}
 
 			bs, err = agreement.Marshal()
