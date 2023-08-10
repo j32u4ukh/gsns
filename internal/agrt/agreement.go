@@ -119,4 +119,6 @@ func (a *Agreement) Release() {
 	agreement.Cipher = ""
 	agreement.Identity = 0
 	agreement.Edges = agreement.Edges[:0]
+	agreement.StartUtc = 0
+	agreement.StopUtc = 0
 }

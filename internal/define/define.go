@@ -35,4 +35,6 @@ const (
 	GetOtherUsers
 	// 訂閱其他用戶
 	Subscribe
+	// 取得訂閱用戶的貼文
+	GetSubscribedPosts
 )

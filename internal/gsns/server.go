@@ -8,9 +8,9 @@ import (
 )
 
 type MainServer struct {
-	HttpAnswer *ans.HttpAnser
-	AMgr       *account.AccountMgr
-	PMgr       *pm.PostMessageMgr
+	Http *ans.HttpAnser
+	AMgr *account.AccountMgr
+	PMgr *pm.PostMessageMgr
 }
 
 func newMainServer() *MainServer {
@@ -23,7 +23,7 @@ func newMainServer() *MainServer {
 }
 
 func (s *MainServer) SetHttpAnswer(a *ans.HttpAnser) {
-	s.HttpAnswer = a
+	s.Http = a
 
 	// 帳號相關節點
 	s.AMgr.SetHttpAnswer(a)
@@ -41,7 +41,9 @@ func (s *MainServer) SetHttpAnswer(a *ans.HttpAnser) {
 }
 
 type SocialProtocol struct {
-	Token    uint64
-	TargetId int32
-	PostId   uint64
+	Token    uint64 `json:"token"`
+	TargetId int32  `json:"target_id"`
+	PostId   uint64 `json:"post_id"`
+	StartUtc int64  `json:"start_utc"`
+	StopUtc  int64  `json:"stop_utc"`
 }

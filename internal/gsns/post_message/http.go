@@ -18,7 +18,7 @@ func (m *PostMessageMgr) HttpHandler(router *ans.Router) {
 	router.POST("/", m.addNewPost)
 	router.PATCH("/", m.modifyPost)
 	router.GET("/<post_id int>", m.getPost)
-	router.GET("/mine", m.getMyPosts)
+	router.POST("/mine", m.getMyPosts)
 }
 
 // 用於新增貼文
@@ -152,6 +152,7 @@ func (m *PostMessageMgr) getMyPosts(c *ghttp.Context) {
 	pmp := &PostMessageProtocol{}
 	c.ReadJson(pmp)
 	m.logger.Info("PostMessageProtocol: %+v", pmp)
+
 	if pmp.Token == 0 {
 		msg := fmt.Sprintf("缺少參數, PostMessage: %+v", pmp)
 		m.logger.Error(msg)

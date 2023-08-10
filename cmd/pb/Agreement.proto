@@ -27,4 +27,8 @@ message Agreement {
     int32 identity = 10;
 
     repeated Edge edges = 11;
+
+    int64 start_utc = 12;
+
+    int64 stop_utc = 13;
 }
