@@ -1,6 +1,0 @@
-Database:
-  User: "db_user"
-  Password: "password"
-  Host: "192.168.0.41"
-  Port: 3306
-  DbName: "pekomiko"

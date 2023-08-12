@@ -1,0 +1,6 @@
+Database:
+  User: "db_user"
+  Password: "password"
+  Host: "db"
+  Port: 3306
+  DbName: "pekomiko"
