@@ -58,29 +58,8 @@ func (s *MainServer) getOtherUsers(c *ghttp.Context) {
 	agreement.Accounts = append(agreement.Accounts, &pbgo.Account{
 		Index: int32(userId),
 	})
-	// bs, err := agreement.Marshal()
-
-	// if err != nil {
-	// 	msg := "Failed to marshal agreement."
-	// 	logger.Error(fmt.Sprintf("%s, err: %+v", msg, err))
-	// 	c.Json(ghttp.StatusInternalServerError, ghttp.H{
-	// 		"ret": 4,
-	// 		"msg": msg,
-	// 	})
-	// 	s.Http.Send(c)
-	// 	return
-	// }
-
-	// // 寫入 agreement
-	// td := base.NewTransData()
-	// td.AddByteArray(bs)
-	// data := td.FormData()
-
-	// // 將註冊數據傳到 Account 伺服器
-	// err = gos.SendToServer(define.AccountServer, &data, int32(len(data)))
 
 	_, err = agrt.SendToServer(define.AccountServer, agreement)
-
 	if err != nil {
 		msg := "Failed to send request to account server"
 		logger.Error(fmt.Sprintf("%s, err: %+v", msg, err))
@@ -159,29 +138,7 @@ func (s *MainServer) subscribe(c *ghttp.Context) {
 		Target: ip.TargetId,
 	})
 
-	// // 寫入 agreement
-	// bs, err := agreement.Marshal()
-
-	// if err != nil {
-	// 	msg := "Failed to marshal agreement."
-	// 	logger.Error(fmt.Sprintf("%s, err: %+v", msg, err))
-	// 	c.Json(ghttp.StatusInternalServerError, ghttp.H{
-	// 		"ret": 4,
-	// 		"msg": msg,
-	// 	})
-	// 	s.Http.Send(c)
-	// 	return
-	// }
-
-	// td := base.NewTransData()
-	// td.AddByteArray(bs)
-	// data := td.FormData()
-
-	// // 將註冊數據傳到 Account 伺服器
-	// err = gos.SendToServer(define.AccountServer, &data, int32(len(data)))
-
 	_, err := agrt.SendToServer(define.AccountServer, agreement)
-
 	if err != nil {
 		msg := "Failed to send request to account server"
 		logger.Error("%s, err: %+v", msg, err)
@@ -273,24 +230,7 @@ func (s *MainServer) getSubscribedPosts(c *ghttp.Context) {
 		})
 	}
 
-	// bs, err := agreement.Marshal()
-	// if err != nil {
-	// 	msg := "Failed to marshal agreement"
-	// 	logger.Error("%s, err: %+v", msg, err)
-	// 	c.Json(ghttp.StatusInternalServerError, ghttp.H{
-	// 		"ret": 3,
-	// 		"msg": msg,
-	// 	})
-	// 	s.Http.Send(c)
-	// 	return
-	// }
-	// td := base.NewTransData()
-	// td.AddByteArray(bs)
-	// data := td.FormData()
-	// err = gos.SendToServer(define.PostMessageServer, &data, int32(len(data)))
-
 	_, err = agrt.SendToServer(define.PostMessageServer, agreement)
-
 	if err != nil {
 		msg := "Failed to sned to PostMessage server."
 		logger.Error("%s, err: %+v", msg, err)

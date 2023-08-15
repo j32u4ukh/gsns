@@ -85,18 +85,6 @@ func (s *PostMessageServer) handleDbaCommission(work *base.Work, agreement *agrt
 			s.cachePost(post)
 		}
 
-		// td := base.NewTransData()
-		// bs, err := agreement.Marshal()
-		// if err != nil {
-		// 	logger.Error("Failed to marshal agreement, err: %+v", err)
-		// 	return
-		// }
-		// td.AddByteArray(bs)
-		// data := td.FormData()
-
-		// // 將註冊結果回傳主伺服器
-		// err = gos.SendToClient(define.PostMessagePort, s.serverIdDict[define.GsnsServer], &data, int32(len(data)))
-
 		_, err := agrt.SendToClient(define.PostMessagePort, s.serverIdDict[define.GsnsServer], agreement)
 
 		if err != nil {
@@ -113,18 +101,6 @@ func (s *PostMessageServer) handleDbaCommission(work *base.Work, agreement *agrt
 				s.cachePost(proto.Clone(pm).(*pbgo.PostMessage))
 			}
 		}
-
-		// td := base.NewTransData()
-		// bs, err := agreement.Marshal()
-		// if err != nil {
-		// 	logger.Error("Failed to marshal agreement, err: %+v", err)
-		// 	return
-		// }
-		// td.AddByteArray(bs)
-		// data := td.FormData()
-
-		// // 將註冊結果回傳主伺服器
-		// err = gos.SendToClient(define.PostMessagePort, s.serverIdDict[define.GsnsServer], &data, int32(len(data)))
 
 		_, err := agrt.SendToClient(define.PostMessagePort, s.serverIdDict[define.GsnsServer], agreement)
 
@@ -144,18 +120,6 @@ func (s *PostMessageServer) handleDbaCommission(work *base.Work, agreement *agrt
 			s.postIds[pm.UserId].Add(pm.Id)
 		}
 
-		// td := base.NewTransData()
-		// bs, err := agreement.Marshal()
-		// if err != nil {
-		// 	logger.Error("Failed to marshal agreement, err: %+v", err)
-		// 	return
-		// }
-		// td.AddByteArray(bs)
-		// data := td.FormData()
-
-		// // 將註冊結果回傳主伺服器
-		// err = gos.SendToClient(define.PostMessagePort, s.serverIdDict[define.GsnsServer], &data, int32(len(data)))
-
 		_, err := agrt.SendToClient(define.PostMessagePort, s.serverIdDict[define.GsnsServer], agreement)
 
 		if err != nil {
@@ -165,18 +129,6 @@ func (s *PostMessageServer) handleDbaCommission(work *base.Work, agreement *agrt
 		}
 	case define.GetSubscribedPosts:
 		work.Finish()
-		// td := base.NewTransData()
-		// bs, err := agreement.Marshal()
-		// if err != nil {
-		// 	logger.Error("Failed to marshal agreement, err: %+v", err)
-		// 	return
-		// }
-		// td.AddByteArray(bs)
-		// data := td.FormData()
-
-		// // 將註冊結果回傳主伺服器
-		// err = gos.SendToClient(define.PostMessagePort, s.serverIdDict[define.GsnsServer], &data, int32(len(data)))
-
 		_, err := agrt.SendToClient(define.PostMessagePort, s.serverIdDict[define.GsnsServer], agreement)
 
 		if err != nil {

@@ -61,9 +61,6 @@ func (s *DbaServer) handleSystem(work *base.Work, agreement *agrt.Agreement) {
 	switch agreement.Service {
 	// 回應心跳包
 	case define.Heartbeat:
-		// bs, _ := agreement.Marshal()
-		// work.Body.AddByteArray(bs)
-		// work.SendTransData()
 		_, err := agrt.SendWork(work, agreement)
 		if err != nil {
 			logger.Error("Failed to send work, err: %+v", err)
@@ -181,16 +178,6 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 	switch agreement.Service {
 	case define.Register:
 		defer func() {
-			// bs, err := agreement.Marshal()
-			// if err != nil {
-			// 	logger.Error("Failed to marshal agreement, err: %+v", err)
-			// 	work.Finish()
-			// 	return
-			// }
-			logger.Info("Send define.Register response:  %+v", agreement)
-			// work.Body.AddByteArray(bs)
-			// work.SendTransData()
-
 			_, err := agrt.SendWork(work, agreement)
 			if err != nil {
 				logger.Error("Failed to send work, err: %+v", err)
@@ -224,19 +211,9 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 		account.Index = int32(result.LastInsertId)
 
 	case define.Login:
-		// var bs []byte
 		var err error
 		defer func() {
-			// bs, err = agreement.Marshal()
-			// if err != nil {
-			// 	logger.Error("Failed to marshal agreement, err: %+v", err)
-			// 	work.Finish()
-			// 	return
-			// }
-			// work.Body.AddByteArray(bs)
-			// work.SendTransData()
-
-			_, err := agrt.SendWork(work, agreement)
+			_, err = agrt.SendWork(work, agreement)
 			if err != nil {
 				logger.Error("Failed to send work, err: %+v", err)
 			} else {
@@ -326,16 +303,6 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 			pm.UpdateTime = nil
 			agreement2.PostMessages = append(agreement2.PostMessages, pm)
 		}
-		// bs, err = agreement2.Marshal()
-		// if err != nil {
-		// 	logger.Error("Failed to marshal agreement2, err: %+v", err)
-		// 	return
-		// }
-		// td := base.NewTransData()
-		// td.AddByteArray(bs)
-		// data := td.FormData()
-		// err = gos.SendToClient(define.DbaPort, s.serverIdDict[define.PostMessageServer], &data, int32(len(data)))
-
 		_, err = agrt.SendToClient(define.DbaPort, s.serverIdDict[define.PostMessageServer], agreement2)
 
 		if err != nil {
@@ -345,18 +312,9 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 		}
 
 	case define.SetUserData:
-		// var bs []byte
 		var err error
 		defer func() {
-			// bs, err = agreement.Marshal()
-			// if err != nil {
-			// 	logger.Error("Failed to marshal agreement, err: %+v", err)
-			// 	work.Finish()
-			// 	return
-			// }
-			// work.Body.AddByteArray(bs)
-			// work.SendTransData()
-			_, err := agrt.SendWork(work, agreement)
+			_, err = agrt.SendWork(work, agreement)
 			if err != nil {
 				logger.Error("Failed to send work, err: %+v", err)
 			} else {
@@ -382,18 +340,9 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 		agreement.ReturnCode = 0
 
 	case define.AddPost:
-		// var bs []byte
 		var err error
 		defer func() {
-			// bs, err = agreement.Marshal()
-			// if err != nil {
-			// 	logger.Error("Failed to marshal agreement, err: %+v", err)
-			// 	work.Finish()
-			// 	return
-			// }
-			// work.Body.AddByteArray(bs)
-			// work.SendTransData()
-			_, err := agrt.SendWork(work, agreement)
+			_, err = agrt.SendWork(work, agreement)
 			if err != nil {
 				logger.Error("Failed to send work, err: %+v", err)
 			} else {
@@ -433,18 +382,9 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 		agreement.ReturnCode = 0
 
 	case define.GetPost:
-		// var bs []byte
 		var err error
 		defer func() {
-			// bs, err = agreement.Marshal()
-			// if err != nil {
-			// 	logger.Error("Failed to marshal agreement, err: %+v", err)
-			// 	work.Finish()
-			// 	return
-			// }
-			// work.Body.AddByteArray(bs)
-			// work.SendTransData()
-			_, err := agrt.SendWork(work, agreement)
+			_, err = agrt.SendWork(work, agreement)
 			if err != nil {
 				logger.Error("Failed to send work, err: %+v", err)
 			} else {
@@ -481,14 +421,6 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 
 	case define.ModifyPost:
 		defer func() {
-			// bs, err := agreement.Marshal()
-			// if err != nil {
-			// 	logger.Error("Failed to marshal agreement, err: %+v", err)
-			// 	work.Finish()
-			// 	return
-			// }
-			// work.Body.AddByteArray(bs)
-			// work.SendTransData()
 			_, err := agrt.SendWork(work, agreement)
 			if err != nil {
 				logger.Error("Failed to send work, err: %+v", err)
@@ -511,19 +443,9 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 		}
 
 	case define.GetOtherUsers:
-		// var bs []byte
 		var err error
 		defer func() {
-			// bs, err = agreement.Marshal()
-			// if err != nil {
-			// 	logger.Error("Failed to marshal agreement, err: %+v", err)
-			// 	work.Finish()
-			// 	return
-			// }
-			// work.Body.AddByteArray(bs)
-			// work.SendTransData()
-
-			_, err := agrt.SendWork(work, agreement)
+			_, err = agrt.SendWork(work, agreement)
 			if err != nil {
 				logger.Error("Failed to send work, err: %+v", err)
 			} else {
@@ -558,17 +480,9 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 		agreement.ReturnCode = 0
 
 	case define.Subscribe:
-		// var bs []byte
 		var err error
 		defer func() {
-			// bs, err = agreement.Marshal()
-			// if err != nil {
-			// 	work.Finish()
-			// 	return
-			// }
-			// work.Body.AddByteArray(bs)
-			// work.SendTransData()
-			_, err := agrt.SendWork(work, agreement)
+			_, err = agrt.SendWork(work, agreement)
 			if err != nil {
 				logger.Error("Failed to send work, err: %+v", err)
 			} else {
@@ -604,18 +518,9 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 		agreement.ReturnCode = 0
 
 	case define.GetSubscribedPosts:
-		// var bs []byte
 		var err error
 		defer func() {
-			// bs, err = agreement.Marshal()
-			// if err != nil {
-			// 	logger.Error("Failed to marshal agreement, err: %+v", err)
-			// 	work.Finish()
-			// 	return
-			// }
-			// work.Body.AddByteArray(bs)
-			// work.SendTransData()
-			_, err := agrt.SendWork(work, agreement)
+			_, err = agrt.SendWork(work, agreement)
 			if err != nil {
 				logger.Error("Failed to send work, err: %+v", err)
 			} else {

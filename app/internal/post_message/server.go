@@ -74,11 +74,7 @@ func (s *PostMessageServer) handleSystem(work *base.Work, agreement *agrt.Agreem
 	switch agreement.Service {
 	// 回應心跳包
 	case define.Heartbeat:
-		work.Body.Clear()
 		agreement.Msg = "OK"
-		// bs, _ := agreement.Marshal()
-		// work.Body.AddByteArray(bs)
-		// work.SendTransData()
 		_, err := agrt.SendWork(work, agreement)
 		if err != nil {
 			logger.Error("Failed to send work, err: %+v", err)
@@ -111,23 +107,7 @@ func (s *PostMessageServer) handleCommission(work *base.Work, agreement *agrt.Ag
 
 	switch agreement.Service {
 	case define.AddPost:
-		// ==================================================
-		// 準備將請求轉送給 DBA server
-		// ==================================================
-		// td := base.NewTransData()
-		// bs, err := agreement.Marshal()
-		// if err != nil {
-		// 	agreement.Msg = "Failed to marshal agreement"
-		// 	logger.Error("%s, err: %+v", agreement.Msg, err)
-		// 	work.Finish()
-		// 	return
-		// }
-		// td.AddByteArray(bs)
-		// data := td.FormData()
-
-		// // 將註冊數據傳到 Dba 伺服器
-		// err = gos.SendToServer(define.DbaServer, &data, int32(len(data)))
-
+		// 將註冊數據傳到 Dba 伺服器
 		_, err := agrt.SendToServer(define.DbaServer, agreement)
 
 		if err != nil {
@@ -154,20 +134,7 @@ func (s *PostMessageServer) handleCommission(work *base.Work, agreement *agrt.Ag
 			agreement.ReturnCode = 0
 			agreement.PostMessages[0] = proto.Clone(root).(*pbgo.PostMessage)
 		} else {
-			// bs, err = agreement.Marshal()
-			// if err != nil {
-			// 	logger.Error("Failed to marshal agreement, err: %+v", err)
-			// 	work.Finish()
-			// 	return
-			// }
-			// td := base.NewTransData()
-			// td.AddByteArray(bs)
-			// data := td.FormData()
-
-			// // 將註冊數據傳到 Dba 伺服器
-			// err = gos.SendToServer(define.DbaServer, &data, int32(len(data)))
-
-			_, err := agrt.SendToServer(define.DbaServer, agreement)
+			_, err = agrt.SendToServer(define.DbaServer, agreement)
 
 			if err != nil {
 				agreement.ReturnCode = 2
@@ -179,14 +146,6 @@ func (s *PostMessageServer) handleCommission(work *base.Work, agreement *agrt.Ag
 				return
 			}
 		}
-		// bs, err = agreement.Marshal()
-		// if err != nil {
-		// 	logger.Error("Failed to marshal agreement, err: %+v", err)
-		// 	work.Finish()
-		// 	return
-		// }
-		// work.Body.AddByteArray(bs)
-		// work.SendTransData()
 
 		_, err = agrt.SendWork(work, agreement)
 		if err != nil {
@@ -213,15 +172,6 @@ func (s *PostMessageServer) handleCommission(work *base.Work, agreement *agrt.Ag
 			agreement.Msg = fmt.Sprintf("Not found posts belong to user with id: %d", userId)
 		}
 
-		// bs, err := agreement.Marshal()
-		// if err != nil {
-		// 	logger.Error("Failed to marshal agreement, err: %+v", err)
-		// 	work.Finish()
-		// 	return
-		// }
-		// work.Body.AddByteArray(bs)
-		// work.SendTransData()
-
 		_, err := agrt.SendWork(work, agreement)
 		if err != nil {
 			logger.Error("Failed to send work, err: %+v", err)
@@ -233,17 +183,6 @@ func (s *PostMessageServer) handleCommission(work *base.Work, agreement *agrt.Ag
 		// var bs []byte
 		var err error
 		if len(agreement.PostMessages) == 1 {
-			// bs, err = agreement.Marshal()
-			// if err != nil {
-			// 	logger.Error("Failed to marshal agreement, err: %+v", err)
-			// 	return
-			// }
-			// td := base.NewTransData()
-			// td.AddByteArray(bs)
-			// data := td.FormData()
-
-			// // 將註冊數據傳到 Dba 伺服器
-			// err = gos.SendToServer(define.DbaServer, &data, int32(len(data)))
 			_, err = agrt.SendToServer(define.DbaServer, agreement)
 
 			if err != nil {
@@ -260,15 +199,6 @@ func (s *PostMessageServer) handleCommission(work *base.Work, agreement *agrt.Ag
 			agreement.Msg = "Not found posts' id."
 		}
 
-		// // 若發生錯誤時，將錯誤訊息回傳 GSNS 伺服器
-		// bs, err = agreement.Marshal()
-		// if err != nil {
-		// 	logger.Error("Failed to marshal agreement, err: %+v", err)
-		// 	return
-		// }
-		// work.Body.AddByteArray(bs)
-		// work.SendTransData()
-
 		_, err = agrt.SendWork(work, agreement)
 		if err != nil {
 			logger.Error("Failed to send work, err: %+v", err)
@@ -280,37 +210,11 @@ func (s *PostMessageServer) handleCommission(work *base.Work, agreement *agrt.Ag
 		// ==================================================
 		// 準備將請求轉送給 DBA server
 		// ==================================================
-		// td := base.NewTransData()
-		// bs, err := agreement.Marshal()
-		// if err != nil {
-		// 	agreement.Msg = "Failed to marshal agreement"
-		// 	logger.Error("%s, err: %+v", agreement.Msg, err)
-		// 	work.Finish()
-		// 	return
-		// }
-		// td.AddByteArray(bs)
-		// data := td.FormData()
-
-		// // 將註冊數據傳到 Dba 伺服器
-		// err = gos.SendToServer(define.DbaServer, &data, int32(len(data)))
-
 		_, err := agrt.SendToServer(define.DbaServer, agreement)
 
 		if err != nil {
 			agreement.ReturnCode = 1
 			agreement.Msg = "Failed to send to Dba server"
-			logger.Error("%s, err: %+v", agreement.Msg, err)
-			// var bs []byte
-			// bs, err = agreement.Marshal()
-			// if err != nil {
-			// 	agreement.Msg = "Failed to marshal agreement"
-			// 	logger.Error("%s, err: %+v", agreement.Msg, err)
-			// 	work.Finish()
-			// 	return
-			// }
-			// work.Body.AddByteArray(bs)
-			// work.SendTransData()
-
 			_, err := agrt.SendWork(work, agreement)
 			if err != nil {
 				logger.Error("Failed to send work, err: %+v", err)

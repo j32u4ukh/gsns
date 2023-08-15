@@ -110,7 +110,7 @@ func (m *AccountMgr) handleAccountCommission(work *base.Work, agreement *agrt.Ag
 
 		if agreement.ReturnCode == 0 {
 			account := agreement.Accounts[0]
-			m.logger.Info("index: %d, name: %s, Account: %+v", account.Index, account.Account)
+			m.logger.Info("index: %d, name: %s, Account: %+v", account.Index, account.Account, account)
 			user := &pbgo.SnsUser{
 				Index: account.Index,
 				Name:  account.Account,

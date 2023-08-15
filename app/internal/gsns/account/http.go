@@ -57,17 +57,7 @@ func (m *AccountMgr) register(c *ghttp.Context) {
 		Info:     ap.Info,
 	})
 
-	// // 寫入 agreement
-	// td := base.NewTransData()
-	// bs, _ := agreement.Marshal()
-	// td.AddByteArray(bs)
-	// data := td.FormData()
-
-	// // 將註冊數據傳到 Account 伺服器
-	// err := gos.SendToServer(define.AccountServer, &data, int32(len(data)))
-
 	_, err := agrt.SendToServer(define.AccountServer, agreement)
-
 	if err != nil {
 		m.logger.Error("Failed to send to server %d\nError: %+v", define.AccountServer, err)
 		c.Json(ghttp.StatusInternalServerError, ghttp.H{
@@ -107,15 +97,6 @@ func (m *AccountMgr) login(c *ghttp.Context) {
 		Account:  ap.Account,
 		Password: ap.Password,
 	})
-
-	// // 寫入 agreement
-	// td := base.NewTransData()
-	// bs, _ := agreement.Marshal()
-	// td.AddByteArray(bs)
-	// data := td.FormData()
-
-	// // 將登入數據傳到 Account 伺服器
-	// err := gos.SendToServer(define.AccountServer, &data, int32(len(data)))
 
 	_, err := agrt.SendToServer(define.AccountServer, agreement)
 
@@ -232,16 +213,7 @@ func (m *AccountMgr) setUserInfo(c *ghttp.Context) {
 		Info:    user.Info,
 	})
 
-	// // 寫入 agreement
-	// td := base.NewTransData()
-	// bs, _ := agreement.Marshal()
-	// td.AddByteArray(bs)
-	// data := td.FormData()
-
-	// // 將新用戶資訊數據傳到 Account 伺服器
-	// err := gos.SendToServer(define.AccountServer, &data, int32(len(data)))
 	_, err := agrt.SendToServer(define.AccountServer, agreement)
-
 	if err != nil {
 		m.logger.Error("Failed to send to %s, err: %+v", define.ServerName(define.AccountServer), err)
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
