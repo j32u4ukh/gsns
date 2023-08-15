@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/j32u4ukh/cntr"
-	"github.com/j32u4ukh/gos"
 	"github.com/j32u4ukh/gos/base"
 	"google.golang.org/protobuf/proto"
 )
@@ -79,7 +78,6 @@ func (s *PostMessageServer) handleDbaCommission(work *base.Work, agreement *agrt
 	switch agreement.Service {
 	case define.AddPost:
 		work.Finish()
-		logger.Info("Receive define.AddPost response: %+v", agreement)
 
 		if agreement.ReturnCode == 0 {
 			post := proto.Clone(agreement.PostMessages[0]).(*pbgo.PostMessage)
@@ -87,21 +85,24 @@ func (s *PostMessageServer) handleDbaCommission(work *base.Work, agreement *agrt
 			s.cachePost(post)
 		}
 
-		td := base.NewTransData()
-		bs, err := agreement.Marshal()
-		if err != nil {
-			logger.Error("Failed to marshal agreement, err: %+v", err)
-			return
-		}
-		td.AddByteArray(bs)
-		data := td.FormData()
+		// td := base.NewTransData()
+		// bs, err := agreement.Marshal()
+		// if err != nil {
+		// 	logger.Error("Failed to marshal agreement, err: %+v", err)
+		// 	return
+		// }
+		// td.AddByteArray(bs)
+		// data := td.FormData()
 
-		// 將註冊結果回傳主伺服器
-		err = gos.SendToClient(define.PostMessagePort, s.serverIdDict[define.GsnsServer], &data, int32(len(data)))
+		// // 將註冊結果回傳主伺服器
+		// err = gos.SendToClient(define.PostMessagePort, s.serverIdDict[define.GsnsServer], &data, int32(len(data)))
+
+		_, err := agrt.SendToClient(define.PostMessagePort, s.serverIdDict[define.GsnsServer], agreement)
 
 		if err != nil {
 			logger.Error("Failed to send Gsns serve, err: %+v", err)
-			return
+		} else {
+			logger.Info("Send define.AddPost response(%d): %+v", agreement.ReturnCode, agreement)
 		}
 	case define.GetPost:
 		work.Finish()
@@ -113,23 +114,25 @@ func (s *PostMessageServer) handleDbaCommission(work *base.Work, agreement *agrt
 			}
 		}
 
-		td := base.NewTransData()
-		bs, err := agreement.Marshal()
-		if err != nil {
-			logger.Error("Failed to marshal agreement, err: %+v", err)
-			return
-		}
-		td.AddByteArray(bs)
-		data := td.FormData()
+		// td := base.NewTransData()
+		// bs, err := agreement.Marshal()
+		// if err != nil {
+		// 	logger.Error("Failed to marshal agreement, err: %+v", err)
+		// 	return
+		// }
+		// td.AddByteArray(bs)
+		// data := td.FormData()
 
-		// 將註冊結果回傳主伺服器
-		err = gos.SendToClient(define.PostMessagePort, s.serverIdDict[define.GsnsServer], &data, int32(len(data)))
+		// // 將註冊結果回傳主伺服器
+		// err = gos.SendToClient(define.PostMessagePort, s.serverIdDict[define.GsnsServer], &data, int32(len(data)))
+
+		_, err := agrt.SendToClient(define.PostMessagePort, s.serverIdDict[define.GsnsServer], agreement)
 
 		if err != nil {
 			logger.Error("Failed to send to Gsns server, err: %+v", err)
 			return
 		} else {
-			logger.Info("Send define.GetPost response: %+v", agreement)
+			logger.Info("Send define.GetPost response(%d): %+v", agreement.ReturnCode, agreement)
 		}
 	case define.ModifyPost:
 		work.Finish()
@@ -141,42 +144,45 @@ func (s *PostMessageServer) handleDbaCommission(work *base.Work, agreement *agrt
 			s.postIds[pm.UserId].Add(pm.Id)
 		}
 
-		td := base.NewTransData()
-		bs, err := agreement.Marshal()
-		if err != nil {
-			logger.Error("Failed to marshal agreement, err: %+v", err)
-			return
-		}
-		td.AddByteArray(bs)
-		data := td.FormData()
+		// td := base.NewTransData()
+		// bs, err := agreement.Marshal()
+		// if err != nil {
+		// 	logger.Error("Failed to marshal agreement, err: %+v", err)
+		// 	return
+		// }
+		// td.AddByteArray(bs)
+		// data := td.FormData()
 
-		// 將註冊結果回傳主伺服器
-		err = gos.SendToClient(define.PostMessagePort, s.serverIdDict[define.GsnsServer], &data, int32(len(data)))
+		// // 將註冊結果回傳主伺服器
+		// err = gos.SendToClient(define.PostMessagePort, s.serverIdDict[define.GsnsServer], &data, int32(len(data)))
+
+		_, err := agrt.SendToClient(define.PostMessagePort, s.serverIdDict[define.GsnsServer], agreement)
 
 		if err != nil {
 			logger.Error("Failed to send to Gsns server, err: %+v", err)
 		} else {
-			logger.Info("Send define.ModifyPost response: %+v", agreement)
+			logger.Info("Send define.ModifyPost response(%d): %+v", agreement.ReturnCode, agreement)
 		}
 	case define.GetSubscribedPosts:
 		work.Finish()
-		logger.Info("Receive define.GetSubscribedPosts response(%d): %+v", agreement.ReturnCode, agreement)
-		td := base.NewTransData()
-		bs, err := agreement.Marshal()
-		if err != nil {
-			logger.Error("Failed to marshal agreement, err: %+v", err)
-			return
-		}
-		td.AddByteArray(bs)
-		data := td.FormData()
+		// td := base.NewTransData()
+		// bs, err := agreement.Marshal()
+		// if err != nil {
+		// 	logger.Error("Failed to marshal agreement, err: %+v", err)
+		// 	return
+		// }
+		// td.AddByteArray(bs)
+		// data := td.FormData()
 
-		// 將註冊結果回傳主伺服器
-		err = gos.SendToClient(define.PostMessagePort, s.serverIdDict[define.GsnsServer], &data, int32(len(data)))
+		// // 將註冊結果回傳主伺服器
+		// err = gos.SendToClient(define.PostMessagePort, s.serverIdDict[define.GsnsServer], &data, int32(len(data)))
+
+		_, err := agrt.SendToClient(define.PostMessagePort, s.serverIdDict[define.GsnsServer], agreement)
 
 		if err != nil {
 			logger.Error("Failed to send to Gsns server, err: %+v", err)
 		} else {
-			logger.Info("Send define.GetSubscribedPosts response: %+v", agreement)
+			logger.Info("Send define.GetSubscribedPosts response(%d): %+v", agreement.ReturnCode, agreement)
 		}
 
 	default:

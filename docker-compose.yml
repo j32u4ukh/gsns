@@ -20,7 +20,7 @@ services:
           nocopy: true
     ports:
       - target: 3306
-        published: ${DB_PORT:-3307}
+        published: ${DB_PORT:-3306}
         protocol: tcp
         mode: host
 

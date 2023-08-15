@@ -6,9 +6,7 @@ import (
 	"internal/define"
 	"internal/pbgo"
 
-	"github.com/j32u4ukh/gos"
 	"github.com/j32u4ukh/gos/ans"
-	"github.com/j32u4ukh/gos/base"
 	"github.com/j32u4ukh/gos/base/ghttp"
 )
 
@@ -61,23 +59,25 @@ func (m *PostMessageMgr) addNewPost(c *ghttp.Context) {
 		Content:  pmp.Content,
 	})
 
-	// 寫入 agreement
-	td := base.NewTransData()
-	bs, err := agreement.Marshal()
-	if err != nil {
-		msg := "Failed to marshal agreement"
-		m.logger.Error(fmt.Sprintf("%s, err: %+v", msg, err))
-		c.Json(ghttp.StatusBadRequest, ghttp.H{
-			"msg": msg,
-		})
-		m.httpAnswer.Send(c)
-		return
-	}
-	td.AddByteArray(bs)
-	data := td.FormData()
+	// // 寫入 agreement
+	// td := base.NewTransData()
+	// bs, err := agreement.Marshal()
+	// if err != nil {
+	// 	msg := "Failed to marshal agreement"
+	// 	m.logger.Error(fmt.Sprintf("%s, err: %+v", msg, err))
+	// 	c.Json(ghttp.StatusBadRequest, ghttp.H{
+	// 		"msg": msg,
+	// 	})
+	// 	m.httpAnswer.Send(c)
+	// 	return
+	// }
+	// td.AddByteArray(bs)
+	// data := td.FormData()
 
-	// 將註冊數據傳到 PostMessage 伺服器
-	err = gos.SendToServer(define.PostMessageServer, &data, int32(len(data)))
+	// // 將註冊數據傳到 PostMessage 伺服器
+	// err = gos.SendToServer(define.PostMessageServer, &data, int32(len(data)))
+
+	_, err := agrt.SendToServer(define.PostMessageServer, agreement)
 
 	if err != nil {
 		msg := "Failed to send to PostMessage server"
@@ -119,21 +119,23 @@ func (m *PostMessageMgr) getPost(c *ghttp.Context) {
 	agreement.PostMessages = append(agreement.PostMessages, &pbgo.PostMessage{
 		Id: uint64(post_id),
 	})
-	bs, err := agreement.Marshal()
-	if err != nil {
-		c.Json(ghttp.StatusBadRequest, ghttp.H{
-			"ret": 2,
-			"msg": "Failed to marshal agreement.",
-		})
-		m.httpAnswer.Send(c)
-		return
-	}
-	td := base.NewTransData()
-	td.AddByteArray(bs)
-	data := td.FormData()
-	err = gos.SendToServer(define.PostMessageServer, &data, int32(len(data)))
+	// bs, err := agreement.Marshal()
+	// if err != nil {
+	// 	c.Json(ghttp.StatusBadRequest, ghttp.H{
+	// 		"ret": 2,
+	// 		"msg": "Failed to marshal agreement.",
+	// 	})
+	// 	m.httpAnswer.Send(c)
+	// 	return
+	// }
+	// td := base.NewTransData()
+	// td.AddByteArray(bs)
+	// data := td.FormData()
+	// err = gos.SendToServer(define.PostMessageServer, &data, int32(len(data)))
+	_, err := agrt.SendToServer(define.PostMessageServer, agreement)
 
 	if err != nil {
+		m.logger.Error("err: %+v", err)
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
 			"ret": 3,
 			"msg": "Failed to send data to PostMessage server.",
@@ -186,25 +188,26 @@ func (m *PostMessageMgr) getMyPosts(c *ghttp.Context) {
 		Index: user.Index,
 	})
 
-	// 寫入 agreement
-	td := base.NewTransData()
-	bs, err := agreement.Marshal()
-	if err != nil {
-		msg := "Failed to marshal agreement"
-		m.logger.Error(fmt.Sprintf("%s, err: %+v", msg, err))
-		c.Json(ghttp.StatusBadRequest, ghttp.H{
-			"ret": 2,
-			"msg": msg,
-		})
-		m.httpAnswer.Send(c)
-	}
+	// // 寫入 agreement
+	// td := base.NewTransData()
+	// bs, err := agreement.Marshal()
+	// if err != nil {
+	// 	msg := "Failed to marshal agreement"
+	// 	m.logger.Error(fmt.Sprintf("%s, err: %+v", msg, err))
+	// 	c.Json(ghttp.StatusBadRequest, ghttp.H{
+	// 		"ret": 2,
+	// 		"msg": msg,
+	// 	})
+	// 	m.httpAnswer.Send(c)
+	// }
 
-	td.AddByteArray(bs)
-	data := td.FormData()
-	m.logger.Info("data: %+v", data)
+	// td.AddByteArray(bs)
+	// data := td.FormData()
+	// m.logger.Info("data: %+v", data)
 
-	// 將數據傳到 PostMessage 伺服器
-	err = gos.SendToServer(define.PostMessageServer, &data, int32(len(data)))
+	// // 將數據傳到 PostMessage 伺服器
+	// err = gos.SendToServer(define.PostMessageServer, &data, int32(len(data)))
+	_, err := agrt.SendToServer(define.PostMessageServer, agreement)
 
 	if err != nil {
 		m.logger.Error("Failed to send to PostMessage, err: %+v", err)
@@ -260,14 +263,15 @@ func (m *PostMessageMgr) modifyPost(c *ghttp.Context) {
 		Content:  pmp.Content,
 	})
 
-	// 寫入 agreement
-	td := base.NewTransData()
-	bs, _ := agreement.Marshal()
-	td.AddByteArray(bs)
-	data := td.FormData()
+	// // 寫入 agreement
+	// td := base.NewTransData()
+	// bs, _ := agreement.Marshal()
+	// td.AddByteArray(bs)
+	// data := td.FormData()
 
-	// 將註冊數據傳到 PostMessage 伺服器
-	err := gos.SendToServer(define.PostMessageServer, &data, int32(len(data)))
+	// // 將註冊數據傳到 PostMessage 伺服器
+	// err := gos.SendToServer(define.PostMessageServer, &data, int32(len(data)))
+	_, err := agrt.SendToServer(define.PostMessageServer, agreement)
 
 	if err != nil {
 		msg := "Failed to send to PostMessage server"

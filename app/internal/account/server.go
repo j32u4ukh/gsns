@@ -66,11 +66,16 @@ func (s *AccountServer) handleSystem(work *base.Work, agreement *agrt.Agreement)
 	switch agreement.Service {
 	// 回應心跳包
 	case define.Heartbeat:
-		work.Body.Clear()
+		// work.Body.Clear()
 		agreement.Msg = "OK"
-		bs, _ := agreement.Marshal()
-		work.Body.AddByteArray(bs)
-		work.SendTransData()
+		// bs, _ := agreement.Marshal()
+		// work.Body.AddByteArray(bs)
+		// work.SendTransData()
+		_, err := agrt.SendWork(work, agreement)
+		if err != nil {
+			logger.Error("Failed to send work, err: %+v", err)
+			return
+		}
 	case define.Introduction:
 		if agreement.Cipher != define.CIPHER {
 			logger.Error("Cipher: %s, Identity: %d", agreement.Cipher, agreement.Identity)
@@ -102,20 +107,29 @@ func (s *AccountServer) handleCommission(work *base.Work, agreement *agrt.Agreem
 		// ==================================================
 		// 準備將請求轉送給 DBA server
 		// ==================================================
-		td := base.NewTransData()
-		bs, _ := agreement.Marshal()
-		td.AddByteArray(bs)
-		data := td.FormData()
+		// td := base.NewTransData()
+		// bs, _ := agreement.Marshal()
+		// td.AddByteArray(bs)
+		// data := td.FormData()
 
-		// 將註冊數據傳到 Dba 伺服器
-		err := gos.SendToServer(define.DbaServer, &data, int32(len(data)))
+		// // 將註冊數據傳到 Dba 伺服器
+		// err := gos.SendToServer(define.DbaServer, &data, int32(len(data)))
+
+		_, err := agrt.SendToServer(define.DbaServer, agreement)
 
 		if err != nil {
 			agreement.ReturnCode = 1
 			agreement.Msg = fmt.Sprintf("Failed to send to server: %d", define.DbaServer)
-			logger.Error("Failed to send to server %d: %v\nError: %+v", define.DbaServer, data, err)
-			work.Body.AddByteArray(data)
-			work.SendTransData()
+			// logger.Error("%s, err: %+v", agreement.Msg, err)
+			// work.Body.AddByteArray(data)
+			// work.SendTransData()
+			_, err := agrt.SendWork(work, agreement)
+			if err != nil {
+				logger.Error("Failed to send work, err: %+v", err)
+				work.Finish()
+			} else {
+				logger.Info("Send define.Register response(%d): %+v", agreement.ReturnCode, agreement.Msg)
+			}
 		} else {
 			logger.Info("Send define.Register request: %+v", agreement)
 			work.Finish()
@@ -126,7 +140,7 @@ func (s *AccountServer) handleCommission(work *base.Work, agreement *agrt.Agreem
 		data := agreement.Accounts[0]
 		var account *pbgo.Account
 		var ok bool
-		var bs []byte
+		// var bs []byte
 		var err error
 
 		// 檢查是否有用戶帳號緩存
@@ -144,56 +158,69 @@ func (s *AccountServer) handleCommission(work *base.Work, agreement *agrt.Agreem
 				agreement.ReturnCode = 0
 				agreement.Accounts[0] = proto.Clone(account).(*pbgo.Account)
 				agreement.Accounts[0].Password = ""
-				// 載入社群關係
-				if edges, ok := s.Edges[account.Index]; ok {
-					for edge := range edges.Elements {
-						agreement.Edges = append(agreement.Edges, &pbgo.Edge{
-							UserId: account.Index,
-							Target: edge,
-						})
-					}
-				} else {
+				if _, ok := s.Edges[account.Index]; !ok {
 					s.Edges[account.Index] = cntr.NewSet[int32]()
+				}
+				// 載入社群關係
+				edges := s.Edges[account.Index]
+				for edge := range edges.Elements {
+					agreement.Edges = append(agreement.Edges, &pbgo.Edge{
+						UserId: account.Index,
+						Target: edge,
+					})
 				}
 			}
 
-			bs, err = agreement.Marshal()
+			// bs, err = agreement.Marshal()
+			// if err != nil {
+			// 	logger.Error("Failed to marshal agreement, err: %+v", err)
+			// 	work.Finish()
+			// 	return
+			// }
+			// work.Body.AddByteArray(bs)
+			// work.SendTransData()
+			_, err := agrt.SendWork(work, agreement)
 			if err != nil {
-				logger.Error("Failed to marshal agreement, err: %+v", err)
-				work.Finish()
-				return
+				logger.Error("Failed to send work, err: %+v", err)
+			} else {
+				logger.Info("Send define.Login response: (%d) %+v", agreement.ReturnCode, agreement)
 			}
-			work.Body.AddByteArray(bs)
-			work.SendTransData()
-			logger.Info("Send define.Login response: (%d) %+v", agreement.ReturnCode, agreement)
 			return
 		}
 
 		// 若不存在用戶帳號緩存
 		logger.Info("不存在用戶帳號緩存")
-		td := base.NewTransData()
-		bs, err = agreement.Marshal()
+		// td := base.NewTransData()
+		// bs, err = agreement.Marshal()
+		// if err != nil {
+		// 	logger.Error("Failed to marshal agreement, err: %+v", err)
+		// 	work.Finish()
+		// 	return
+		// }
+		// td.AddByteArray(bs)
+		// bs = td.FormData()
+		// err = gos.SendToServer(define.DbaServer, &bs, int32(len(bs)))
+		_, err = agrt.SendToServer(define.DbaServer, agreement)
+
 		if err != nil {
-			logger.Error("Failed to marshal agreement, err: %+v", err)
-			work.Finish()
-			return
-		}
-		td.AddByteArray(bs)
-		bs = td.FormData()
-		err = gos.SendToServer(define.DbaServer, &bs, int32(len(bs)))
-		if err != nil {
-			logger.Error("Failed to send to Dba server, err: %+v", err)
 			agreement.ReturnCode = 2
 			agreement.Msg = "Failed to send to Dba server"
 			agreement.Accounts = agreement.Accounts[:0]
-			bs, err = agreement.Marshal()
+			// bs, err = agreement.Marshal()
+			// if err != nil {
+			// 	logger.Error("Failed to marshal agreement, err: %+v", err)
+			// 	work.Finish()
+			// 	return
+			// }
+			// work.Body.AddByteArray(bs)
+			// work.SendTransData()
+			_, err := agrt.SendWork(work, agreement)
 			if err != nil {
-				logger.Error("Failed to marshal agreement, err: %+v", err)
+				logger.Error("Failed to send work, err: %+v", err)
 				work.Finish()
-				return
+			} else {
+				logger.Info("Send define.Login response: (%d) %+v", agreement.ReturnCode, agreement)
 			}
-			work.Body.AddByteArray(bs)
-			work.SendTransData()
 		} else {
 			logger.Info("Send define.Login request: %+v", agreement)
 			work.Finish()
@@ -201,21 +228,27 @@ func (s *AccountServer) handleCommission(work *base.Work, agreement *agrt.Agreem
 
 	// 設置用戶資料
 	case define.SetUserData:
-		var bs []byte
+		// var bs []byte
 		var err error
 		newAccount := agreement.Accounts[0]
 		account, ok := s.accounts.GetByKey1(newAccount.Index)
 		if !ok {
 			agreement.ReturnCode = 1
 			agreement.Msg = fmt.Sprintf("找不到 user(%d)", newAccount.Index)
-			bs, err = agreement.Marshal()
+			// bs, err = agreement.Marshal()
+			// if err != nil {
+			// 	logger.Error("Failed to marshal agreement, err: %+v", err)
+			// 	work.Finish()
+			// 	return
+			// }
+			// work.Body.AddByteArray(bs)
+			// work.SendTransData()
+			_, err := agrt.SendWork(work, agreement)
 			if err != nil {
-				logger.Error("Failed to marshal agreement, err: %+v", err)
-				work.Finish()
-				return
+				logger.Error("Failed to send work, err: %+v", err)
+			} else {
+				logger.Info("Send define.SetUserData response: (%d) %+v", agreement.ReturnCode, agreement)
 			}
-			work.Body.AddByteArray(bs)
-			work.SendTransData()
 			return
 		}
 
@@ -227,27 +260,35 @@ func (s *AccountServer) handleCommission(work *base.Work, agreement *agrt.Agreem
 		// ==================================================
 		// 更新緩存後，再將更新請求傳送給 DBA server
 		// ==================================================
-		// 寫入 pbgo.Account
-		td := base.NewTransData()
-		bs, _ = agreement.Marshal()
-		td.AddByteArray(bs)
-		data := td.FormData()
+		// // 寫入 pbgo.Account
+		// td := base.NewTransData()
+		// bs, _ = agreement.Marshal()
+		// td.AddByteArray(bs)
+		// data := td.FormData()
 
-		// 將新用戶資訊數據傳到 Dba 伺服器
-		err = gos.SendToServer(define.DbaServer, &data, int32(len(data)))
+		// // 將新用戶資訊數據傳到 Dba 伺服器
+		// err = gos.SendToServer(define.DbaServer, &data, int32(len(data)))
+
+		_, err = agrt.SendToServer(define.DbaServer, agreement)
 
 		if err != nil {
 			agreement.ReturnCode = 2
 			agreement.Msg = fmt.Sprintf("Failed to send to %s", define.ServerName(define.DbaServer))
-			logger.Error("%s, err: %+v", agreement.Msg, err)
-			bs, err = agreement.Marshal()
+			// bs, err = agreement.Marshal()
+			// if err != nil {
+			// 	logger.Error("Failed to marshal agreement, err: %+v", err)
+			// 	work.Finish()
+			// 	return
+			// }
+			// work.Body.AddByteArray(bs)
+			// work.SendTransData()
+			_, err := agrt.SendWork(work, agreement)
 			if err != nil {
-				logger.Error("Failed to marshal agreement, err: %+v", err)
+				logger.Error("Failed to send work, err: %+v", err)
 				work.Finish()
-				return
+			} else {
+				logger.Info("Send define.SetUserData response: (%d) %+v", agreement.ReturnCode, agreement)
 			}
-			work.Body.AddByteArray(bs)
-			work.SendTransData()
 		} else {
 			logger.Info("Send define.SetUserData request: %+v", agreement)
 			// 當前工作直接結束，無須回應
@@ -255,54 +296,74 @@ func (s *AccountServer) handleCommission(work *base.Work, agreement *agrt.Agreem
 		}
 
 	case define.GetOtherUsers:
-		bs, err := agreement.Marshal()
-		if err != nil {
-			logger.Error("Failed to marshal agreement, err: %+v", err)
-			work.Finish()
-			return
-		}
-		td := base.NewTransData()
-		td.AddByteArray(bs)
-		data := td.FormData()
-		err = gos.SendToServer(define.DbaServer, &data, int32(len(data)))
+		// bs, err := agreement.Marshal()
+		// if err != nil {
+		// 	logger.Error("Failed to marshal agreement, err: %+v", err)
+		// 	work.Finish()
+		// 	return
+		// }
+		// td := base.NewTransData()
+		// td.AddByteArray(bs)
+		// data := td.FormData()
+		// err = gos.SendToServer(define.DbaServer, &data, int32(len(data)))
+		_, err := agrt.SendToServer(define.DbaServer, agreement)
+
 		if err != nil {
 			agreement.ReturnCode = 1
 			agreement.Msg = "Failed to send to Dba server."
-			bs, err = agreement.Marshal()
+			// var bs []byte
+			// bs, err = agreement.Marshal()
+			// if err != nil {
+			// 	logger.Error("Failed to marshal agreement, err: %+v", err)
+			// 	work.Finish()
+			// 	return
+			// }
+			// work.Body.AddByteArray(bs)
+			// work.SendTransData()
+			_, err := agrt.SendWork(work, agreement)
 			if err != nil {
-				logger.Error("Failed to marshal agreement, err: %+v", err)
+				logger.Error("Failed to send work, err: %+v", err)
 				work.Finish()
-				return
+			} else {
+				logger.Info("Send define.GetOtherUsers response: (%d) %+v", agreement.ReturnCode, agreement)
 			}
-			work.Body.AddByteArray(bs)
-			work.SendTransData()
 		} else {
 			logger.Info("Send define.GetOtherUsers request: %+v", agreement)
 			work.Finish()
 		}
 
 	case define.Subscribe:
-		bs, err := agreement.Marshal()
-		if err != nil {
-			logger.Error("Failed to marshal agreement, err: %+v", err)
-			work.Finish()
-			return
-		}
-		td := base.NewTransData()
-		td.AddByteArray(bs)
-		data := td.FormData()
-		err = gos.SendToServer(define.DbaServer, &data, int32(len(data)))
+		// bs, err := agreement.Marshal()
+		// if err != nil {
+		// 	logger.Error("Failed to marshal agreement, err: %+v", err)
+		// 	work.Finish()
+		// 	return
+		// }
+		// td := base.NewTransData()
+		// td.AddByteArray(bs)
+		// data := td.FormData()
+		// err = gos.SendToServer(define.DbaServer, &data, int32(len(data)))
+		_, err := agrt.SendToServer(define.DbaServer, agreement)
+
 		if err != nil {
 			agreement.ReturnCode = 1
 			agreement.Msg = "Failed to send to Dba server."
-			bs, err = agreement.Marshal()
+			// var bs []byte
+			// bs, err = agreement.Marshal()
+			// if err != nil {
+			// 	logger.Error("Failed to marshal agreement, err: %+v", err)
+			// 	work.Finish()
+			// 	return
+			// }
+			// work.Body.AddByteArray(bs)
+			// work.SendTransData()
+			_, err := agrt.SendWork(work, agreement)
 			if err != nil {
-				logger.Error("Failed to marshal agreement, err: %+v", err)
+				logger.Error("Failed to send work, err: %+v", err)
 				work.Finish()
-				return
+			} else {
+				logger.Info("Send define.Subscribe response: (%d) %+v", agreement.ReturnCode, agreement)
 			}
-			work.Body.AddByteArray(bs)
-			work.SendTransData()
 		} else {
 			logger.Info("Send define.Subscribe request: %+v", agreement)
 			work.Finish()

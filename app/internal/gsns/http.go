@@ -9,13 +9,10 @@ import (
 	"time"
 
 	"github.com/j32u4ukh/cntr"
-	"github.com/j32u4ukh/gos"
 	"github.com/j32u4ukh/gos/ans"
-	"github.com/j32u4ukh/gos/base"
 	"github.com/j32u4ukh/gos/base/ghttp"
 )
 
-// TODO: HTTP 請求處理過程中若失敗，要返回錯誤訊息給客戶端，而非印出日誌或直接返回
 // [endpoint]/social
 func (s *MainServer) HttpSocialHandler(router *ans.Router) {
 	// 取得其他用戶的清單
@@ -61,26 +58,28 @@ func (s *MainServer) getOtherUsers(c *ghttp.Context) {
 	agreement.Accounts = append(agreement.Accounts, &pbgo.Account{
 		Index: int32(userId),
 	})
-	bs, err := agreement.Marshal()
+	// bs, err := agreement.Marshal()
 
-	if err != nil {
-		msg := "Failed to marshal agreement."
-		logger.Error(fmt.Sprintf("%s, err: %+v", msg, err))
-		c.Json(ghttp.StatusInternalServerError, ghttp.H{
-			"ret": 4,
-			"msg": msg,
-		})
-		s.Http.Send(c)
-		return
-	}
+	// if err != nil {
+	// 	msg := "Failed to marshal agreement."
+	// 	logger.Error(fmt.Sprintf("%s, err: %+v", msg, err))
+	// 	c.Json(ghttp.StatusInternalServerError, ghttp.H{
+	// 		"ret": 4,
+	// 		"msg": msg,
+	// 	})
+	// 	s.Http.Send(c)
+	// 	return
+	// }
 
-	// 寫入 agreement
-	td := base.NewTransData()
-	td.AddByteArray(bs)
-	data := td.FormData()
+	// // 寫入 agreement
+	// td := base.NewTransData()
+	// td.AddByteArray(bs)
+	// data := td.FormData()
 
-	// 將註冊數據傳到 Account 伺服器
-	err = gos.SendToServer(define.AccountServer, &data, int32(len(data)))
+	// // 將註冊數據傳到 Account 伺服器
+	// err = gos.SendToServer(define.AccountServer, &data, int32(len(data)))
+
+	_, err = agrt.SendToServer(define.AccountServer, agreement)
 
 	if err != nil {
 		msg := "Failed to send request to account server"
@@ -160,26 +159,28 @@ func (s *MainServer) subscribe(c *ghttp.Context) {
 		Target: ip.TargetId,
 	})
 
-	// 寫入 agreement
-	bs, err := agreement.Marshal()
+	// // 寫入 agreement
+	// bs, err := agreement.Marshal()
 
-	if err != nil {
-		msg := "Failed to marshal agreement."
-		logger.Error(fmt.Sprintf("%s, err: %+v", msg, err))
-		c.Json(ghttp.StatusInternalServerError, ghttp.H{
-			"ret": 4,
-			"msg": msg,
-		})
-		s.Http.Send(c)
-		return
-	}
+	// if err != nil {
+	// 	msg := "Failed to marshal agreement."
+	// 	logger.Error(fmt.Sprintf("%s, err: %+v", msg, err))
+	// 	c.Json(ghttp.StatusInternalServerError, ghttp.H{
+	// 		"ret": 4,
+	// 		"msg": msg,
+	// 	})
+	// 	s.Http.Send(c)
+	// 	return
+	// }
 
-	td := base.NewTransData()
-	td.AddByteArray(bs)
-	data := td.FormData()
+	// td := base.NewTransData()
+	// td.AddByteArray(bs)
+	// data := td.FormData()
 
-	// 將註冊數據傳到 Account 伺服器
-	err = gos.SendToServer(define.AccountServer, &data, int32(len(data)))
+	// // 將註冊數據傳到 Account 伺服器
+	// err = gos.SendToServer(define.AccountServer, &data, int32(len(data)))
+
+	_, err := agrt.SendToServer(define.AccountServer, agreement)
 
 	if err != nil {
 		msg := "Failed to send request to account server"
@@ -272,21 +273,24 @@ func (s *MainServer) getSubscribedPosts(c *ghttp.Context) {
 		})
 	}
 
-	bs, err := agreement.Marshal()
-	if err != nil {
-		msg := "Failed to marshal agreement"
-		logger.Error("%s, err: %+v", msg, err)
-		c.Json(ghttp.StatusInternalServerError, ghttp.H{
-			"ret": 3,
-			"msg": msg,
-		})
-		s.Http.Send(c)
-		return
-	}
-	td := base.NewTransData()
-	td.AddByteArray(bs)
-	data := td.FormData()
-	err = gos.SendToServer(define.PostMessageServer, &data, int32(len(data)))
+	// bs, err := agreement.Marshal()
+	// if err != nil {
+	// 	msg := "Failed to marshal agreement"
+	// 	logger.Error("%s, err: %+v", msg, err)
+	// 	c.Json(ghttp.StatusInternalServerError, ghttp.H{
+	// 		"ret": 3,
+	// 		"msg": msg,
+	// 	})
+	// 	s.Http.Send(c)
+	// 	return
+	// }
+	// td := base.NewTransData()
+	// td.AddByteArray(bs)
+	// data := td.FormData()
+	// err = gos.SendToServer(define.PostMessageServer, &data, int32(len(data)))
+
+	_, err = agrt.SendToServer(define.PostMessageServer, agreement)
+
 	if err != nil {
 		msg := "Failed to sned to PostMessage server."
 		logger.Error("%s, err: %+v", msg, err)

@@ -1,6 +1,7 @@
 package agrt
 
 import (
+	"internal/define"
 	"internal/pbgo"
 	"sync"
 
@@ -29,7 +30,18 @@ func init() {
 	})
 }
 
-func SendAgreement(arg0 int32, arg1 int32, agreement *Agreement) ([]byte, error) {
+func SendWork(work *base.Work, agreement *Agreement) ([]byte, error) {
+	bs, err := agreement.Marshal()
+	if err != nil {
+		work.Finish()
+		return nil, errors.Wrap(err, "Failed to marshal agreement")
+	}
+	work.Body.AddByteArray(bs)
+	work.SendTransData()
+	return bs, nil
+}
+
+func SendToServer(serverId int32, agreement *Agreement) ([]byte, error) {
 	// 寫入 agreement
 	td := transdataPool.Get().(*base.TransData)
 	defer func() {
@@ -44,14 +56,31 @@ func SendAgreement(arg0 int32, arg1 int32, agreement *Agreement) ([]byte, error)
 	data := td.FormData()
 
 	// 將註冊數據傳到伺服器
-	if arg1 == -1 {
-		err = gos.SendToServer(arg0, &data, int32(len(data)))
-	} else {
-		err = gos.SendToClient(arg0, arg1, &data, int32(len(data)))
-	}
-
+	err = gos.SendToServer(serverId, &data, int32(len(data)))
 	if err != nil {
-		return nil, errors.Wrapf(err, "Failed to sned to server %d", arg0)
+		return nil, errors.Wrapf(err, "Failed to sned to %s", define.ServerName(serverId))
+	}
+	return data, nil
+}
+
+func SendToClient(serverId int32, cid int32, agreement *Agreement) ([]byte, error) {
+	// 寫入 agreement
+	td := transdataPool.Get().(*base.TransData)
+	defer func() {
+		td.Clear()
+		transdataPool.Put(td)
+	}()
+	bs, err := agreement.Marshal()
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to marshal agreement")
+	}
+	td.AddByteArray(bs)
+	data := td.FormData()
+
+	// 將註冊數據傳到伺服器
+	err = gos.SendToClient(serverId, cid, &data, int32(len(data)))
+	if err != nil {
+		return nil, errors.Wrapf(err, "Failed to sned to %s", define.ServerName(serverId))
 	}
 	return data, nil
 }

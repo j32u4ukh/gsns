@@ -6,9 +6,7 @@ import (
 	"internal/define"
 	"internal/pbgo"
 
-	"github.com/j32u4ukh/gos"
 	"github.com/j32u4ukh/gos/ans"
-	"github.com/j32u4ukh/gos/base"
 	"github.com/j32u4ukh/gos/base/ghttp"
 )
 
@@ -59,14 +57,16 @@ func (m *AccountMgr) register(c *ghttp.Context) {
 		Info:     ap.Info,
 	})
 
-	// 寫入 agreement
-	td := base.NewTransData()
-	bs, _ := agreement.Marshal()
-	td.AddByteArray(bs)
-	data := td.FormData()
+	// // 寫入 agreement
+	// td := base.NewTransData()
+	// bs, _ := agreement.Marshal()
+	// td.AddByteArray(bs)
+	// data := td.FormData()
 
-	// 將註冊數據傳到 Account 伺服器
-	err := gos.SendToServer(define.AccountServer, &data, int32(len(data)))
+	// // 將註冊數據傳到 Account 伺服器
+	// err := gos.SendToServer(define.AccountServer, &data, int32(len(data)))
+
+	_, err := agrt.SendToServer(define.AccountServer, agreement)
 
 	if err != nil {
 		m.logger.Error("Failed to send to server %d\nError: %+v", define.AccountServer, err)
@@ -75,7 +75,6 @@ func (m *AccountMgr) register(c *ghttp.Context) {
 			"msg": "Failed to send to Account server",
 		})
 		m.httpAnswer.Send(c)
-		return
 	} else {
 		m.logger.Info("Send define.Register request: %+v", agreement)
 		// 將當前 Http 的工作結束
@@ -109,17 +108,19 @@ func (m *AccountMgr) login(c *ghttp.Context) {
 		Password: ap.Password,
 	})
 
-	// 寫入 agreement
-	td := base.NewTransData()
-	bs, _ := agreement.Marshal()
-	td.AddByteArray(bs)
-	data := td.FormData()
+	// // 寫入 agreement
+	// td := base.NewTransData()
+	// bs, _ := agreement.Marshal()
+	// td.AddByteArray(bs)
+	// data := td.FormData()
 
-	// 將登入數據傳到 Account 伺服器
-	err := gos.SendToServer(define.AccountServer, &data, int32(len(data)))
+	// // 將登入數據傳到 Account 伺服器
+	// err := gos.SendToServer(define.AccountServer, &data, int32(len(data)))
+
+	_, err := agrt.SendToServer(define.AccountServer, agreement)
 
 	if err != nil {
-		m.logger.Error("Failed to send to server %d: %v\nError: %+v", define.AccountServer, data, err)
+		m.logger.Error("Failed to send to Account server, err: %+v", err)
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
 			"err": "Failed to send to server.",
 		})
@@ -231,14 +232,15 @@ func (m *AccountMgr) setUserInfo(c *ghttp.Context) {
 		Info:    user.Info,
 	})
 
-	// 寫入 agreement
-	td := base.NewTransData()
-	bs, _ := agreement.Marshal()
-	td.AddByteArray(bs)
-	data := td.FormData()
+	// // 寫入 agreement
+	// td := base.NewTransData()
+	// bs, _ := agreement.Marshal()
+	// td.AddByteArray(bs)
+	// data := td.FormData()
 
-	// 將新用戶資訊數據傳到 Account 伺服器
-	err := gos.SendToServer(define.AccountServer, &data, int32(len(data)))
+	// // 將新用戶資訊數據傳到 Account 伺服器
+	// err := gos.SendToServer(define.AccountServer, &data, int32(len(data)))
+	_, err := agrt.SendToServer(define.AccountServer, agreement)
 
 	if err != nil {
 		m.logger.Error("Failed to send to %s, err: %+v", define.ServerName(define.AccountServer), err)
