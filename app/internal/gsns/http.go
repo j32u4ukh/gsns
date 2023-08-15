@@ -33,7 +33,7 @@ func (s *MainServer) getOtherUsers(c *ghttp.Context) {
 			"ret": 1,
 			"msg": msg,
 		})
-		s.Http.Send(c)
+		// s.Http.Send(c)
 		return
 	}
 
@@ -46,7 +46,7 @@ func (s *MainServer) getOtherUsers(c *ghttp.Context) {
 			"ret": 2,
 			"msg": msg,
 		})
-		s.Http.Send(c)
+		// s.Http.Send(c)
 		return
 	}
 
@@ -67,10 +67,10 @@ func (s *MainServer) getOtherUsers(c *ghttp.Context) {
 			"ret": 5,
 			"msg": msg,
 		})
-		s.Http.Send(c)
+		// s.Http.Send(c)
 	} else {
 		logger.Info("Send define.GetOtherUsers request: %+v", agreement)
-		s.Http.Finish(c)
+		// s.Http.Finish(c)
 	}
 }
 
@@ -86,7 +86,7 @@ func (s *MainServer) subscribe(c *ghttp.Context) {
 			"ret": 1,
 			"msg": msg,
 		})
-		s.Http.Send(c)
+		// s.Http.Send(c)
 		return
 	}
 
@@ -99,7 +99,7 @@ func (s *MainServer) subscribe(c *ghttp.Context) {
 			"ret": 2,
 			"msg": msg,
 		})
-		s.Http.Send(c)
+		// s.Http.Send(c)
 		return
 	}
 
@@ -110,7 +110,7 @@ func (s *MainServer) subscribe(c *ghttp.Context) {
 			"ret": 3,
 			"msg": msg,
 		})
-		s.Http.Send(c)
+		// s.Http.Send(c)
 		return
 	}
 
@@ -123,7 +123,7 @@ func (s *MainServer) subscribe(c *ghttp.Context) {
 				"ret": 0,
 				"msg": msg,
 			})
-			s.Http.Send(c)
+			// s.Http.Send(c)
 			return
 		}
 	}
@@ -146,11 +146,11 @@ func (s *MainServer) subscribe(c *ghttp.Context) {
 			"ret": 5,
 			"msg": msg,
 		})
-		s.Http.Send(c)
+		// s.Http.Send(c)
 		return
 	} else {
 		logger.Info("Send define.Subscribe request: %+v", agreement)
-		s.Http.Finish(c)
+		// s.Http.Finish(c)
 	}
 }
 
@@ -166,7 +166,7 @@ func (s *MainServer) getSubscribedPosts(c *ghttp.Context) {
 			"ret": 1,
 			"msg": msg,
 		})
-		s.Http.Send(c)
+		// s.Http.Send(c)
 		return
 	}
 
@@ -181,7 +181,7 @@ func (s *MainServer) getSubscribedPosts(c *ghttp.Context) {
 			"ret": 2,
 			"msg": msg,
 		})
-		s.Http.Send(c)
+		// s.Http.Send(c)
 		return
 	}
 
@@ -203,7 +203,7 @@ func (s *MainServer) getSubscribedPosts(c *ghttp.Context) {
 			"n_post": len(agreement.PostMessages),
 			"posts":  agreement.PostMessages,
 		})
-		s.Http.Send(c)
+		// s.Http.Send(c)
 		return
 	}
 
@@ -238,9 +238,9 @@ func (s *MainServer) getSubscribedPosts(c *ghttp.Context) {
 			"ret": 4,
 			"msg": msg,
 		})
-		s.Http.Send(c)
+		// s.Http.Send(c)
 	} else {
 		logger.Info("Send define.GetSubscribedPosts request: %+v", agreement)
-		s.Http.Finish(c)
+		// s.Http.Finish(c)
 	}
 }

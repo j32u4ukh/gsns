@@ -33,7 +33,7 @@ func (m *PostMessageMgr) addNewPost(c *ghttp.Context) {
 			"ret": 1,
 			"msg": msg,
 		})
-		m.httpAnswer.Send(c)
+		// m.httpAnswer.Send(c)
 		return
 	}
 	user, ok := m.getUserByTokenFunc(pmp.Token)
@@ -44,7 +44,7 @@ func (m *PostMessageMgr) addNewPost(c *ghttp.Context) {
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
 			"msg": msg,
 		})
-		m.httpAnswer.Send(c)
+		// m.httpAnswer.Send(c)
 		return
 	}
 
@@ -66,11 +66,11 @@ func (m *PostMessageMgr) addNewPost(c *ghttp.Context) {
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
 			"err": msg,
 		})
-		m.httpAnswer.Send(c)
+		// m.httpAnswer.Send(c)
 	} else {
 		m.logger.Info("Send define.AddPost request: %+v", agreement)
-		// 將當前 Http 的工作結束
-		m.httpAnswer.Finish(c)
+		// // 將當前 Http 的工作結束
+		// m.httpAnswer.Finish(c)
 	}
 }
 
@@ -85,7 +85,7 @@ func (m *PostMessageMgr) getPost(c *ghttp.Context) {
 			"ret": 1,
 			"msg": msg,
 		})
-		m.httpAnswer.Send(c)
+		// m.httpAnswer.Send(c)
 		return
 	}
 
@@ -108,11 +108,11 @@ func (m *PostMessageMgr) getPost(c *ghttp.Context) {
 			"ret": 3,
 			"msg": "Failed to send data to PostMessage server.",
 		})
-		m.httpAnswer.Send(c)
+		// m.httpAnswer.Send(c)
 	} else {
 		m.logger.Info("Send define.GetPost request: %+v", agreement)
-		// 將當前 Http 的工作結束
-		m.httpAnswer.Finish(c)
+		// // 將當前 Http 的工作結束
+		// m.httpAnswer.Finish(c)
 	}
 }
 
@@ -130,7 +130,7 @@ func (m *PostMessageMgr) getMyPosts(c *ghttp.Context) {
 			"ret": 1,
 			"msg": msg,
 		})
-		m.httpAnswer.Send(c)
+		// m.httpAnswer.Send(c)
 		return
 	}
 
@@ -143,7 +143,7 @@ func (m *PostMessageMgr) getMyPosts(c *ghttp.Context) {
 			"ret": 2,
 			"msg": msg,
 		})
-		m.httpAnswer.Send(c)
+		// m.httpAnswer.Send(c)
 		return
 	}
 
@@ -162,11 +162,11 @@ func (m *PostMessageMgr) getMyPosts(c *ghttp.Context) {
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
 			"err": "Failed to send to server.",
 		})
-		m.httpAnswer.Send(c)
+		// m.httpAnswer.Send(c)
 	} else {
 		m.logger.Info("Send define.GetMyPosts request: %+v", agreement)
-		// 將當前 Http 的工作結束
-		m.httpAnswer.Finish(c)
+		// // 將當前 Http 的工作結束
+		// m.httpAnswer.Finish(c)
 	}
 }
 
@@ -183,7 +183,7 @@ func (m *PostMessageMgr) modifyPost(c *ghttp.Context) {
 			"ret": 1,
 			"msg": msg,
 		})
-		m.httpAnswer.Send(c)
+		// m.httpAnswer.Send(c)
 		return
 	}
 
@@ -195,7 +195,7 @@ func (m *PostMessageMgr) modifyPost(c *ghttp.Context) {
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
 			"msg": msg,
 		})
-		m.httpAnswer.Send(c)
+		// m.httpAnswer.Send(c)
 		return
 	}
 
@@ -218,10 +218,10 @@ func (m *PostMessageMgr) modifyPost(c *ghttp.Context) {
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
 			"msg": msg,
 		})
-		m.httpAnswer.Send(c)
+		// m.httpAnswer.Send(c)
 	} else {
 		m.logger.Info("Send define.ModifyPost request: %+v", agreement)
-		// 將當前 Http 的工作結束
-		m.httpAnswer.Finish(c)
+		// // 將當前 Http 的工作結束
+		// m.httpAnswer.Finish(c)
 	}
 }
