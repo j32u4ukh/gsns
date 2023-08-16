@@ -4,11 +4,12 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"internal/pbgo"
+	"strconv"
 
 	"github.com/pkg/errors"
 )
 
-func (m *AccountMgr) AddUser(user *pbgo.SnsUser) error {
+func (m *AccountMgr) AddUser(user *pbgo.User) error {
 	if !m.users.ContainKey1(user.Index) {
 		err := m.users.Add(user.Index, user.Token, user)
 		if err != nil {
@@ -18,27 +19,29 @@ func (m *AccountMgr) AddUser(user *pbgo.SnsUser) error {
 	return nil
 }
 
-func (m *AccountMgr) GetUserByToken(token uint64) (*pbgo.SnsUser, bool) {
+func (m *AccountMgr) GetUserByToken(token string) (*pbgo.User, bool) {
 	return m.users.GetByKey2(token)
 }
 
 // 取得不重複 token
-func (m *AccountMgr) getToken() uint64 {
-	var token uint64
+func (m *AccountMgr) getToken() string {
+	var token string
+	var value uint64
 	var err error
-	err = binary.Read(rand.Reader, binary.BigEndian, &token)
+	err = binary.Read(rand.Reader, binary.BigEndian, &value)
 	if err != nil {
-		m.logger.Error("token: %d, err: %+v", token, err)
-		return 0
+		m.logger.Error("value: %d, err: %+v", value, err)
+		return ""
 	}
 	// 確保 token 唯一
+	token = strconv.FormatUint(value, 10)
 	for m.users.ContainKey2(token) {
-		err = binary.Read(rand.Reader, binary.BigEndian, &token)
+		err = binary.Read(rand.Reader, binary.BigEndian, &value)
 		if err != nil {
-			m.logger.Error("token: %d, err: %+v", token, err)
-			return 0
+			m.logger.Error("value: %d, err: %+v", value, err)
+			return ""
 		}
 	}
-	m.logger.Info("token: %d", token)
+	m.logger.Info("token: %s", token)
 	return token
 }

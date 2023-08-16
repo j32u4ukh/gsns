@@ -14,7 +14,7 @@ import (
 )
 
 type PostMessageProtocol struct {
-	Token    uint64
+	Token    string
 	ParentId uint64 `json:"parent_id"`
 	PostId   uint64 `json:"post_id"`
 	Content  string
@@ -24,7 +24,7 @@ type PostMessageProtocol struct {
 type PostMessageMgr struct {
 	httpAnswer         *ans.HttpAnser
 	logger             *glog.Logger
-	getUserByTokenFunc func(token uint64) (*pbgo.SnsUser, bool)
+	getUserByTokenFunc func(token string) (*pbgo.User, bool)
 	heartbeatTime      time.Time
 }
 
@@ -186,6 +186,6 @@ func (m *PostMessageMgr) handleCommission(work *base.Work, agreement *agrt.Agree
 	}
 }
 
-func (m *PostMessageMgr) SetFuncGetUserByToken(f func(token uint64) (*pbgo.SnsUser, bool)) {
+func (m *PostMessageMgr) SetFuncGetUserByToken(f func(token string) (*pbgo.User, bool)) {
 	m.getUserByTokenFunc = f
 }

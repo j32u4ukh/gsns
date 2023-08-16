@@ -33,7 +33,6 @@ func (s *MainServer) getOtherUsers(c *ghttp.Context) {
 			"ret": 1,
 			"msg": msg,
 		})
-		// s.Http.Send(c)
 		return
 	}
 
@@ -46,7 +45,6 @@ func (s *MainServer) getOtherUsers(c *ghttp.Context) {
 			"ret": 2,
 			"msg": msg,
 		})
-		// s.Http.Send(c)
 		return
 	}
 
@@ -67,10 +65,8 @@ func (s *MainServer) getOtherUsers(c *ghttp.Context) {
 			"ret": 5,
 			"msg": msg,
 		})
-		// s.Http.Send(c)
 	} else {
 		logger.Info("Send define.GetOtherUsers request: %+v", agreement)
-		// s.Http.Finish(c)
 	}
 }
 
@@ -79,27 +75,25 @@ func (s *MainServer) subscribe(c *ghttp.Context) {
 	ip := &SocialProtocol{}
 	c.ReadJson(ip)
 
-	if ip.Token == 0 || ip.TargetId == 0 {
+	if ip.Token == "" || ip.TargetId == 0 {
 		msg := "缺少參數"
 		logger.Error(msg)
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
 			"ret": 1,
 			"msg": msg,
 		})
-		// s.Http.Send(c)
 		return
 	}
 
 	user, ok := s.AMgr.GetUserByToken(ip.Token)
 
 	if !ok {
-		msg := fmt.Sprintf("Not found token %d", ip.Token)
+		msg := fmt.Sprintf("Not found token %s", ip.Token)
 		logger.Error(msg)
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
 			"ret": 2,
 			"msg": msg,
 		})
-		// s.Http.Send(c)
 		return
 	}
 
@@ -110,7 +104,6 @@ func (s *MainServer) subscribe(c *ghttp.Context) {
 			"ret": 3,
 			"msg": msg,
 		})
-		// s.Http.Send(c)
 		return
 	}
 
@@ -159,7 +152,7 @@ func (s *MainServer) getSubscribedPosts(c *ghttp.Context) {
 	ip := &SocialProtocol{}
 	c.ReadJson(ip)
 
-	if ip.Token == 0 {
+	if ip.Token == "" {
 		msg := "缺少參數"
 		logger.Error(msg)
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
@@ -170,12 +163,12 @@ func (s *MainServer) getSubscribedPosts(c *ghttp.Context) {
 		return
 	}
 
-	var user *pbgo.SnsUser
+	var user *pbgo.User
 	var ok bool
 	user, ok = s.AMgr.GetUserByToken(ip.Token)
 
 	if !ok {
-		msg := fmt.Sprintf("Not found token %d", ip.Token)
+		msg := fmt.Sprintf("Not found token %s", ip.Token)
 		logger.Error(msg)
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
 			"ret": 2,

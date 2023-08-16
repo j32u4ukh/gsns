@@ -7,7 +7,7 @@ message User {
     
     string name = 2;
 
-    uint64 token = 3;
+    string token = 3;
 
     string info = 4;
 }

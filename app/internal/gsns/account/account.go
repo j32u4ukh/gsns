@@ -18,14 +18,14 @@ type AccountProtocol struct {
 	Account  string
 	Password string
 	Info     string
-	Token    uint64
+	Token    string
 }
 
 // 與 Account 相關的由這個物件來管理
 type AccountMgr struct {
 	httpAnswer *ans.HttpAnser
 	// key1: user id, key2: token
-	users         *cntr.BikeyMap[int32, uint64, *pbgo.SnsUser]
+	users         *cntr.BikeyMap[int32, string, *pbgo.User]
 	Edges         map[int32]*cntr.Set[int32]
 	logger        *glog.Logger
 	heartbeatTime time.Time
@@ -33,7 +33,7 @@ type AccountMgr struct {
 
 func NewAccountMgr(lg *glog.Logger) *AccountMgr {
 	m := &AccountMgr{
-		users:         cntr.NewBikeyMap[int32, uint64, *pbgo.SnsUser](),
+		users:         cntr.NewBikeyMap[int32, string, *pbgo.User](),
 		Edges:         make(map[int32]*cntr.Set[int32]),
 		logger:        lg,
 		heartbeatTime: time.Now(),
@@ -111,7 +111,7 @@ func (m *AccountMgr) handleAccountCommission(work *base.Work, agreement *agrt.Ag
 		if agreement.ReturnCode == 0 {
 			account := agreement.Accounts[0]
 			m.logger.Info("index: %d, name: %s, Account: %+v", account.Index, account.Account, account)
-			user := &pbgo.SnsUser{
+			user := &pbgo.User{
 				Index: account.Index,
 				Name:  account.Account,
 				Info:  account.Info,

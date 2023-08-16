@@ -26,20 +26,19 @@ func (m *PostMessageMgr) addNewPost(c *ghttp.Context) {
 	c.ReadJson(pmp)
 	m.logger.Info("PostMessageProtocol: %+v", pmp)
 
-	if pmp.Token == 0 || pmp.Content == "" {
+	if pmp.Token == "" || pmp.Content == "" {
 		msg := fmt.Sprintf("缺少參數, PostMessage: %+v", pmp)
 		m.logger.Error(msg)
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
 			"ret": 1,
 			"msg": msg,
 		})
-		// m.httpAnswer.Send(c)
 		return
 	}
 	user, ok := m.getUserByTokenFunc(pmp.Token)
 
 	if !ok {
-		msg := fmt.Sprintf("Not found token %d", pmp.Token)
+		msg := fmt.Sprintf("Not found token %s", pmp.Token)
 		m.logger.Error(msg)
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
 			"msg": msg,
@@ -123,21 +122,20 @@ func (m *PostMessageMgr) getMyPosts(c *ghttp.Context) {
 	c.ReadJson(pmp)
 	m.logger.Info("PostMessageProtocol: %+v", pmp)
 
-	if pmp.Token == 0 {
+	if pmp.Token == "" {
 		msg := fmt.Sprintf("缺少參數, PostMessage: %+v", pmp)
 		m.logger.Error(msg)
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
 			"ret": 1,
 			"msg": msg,
 		})
-		// m.httpAnswer.Send(c)
 		return
 	}
 
 	user, ok := m.getUserByTokenFunc(pmp.Token)
 
 	if !ok {
-		msg := fmt.Sprintf("Not found token %d", pmp.Token)
+		msg := fmt.Sprintf("Not found token %s", pmp.Token)
 		m.logger.Error(msg)
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
 			"ret": 2,
@@ -176,21 +174,20 @@ func (m *PostMessageMgr) modifyPost(c *ghttp.Context) {
 	pmp := &PostMessageProtocol{}
 	c.ReadJson(pmp)
 
-	if pmp.Token == 0 || pmp.PostId == 0 || pmp.Content == "" {
+	if pmp.Token == "" || pmp.PostId == 0 || pmp.Content == "" {
 		msg := fmt.Sprintf("缺少參數, PostMessage: %+v", pmp)
 		m.logger.Error(msg)
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
 			"ret": 1,
 			"msg": msg,
 		})
-		// m.httpAnswer.Send(c)
 		return
 	}
 
 	user, ok := m.getUserByTokenFunc(pmp.Token)
 
 	if !ok {
-		msg := fmt.Sprintf("Not found token %d", pmp.Token)
+		msg := fmt.Sprintf("Not found token %s", pmp.Token)
 		m.logger.Error(msg)
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
 			"msg": msg,

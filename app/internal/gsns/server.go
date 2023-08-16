@@ -41,7 +41,7 @@ func (s *MainServer) SetHttpAnswer(a *ans.HttpAnser) {
 }
 
 type SocialProtocol struct {
-	Token    uint64 `json:"token"`
+	Token    string `json:"token"`
 	TargetId int32  `json:"target_id"`
 	PostId   uint64 `json:"post_id"`
 	StartUtc int64  `json:"start_utc"`

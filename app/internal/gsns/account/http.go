@@ -42,7 +42,6 @@ func (m *AccountMgr) register(c *ghttp.Context) {
 			"ret": 1,
 			"msg": msg,
 		})
-		// m.httpAnswer.Send(c)
 		return
 	}
 
@@ -64,11 +63,8 @@ func (m *AccountMgr) register(c *ghttp.Context) {
 			"ret": 2,
 			"msg": "Failed to send to Account server",
 		})
-		// m.httpAnswer.Send(c)
 	} else {
 		m.logger.Info("Send define.Register request: %+v", agreement)
-		// // 將當前 Http 的工作結束
-		// m.httpAnswer.Finish(c)
 	}
 }
 
@@ -84,7 +80,6 @@ func (m *AccountMgr) login(c *ghttp.Context) {
 			"ret": 1,
 			"msg": msg,
 		})
-		// m.httpAnswer.Send(c)
 		return
 	}
 
@@ -105,20 +100,16 @@ func (m *AccountMgr) login(c *ghttp.Context) {
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
 			"err": "Failed to send to server.",
 		})
-		// m.httpAnswer.Send(c)
 	} else {
 		m.logger.Info("Send define.Login request: %+v", agreement)
-		// // 將當前 Http 的工作結束
-		// m.httpAnswer.Finish(c)
 	}
 }
 
 func (m *AccountMgr) logout(c *ghttp.Context) {
-	// defer m.httpAnswer.Send(c)
 	ap := &AccountProtocol{}
 	c.ReadJson(ap)
 
-	if ap.Token == 0 {
+	if ap.Token == "" {
 		m.logger.Error("Not found param: token")
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
 			"msg": "Not found token parameter.",
@@ -130,7 +121,7 @@ func (m *AccountMgr) logout(c *ghttp.Context) {
 
 	if !ok {
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
-			"msg": fmt.Sprintf("Not found token %d", ap.Token),
+			"msg": fmt.Sprintf("Not found token %s", ap.Token),
 		})
 	} else {
 		m.users.DelByKey2(ap.Token)
@@ -145,12 +136,11 @@ func (m *AccountMgr) getUserInfo(c *ghttp.Context) {
 	ap := &AccountProtocol{}
 	c.ReadJson(ap)
 
-	if ap.Token == 0 {
+	if ap.Token == "" {
 		m.logger.Error("Not found param: token")
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
 			"err": "Not found token parameter.",
 		})
-		// m.httpAnswer.Send(c)
 		return
 	}
 
@@ -163,7 +153,7 @@ func (m *AccountMgr) getUserInfo(c *ghttp.Context) {
 		})
 	} else {
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
-			"msg": fmt.Sprintf("Not found token %d", ap.Token),
+			"msg": fmt.Sprintf("Not found token %s", ap.Token),
 		})
 	}
 }
@@ -172,12 +162,11 @@ func (m *AccountMgr) setUserInfo(c *ghttp.Context) {
 	ap := &AccountProtocol{}
 	c.ReadJson(ap)
 
-	if ap.Token == 0 {
+	if ap.Token == "" {
 		m.logger.Error("Not found param: token")
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
 			"err": "Not found token parameter.",
 		})
-		// m.httpAnswer.Send(c)
 		return
 	}
 
@@ -185,9 +174,8 @@ func (m *AccountMgr) setUserInfo(c *ghttp.Context) {
 
 	if !ok {
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
-			"err": fmt.Sprintf("Not found token %d", ap.Token),
+			"err": fmt.Sprintf("Not found token %s", ap.Token),
 		})
-		// m.httpAnswer.Send(c)
 		return
 	}
 
