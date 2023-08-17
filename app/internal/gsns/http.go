@@ -26,16 +26,18 @@ func (s *MainServer) getOtherUsers(c *ghttp.Context) {
 	var sUserId string
 	var ok bool
 
+	// TODO: MissingParameters
 	if sUserId, ok = c.Params["user_id"]; !ok {
 		msg := "Not found parameter user_id"
 		logger.Error(msg)
-		c.Json(ghttp.StatusBadRequest, ghttp.H{
+		c.Json(ghttp.StatusNotFound, ghttp.H{
 			"ret": 1,
 			"msg": msg,
 		})
 		return
 	}
 
+	// TODO: NotFoundUser
 	userId, err := strconv.ParseInt(sUserId, 10, 64)
 
 	if err != nil {
@@ -59,6 +61,7 @@ func (s *MainServer) getOtherUsers(c *ghttp.Context) {
 
 	_, err = agrt.SendToServer(define.AccountServer, agreement)
 	if err != nil {
+		// TODO: CannotSendToServer
 		msg := "Failed to send request to account server"
 		logger.Error(fmt.Sprintf("%s, err: %+v", msg, err))
 		c.Json(ghttp.StatusInternalServerError, ghttp.H{
@@ -75,6 +78,7 @@ func (s *MainServer) subscribe(c *ghttp.Context) {
 	ip := &SocialProtocol{}
 	c.ReadJson(ip)
 
+	// TODO: MissingParameters
 	if ip.Token == "" || ip.TargetId == 0 {
 		msg := "缺少參數"
 		logger.Error(msg)
@@ -87,6 +91,7 @@ func (s *MainServer) subscribe(c *ghttp.Context) {
 
 	user, ok := s.AMgr.GetUserByToken(ip.Token)
 
+	// TODO: NotFoundUser
 	if !ok {
 		msg := fmt.Sprintf("Not found token %s", ip.Token)
 		logger.Error(msg)
@@ -97,6 +102,7 @@ func (s *MainServer) subscribe(c *ghttp.Context) {
 		return
 	}
 
+	// TODO: InvalidTarget
 	if user.Index == ip.TargetId {
 		msg := fmt.Sprintf("不能訂閱自己 User(%d), Target(%d)", user.Index, ip.TargetId)
 		logger.Error(msg)
@@ -112,7 +118,8 @@ func (s *MainServer) subscribe(c *ghttp.Context) {
 		if edges.Contains(ip.TargetId) {
 			msg := fmt.Sprintf("User %s has subscribed user %d", user.Name, ip.TargetId)
 			logger.Info(msg)
-			c.Json(ghttp.StatusOK, ghttp.H{
+			// TODO: DuplicateEntity
+			c.Json(ghttp.StatusConflict, ghttp.H{
 				"ret": 0,
 				"msg": msg,
 			})
@@ -130,6 +137,7 @@ func (s *MainServer) subscribe(c *ghttp.Context) {
 		Target: ip.TargetId,
 	})
 
+	// TODO: CannotSendMessage
 	_, err := agrt.SendToServer(define.AccountServer, agreement)
 	if err != nil {
 		msg := "Failed to send request to account server"
@@ -149,6 +157,7 @@ func (s *MainServer) getSubscribedPosts(c *ghttp.Context) {
 	ip := &SocialProtocol{}
 	c.ReadJson(ip)
 
+	// TODO: MissingParameters
 	if ip.Token == "" {
 		msg := "缺少參數"
 		logger.Error(msg)
@@ -163,6 +172,7 @@ func (s *MainServer) getSubscribedPosts(c *ghttp.Context) {
 	var ok bool
 	user, ok = s.AMgr.GetUserByToken(ip.Token)
 
+	// TODO: NotFoundUser
 	if !ok {
 		msg := fmt.Sprintf("Not found token %s", ip.Token)
 		logger.Error(msg)
@@ -217,6 +227,7 @@ func (s *MainServer) getSubscribedPosts(c *ghttp.Context) {
 		})
 	}
 
+	// TODO: CannotSendMessage
 	_, err = agrt.SendToServer(define.PostMessageServer, agreement)
 	if err != nil {
 		msg := "Failed to sned to PostMessage server."

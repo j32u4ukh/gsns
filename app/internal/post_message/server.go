@@ -76,10 +76,12 @@ func (s *PostMessageServer) handleSystem(work *base.Work, agreement *agrt.Agreem
 	case define.Heartbeat:
 		agreement.Msg = "OK"
 		_, err := agrt.SendWork(work, agreement)
+		// TODO: CannotSendMessage
 		if err != nil {
 			logger.Error("Failed to send work, err: %+v", err)
 		}
 	case define.Introduction:
+		// TODO: WrongConnectionIdentity
 		if agreement.Cipher != define.CIPHER {
 			logger.Error("Cipher: %s, Identity: %d", agreement.Cipher, agreement.Identity)
 			gos.Disconnect(define.DbaPort, work.Index)
@@ -109,11 +111,12 @@ func (s *PostMessageServer) handleCommission(work *base.Work, agreement *agrt.Ag
 	case define.AddPost:
 		// 將註冊數據傳到 Dba 伺服器
 		_, err := agrt.SendToServer(define.DbaServer, agreement)
-
+		// TODO: CannotSendMessage
 		if err != nil {
 			agreement.ReturnCode = 1
 			agreement.Msg = "Failed to send to Dba server"
 			_, err = agrt.SendWork(work, agreement)
+			// TODO: CannotSendMessage
 			if err != nil {
 				logger.Error("Failed to send work, err: %+v", err)
 				work.Finish()
@@ -127,7 +130,6 @@ func (s *PostMessageServer) handleCommission(work *base.Work, agreement *agrt.Ag
 
 	// TODO: 若該 post id 存在於緩存當中，則可直接返回，不需要再問 DBA
 	case define.GetPost:
-		// var bs []byte
 		var err error
 		pm := agreement.PostMessages[0]
 		if root, ok := s.pmRoots[pm.Id]; ok {
@@ -135,7 +137,7 @@ func (s *PostMessageServer) handleCommission(work *base.Work, agreement *agrt.Ag
 			agreement.PostMessages[0] = proto.Clone(root).(*pbgo.PostMessage)
 		} else {
 			_, err = agrt.SendToServer(define.DbaServer, agreement)
-
+			// TODO: CannotSendMessage
 			if err != nil {
 				agreement.ReturnCode = 2
 				agreement.Msg = "Failed to query from DbaServer."
@@ -148,6 +150,7 @@ func (s *PostMessageServer) handleCommission(work *base.Work, agreement *agrt.Ag
 		}
 
 		_, err = agrt.SendWork(work, agreement)
+		// TODO: CannotSendMessage
 		if err != nil {
 			logger.Error("Failed to send work, err: %+v", err)
 		} else {
@@ -173,6 +176,7 @@ func (s *PostMessageServer) handleCommission(work *base.Work, agreement *agrt.Ag
 		}
 
 		_, err := agrt.SendWork(work, agreement)
+		// TODO: CannotSendMessage
 		if err != nil {
 			logger.Error("Failed to send work, err: %+v", err)
 		} else {
@@ -180,7 +184,6 @@ func (s *PostMessageServer) handleCommission(work *base.Work, agreement *agrt.Ag
 		}
 
 	case define.ModifyPost:
-		// var bs []byte
 		var err error
 		if len(agreement.PostMessages) == 1 {
 			_, err = agrt.SendToServer(define.DbaServer, agreement)
@@ -200,6 +203,7 @@ func (s *PostMessageServer) handleCommission(work *base.Work, agreement *agrt.Ag
 		}
 
 		_, err = agrt.SendWork(work, agreement)
+		// TODO: CannotSendMessage
 		if err != nil {
 			logger.Error("Failed to send work, err: %+v", err)
 		} else {
@@ -211,11 +215,12 @@ func (s *PostMessageServer) handleCommission(work *base.Work, agreement *agrt.Ag
 		// 準備將請求轉送給 DBA server
 		// ==================================================
 		_, err := agrt.SendToServer(define.DbaServer, agreement)
-
+		// TODO: CannotSendMessage
 		if err != nil {
 			agreement.ReturnCode = 1
 			agreement.Msg = "Failed to send to Dba server"
 			_, err := agrt.SendWork(work, agreement)
+			// TODO: CannotSendMessage
 			if err != nil {
 				logger.Error("Failed to send work, err: %+v", err)
 				work.Finish()

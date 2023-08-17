@@ -23,9 +23,19 @@ func (m *PostMessageMgr) HttpHandler(router *ans.Router) {
 // [endpoint]/post
 func (m *PostMessageMgr) addNewPost(c *ghttp.Context) {
 	pmp := &PostMessageProtocol{}
-	c.ReadJson(pmp)
+	err := c.ReadJson(pmp)
+	// TODO: InvalidBodyData
+	if err != nil {
+		msg := "Invalid body data"
+		m.logger.Error("%s, err: %+v", msg, err)
+		c.Json(ghttp.StatusBadRequest, ghttp.H{
+			"ret": 2,
+			"msg": msg,
+		})
+	}
 	m.logger.Info("PostMessageProtocol: %+v", pmp)
 
+	// TODO: MissingParameters
 	if pmp.Token == "" || pmp.Content == "" {
 		msg := fmt.Sprintf("缺少參數, PostMessage: %+v", pmp)
 		m.logger.Error(msg)
@@ -37,13 +47,13 @@ func (m *PostMessageMgr) addNewPost(c *ghttp.Context) {
 	}
 	user, ok := m.getUserByTokenFunc(pmp.Token)
 
+	// TODO: NotFoundUser
 	if !ok {
 		msg := fmt.Sprintf("Not found token %s", pmp.Token)
 		m.logger.Error(msg)
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
 			"msg": msg,
 		})
-		// m.httpAnswer.Send(c)
 		return
 	}
 
@@ -58,18 +68,17 @@ func (m *PostMessageMgr) addNewPost(c *ghttp.Context) {
 		Content:  pmp.Content,
 	})
 
-	_, err := agrt.SendToServer(define.PostMessageServer, agreement)
+	_, err = agrt.SendToServer(define.PostMessageServer, agreement)
+
+	// TODO: CannotSendMessage
 	if err != nil {
 		msg := "Failed to send to PostMessage server"
 		m.logger.Error(fmt.Sprintf("%s, err: %+v", msg, err))
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
 			"err": msg,
 		})
-		// m.httpAnswer.Send(c)
 	} else {
 		m.logger.Info("Send define.AddPost request: %+v", agreement)
-		// // 將當前 Http 的工作結束
-		// m.httpAnswer.Finish(c)
 	}
 }
 
@@ -77,6 +86,8 @@ func (m *PostMessageMgr) addNewPost(c *ghttp.Context) {
 // [endpoint]/post/<post_id int>
 func (m *PostMessageMgr) getPost(c *ghttp.Context) {
 	value := c.GetValue("post_id")
+
+	// TODO: MissingParameters
 	if value == nil {
 		msg := "Failed to get post id."
 		m.logger.Error(msg)
@@ -84,7 +95,6 @@ func (m *PostMessageMgr) getPost(c *ghttp.Context) {
 			"ret": 1,
 			"msg": msg,
 		})
-		// m.httpAnswer.Send(c)
 		return
 	}
 
@@ -101,17 +111,16 @@ func (m *PostMessageMgr) getPost(c *ghttp.Context) {
 	})
 
 	_, err := agrt.SendToServer(define.PostMessageServer, agreement)
+
+	// TODO: CannotSendMessage
 	if err != nil {
 		m.logger.Error("err: %+v", err)
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
 			"ret": 3,
 			"msg": "Failed to send data to PostMessage server.",
 		})
-		// m.httpAnswer.Send(c)
 	} else {
 		m.logger.Info("Send define.GetPost request: %+v", agreement)
-		// // 將當前 Http 的工作結束
-		// m.httpAnswer.Finish(c)
 	}
 }
 
@@ -119,9 +128,19 @@ func (m *PostMessageMgr) getPost(c *ghttp.Context) {
 // [endpoint]/post/mine
 func (m *PostMessageMgr) getMyPosts(c *ghttp.Context) {
 	pmp := &PostMessageProtocol{}
-	c.ReadJson(pmp)
+	err := c.ReadJson(pmp)
+	// TODO: InvalidBodyData
+	if err != nil {
+		msg := "Invalid body data"
+		m.logger.Error("%s, err: %+v", msg, err)
+		c.Json(ghttp.StatusBadRequest, ghttp.H{
+			"ret": 2,
+			"msg": msg,
+		})
+	}
 	m.logger.Info("PostMessageProtocol: %+v", pmp)
 
+	// TODO: MissingParameters
 	if pmp.Token == "" {
 		msg := fmt.Sprintf("缺少參數, PostMessage: %+v", pmp)
 		m.logger.Error(msg)
@@ -134,6 +153,7 @@ func (m *PostMessageMgr) getMyPosts(c *ghttp.Context) {
 
 	user, ok := m.getUserByTokenFunc(pmp.Token)
 
+	// TODO: NotFoundUser
 	if !ok {
 		msg := fmt.Sprintf("Not found token %s", pmp.Token)
 		m.logger.Error(msg)
@@ -141,7 +161,6 @@ func (m *PostMessageMgr) getMyPosts(c *ghttp.Context) {
 			"ret": 2,
 			"msg": msg,
 		})
-		// m.httpAnswer.Send(c)
 		return
 	}
 
@@ -154,17 +173,16 @@ func (m *PostMessageMgr) getMyPosts(c *ghttp.Context) {
 		Index: user.Index,
 	})
 
-	_, err := agrt.SendToServer(define.PostMessageServer, agreement)
+	_, err = agrt.SendToServer(define.PostMessageServer, agreement)
+
+	// TODO: CannotSendMessage
 	if err != nil {
 		m.logger.Error("Failed to send to PostMessage, err: %+v", err)
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
 			"err": "Failed to send to server.",
 		})
-		// m.httpAnswer.Send(c)
 	} else {
 		m.logger.Info("Send define.GetMyPosts request: %+v", agreement)
-		// // 將當前 Http 的工作結束
-		// m.httpAnswer.Finish(c)
 	}
 }
 
@@ -172,8 +190,18 @@ func (m *PostMessageMgr) getMyPosts(c *ghttp.Context) {
 // [endpoint]/post
 func (m *PostMessageMgr) modifyPost(c *ghttp.Context) {
 	pmp := &PostMessageProtocol{}
-	c.ReadJson(pmp)
+	err := c.ReadJson(pmp)
+	// TODO: InvalidBodyData
+	if err != nil {
+		msg := "Invalid body data"
+		m.logger.Error("%s, err: %+v", msg, err)
+		c.Json(ghttp.StatusBadRequest, ghttp.H{
+			"ret": 2,
+			"msg": msg,
+		})
+	}
 
+	// TODO: MissingParameters
 	if pmp.Token == "" || pmp.PostId == 0 || pmp.Content == "" {
 		msg := fmt.Sprintf("缺少參數, PostMessage: %+v", pmp)
 		m.logger.Error(msg)
@@ -186,13 +214,13 @@ func (m *PostMessageMgr) modifyPost(c *ghttp.Context) {
 
 	user, ok := m.getUserByTokenFunc(pmp.Token)
 
+	// TODO: NotFoundUser
 	if !ok {
 		msg := fmt.Sprintf("Not found token %s", pmp.Token)
 		m.logger.Error(msg)
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
 			"msg": msg,
 		})
-		// m.httpAnswer.Send(c)
 		return
 	}
 
@@ -208,17 +236,16 @@ func (m *PostMessageMgr) modifyPost(c *ghttp.Context) {
 		Content:  pmp.Content,
 	})
 
-	_, err := agrt.SendToServer(define.PostMessageServer, agreement)
+	_, err = agrt.SendToServer(define.PostMessageServer, agreement)
+
+	// TODO: CannotSendMessage
 	if err != nil {
 		msg := "Failed to send to PostMessage server"
 		m.logger.Error("%s, err: %+v", msg, err)
 		c.Json(ghttp.StatusBadRequest, ghttp.H{
 			"msg": msg,
 		})
-		// m.httpAnswer.Send(c)
 	} else {
 		m.logger.Info("Send define.ModifyPost request: %+v", agreement)
-		// // 將當前 Http 的工作結束
-		// m.httpAnswer.Finish(c)
 	}
 }

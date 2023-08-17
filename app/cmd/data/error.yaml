@@ -1,0 +1,50 @@
+// 正確
+None: 0
+// 400 Bad Request
+BadRequest: 400000
+// 缺少參數
+MissingParameters: 400001
+// 無效寫入數據
+InvalidInsertData: 400002
+// 無效讀取數據
+InvalidSelectData: 400003
+// 無效更新數據
+InvalidUpdateData: 400004
+// 無效刪除數據
+InvalidDeleteData: 400005
+// 無效的 Body 數據
+InvalidBodyData: 400006
+// 錯誤的作用對象
+InvalidTarget: 400007
+
+
+// 401 Unauthorized
+Unauthorized: 401000
+// 連線身分錯誤
+WrongConnectionIdentity: 401001
+
+
+// 404 Not Found
+NotFound: 404000
+// 根據參數找不到用戶
+NotFoundUser: 404001
+
+
+// 409 Conflict
+Conflict: 409000
+// 重複的作用實體
+DuplicateEntity: 409001
+
+
+// 500 Internal Server Error
+InternalServerError: 500000
+// 無法送出數據
+CannotSendMessage: 500001
+// 寫入 DB 數據錯誤
+FailedInsertDb: 500002
+// 讀取 DB 數據錯誤
+FailedSelectDb: 500003
+// 更新 DB 數據錯誤
+FailedUpdateDb: 500004
+// 刪除 DB 數據錯誤
+FailedDeleteDb: 500005

@@ -68,10 +68,12 @@ func (s *AccountServer) handleSystem(work *base.Work, agreement *agrt.Agreement)
 	case define.Heartbeat:
 		agreement.Msg = "OK"
 		_, err := agrt.SendWork(work, agreement)
+		// TODO: CannotSendMessage
 		if err != nil {
 			logger.Error("Failed to send work, err: %+v", err)
 		}
 	case define.Introduction:
+		// TODO: WrongConnectionIdentity
 		if agreement.Cipher != define.CIPHER {
 			logger.Error("Cipher: %s, Identity: %d", agreement.Cipher, agreement.Identity)
 			gos.Disconnect(define.DbaPort, work.Index)
@@ -102,10 +104,13 @@ func (s *AccountServer) handleCommission(work *base.Work, agreement *agrt.Agreem
 		// 將註冊數據傳到 Dba 伺服器
 		_, err := agrt.SendToServer(define.DbaServer, agreement)
 
+		// TODO: CannotSendMessage
 		if err != nil {
 			agreement.ReturnCode = 1
 			agreement.Msg = fmt.Sprintf("Failed to send to server: %d", define.DbaServer)
 			_, err = agrt.SendWork(work, agreement)
+
+			// TODO: CannotSendMessage
 			if err != nil {
 				logger.Error("Failed to send work, err: %+v", err)
 				work.Finish()
@@ -122,7 +127,6 @@ func (s *AccountServer) handleCommission(work *base.Work, agreement *agrt.Agreem
 		data := agreement.Accounts[0]
 		var account *pbgo.Account
 		var ok bool
-		// var bs []byte
 		var err error
 
 		// 檢查是否有用戶帳號緩存
@@ -153,6 +157,8 @@ func (s *AccountServer) handleCommission(work *base.Work, agreement *agrt.Agreem
 				}
 			}
 			_, err = agrt.SendWork(work, agreement)
+
+			// TODO: CannotSendMessage
 			if err != nil {
 				logger.Error("Failed to send work, err: %+v", err)
 			} else {
@@ -165,11 +171,14 @@ func (s *AccountServer) handleCommission(work *base.Work, agreement *agrt.Agreem
 		logger.Info("不存在用戶帳號緩存")
 		_, err = agrt.SendToServer(define.DbaServer, agreement)
 
+		// TODO: CannotSendMessage
 		if err != nil {
 			agreement.ReturnCode = 2
 			agreement.Msg = "Failed to send to Dba server"
 			agreement.Accounts = agreement.Accounts[:0]
 			_, err = agrt.SendWork(work, agreement)
+
+			// TODO: CannotSendMessage
 			if err != nil {
 				logger.Error("Failed to send work, err: %+v", err)
 				work.Finish()
@@ -183,7 +192,6 @@ func (s *AccountServer) handleCommission(work *base.Work, agreement *agrt.Agreem
 
 	// 設置用戶資料
 	case define.SetUserData:
-		// var bs []byte
 		var err error
 		newAccount := agreement.Accounts[0]
 		account, ok := s.accounts.GetByKey1(newAccount.Index)
@@ -191,6 +199,7 @@ func (s *AccountServer) handleCommission(work *base.Work, agreement *agrt.Agreem
 			agreement.ReturnCode = 1
 			agreement.Msg = fmt.Sprintf("找不到 user(%d)", newAccount.Index)
 			_, err = agrt.SendWork(work, agreement)
+			// TODO: CannotSendMessage
 			if err != nil {
 				logger.Error("Failed to send work, err: %+v", err)
 			} else {
@@ -209,10 +218,12 @@ func (s *AccountServer) handleCommission(work *base.Work, agreement *agrt.Agreem
 		// ==================================================
 		_, err = agrt.SendToServer(define.DbaServer, agreement)
 
+		// TODO: CannotSendMessage
 		if err != nil {
 			agreement.ReturnCode = 2
 			agreement.Msg = fmt.Sprintf("Failed to send to %s", define.ServerName(define.DbaServer))
 			_, err = agrt.SendWork(work, agreement)
+			// TODO: CannotSendMessage
 			if err != nil {
 				logger.Error("Failed to send work, err: %+v", err)
 				work.Finish()
@@ -227,11 +238,13 @@ func (s *AccountServer) handleCommission(work *base.Work, agreement *agrt.Agreem
 
 	case define.GetOtherUsers:
 		_, err := agrt.SendToServer(define.DbaServer, agreement)
-
+		// TODO: CannotSendMessage
 		if err != nil {
 			agreement.ReturnCode = 1
 			agreement.Msg = "Failed to send to Dba server."
 			_, err = agrt.SendWork(work, agreement)
+
+			// TODO: CannotSendMessage
 			if err != nil {
 				logger.Error("Failed to send work, err: %+v", err)
 				work.Finish()
@@ -245,11 +258,12 @@ func (s *AccountServer) handleCommission(work *base.Work, agreement *agrt.Agreem
 
 	case define.Subscribe:
 		_, err := agrt.SendToServer(define.DbaServer, agreement)
-
+		// TODO: CannotSendMessage
 		if err != nil {
 			agreement.ReturnCode = 1
 			agreement.Msg = "Failed to send to Dba server."
 			_, err = agrt.SendWork(work, agreement)
+			// TODO: CannotSendMessage
 			if err != nil {
 				logger.Error("Failed to send work, err: %+v", err)
 				work.Finish()
