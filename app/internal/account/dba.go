@@ -171,6 +171,12 @@ func (s *AccountServer) handleDbaCommission(work *base.Work, agreement *agrt.Agr
 
 	case define.Subscribe:
 		work.Finish()
+		if agreement.ReturnCode == 0 {
+			// 更新社群關係緩存
+			for _, edge := range agreement.Edges {
+				s.Edges[edge.UserId].Add(edge.Target)
+			}
+		}
 		_, err := agrt.SendToClient(define.AccountPort, s.serverIdDict[define.GsnsServer], agreement)
 
 		if err != nil {
