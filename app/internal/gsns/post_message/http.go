@@ -1,10 +1,10 @@
 package pm
 
 import (
-	"fmt"
 	"internal/agrt"
 	"internal/define"
 	"internal/pbgo"
+	"internal/utils"
 
 	"github.com/j32u4ukh/gos/ans"
 	"github.com/j32u4ukh/gos/base/ghttp"
@@ -24,36 +24,21 @@ func (m *PostMessageMgr) HttpHandler(router *ans.Router) {
 func (m *PostMessageMgr) addNewPost(c *ghttp.Context) {
 	pmp := &PostMessageProtocol{}
 	err := c.ReadJson(pmp)
-	// TODO: InvalidBodyData
 	if err != nil {
-		msg := "Invalid body data"
+		msg := utils.JsonResponse(c, define.Error.InvalidBodyData)
 		m.logger.Error("%s, err: %+v", msg, err)
-		c.Json(ghttp.StatusBadRequest, ghttp.H{
-			"ret": 2,
-			"msg": msg,
-		})
+		return
 	}
 	m.logger.Info("PostMessageProtocol: %+v", pmp)
 
-	// TODO: MissingParameters
 	if pmp.Token == "" || pmp.Content == "" {
-		msg := fmt.Sprintf("缺少參數, PostMessage: %+v", pmp)
-		m.logger.Error(msg)
-		c.Json(ghttp.StatusBadRequest, ghttp.H{
-			"ret": 1,
-			"msg": msg,
-		})
+		m.logger.Error(utils.JsonResponse(c, define.Error.MissingParameters, "token or content"))
 		return
 	}
-	user, ok := m.getUserByTokenFunc(pmp.Token)
 
-	// TODO: NotFoundUser
+	user, ok := m.getUserByTokenFunc(pmp.Token)
 	if !ok {
-		msg := fmt.Sprintf("Not found token %s", pmp.Token)
-		m.logger.Error(msg)
-		c.Json(ghttp.StatusBadRequest, ghttp.H{
-			"msg": msg,
-		})
+		m.logger.Error(utils.JsonResponse(c, define.Error.NotFoundUser, "token", pmp.Token))
 		return
 	}
 
@@ -69,14 +54,9 @@ func (m *PostMessageMgr) addNewPost(c *ghttp.Context) {
 	})
 
 	_, err = agrt.SendToServer(define.PostMessageServer, agreement)
-
-	// TODO: CannotSendMessage
 	if err != nil {
-		msg := "Failed to send to PostMessage server"
-		m.logger.Error(fmt.Sprintf("%s, err: %+v", msg, err))
-		c.Json(ghttp.StatusBadRequest, ghttp.H{
-			"err": msg,
-		})
+		msg := utils.JsonResponse(c, define.Error.CannotSendMessage, "to PostMessage server")
+		m.logger.Error("%s, err: %+v", msg, err)
 	} else {
 		m.logger.Info("Send define.AddPost request: %+v", agreement)
 	}
@@ -87,14 +67,8 @@ func (m *PostMessageMgr) addNewPost(c *ghttp.Context) {
 func (m *PostMessageMgr) getPost(c *ghttp.Context) {
 	value := c.GetValue("post_id")
 
-	// TODO: MissingParameters
 	if value == nil {
-		msg := "Failed to get post id."
-		m.logger.Error(msg)
-		c.Json(ghttp.StatusBadRequest, ghttp.H{
-			"ret": 1,
-			"msg": msg,
-		})
+		m.logger.Error(utils.JsonResponse(c, define.Error.MissingParameters, "post_id"))
 		return
 	}
 
@@ -111,14 +85,9 @@ func (m *PostMessageMgr) getPost(c *ghttp.Context) {
 	})
 
 	_, err := agrt.SendToServer(define.PostMessageServer, agreement)
-
-	// TODO: CannotSendMessage
 	if err != nil {
-		m.logger.Error("err: %+v", err)
-		c.Json(ghttp.StatusBadRequest, ghttp.H{
-			"ret": 3,
-			"msg": "Failed to send data to PostMessage server.",
-		})
+		msg := utils.JsonResponse(c, define.Error.CannotSendMessage, "to PostMessage server")
+		m.logger.Error("%s, err: %+v", msg, err)
 	} else {
 		m.logger.Info("Send define.GetPost request: %+v", agreement)
 	}
@@ -129,38 +98,21 @@ func (m *PostMessageMgr) getPost(c *ghttp.Context) {
 func (m *PostMessageMgr) getMyPosts(c *ghttp.Context) {
 	pmp := &PostMessageProtocol{}
 	err := c.ReadJson(pmp)
-	// TODO: InvalidBodyData
 	if err != nil {
-		msg := "Invalid body data"
+		msg := utils.JsonResponse(c, define.Error.InvalidBodyData)
 		m.logger.Error("%s, err: %+v", msg, err)
-		c.Json(ghttp.StatusBadRequest, ghttp.H{
-			"ret": 2,
-			"msg": msg,
-		})
+		return
 	}
 	m.logger.Info("PostMessageProtocol: %+v", pmp)
 
-	// TODO: MissingParameters
 	if pmp.Token == "" {
-		msg := fmt.Sprintf("缺少參數, PostMessage: %+v", pmp)
-		m.logger.Error(msg)
-		c.Json(ghttp.StatusBadRequest, ghttp.H{
-			"ret": 1,
-			"msg": msg,
-		})
+		m.logger.Error(utils.JsonResponse(c, define.Error.MissingParameters, "token"))
 		return
 	}
 
 	user, ok := m.getUserByTokenFunc(pmp.Token)
-
-	// TODO: NotFoundUser
 	if !ok {
-		msg := fmt.Sprintf("Not found token %s", pmp.Token)
-		m.logger.Error(msg)
-		c.Json(ghttp.StatusBadRequest, ghttp.H{
-			"ret": 2,
-			"msg": msg,
-		})
+		m.logger.Error(utils.JsonResponse(c, define.Error.NotFoundUser, "token", pmp.Token))
 		return
 	}
 
@@ -174,13 +126,9 @@ func (m *PostMessageMgr) getMyPosts(c *ghttp.Context) {
 	})
 
 	_, err = agrt.SendToServer(define.PostMessageServer, agreement)
-
-	// TODO: CannotSendMessage
 	if err != nil {
-		m.logger.Error("Failed to send to PostMessage, err: %+v", err)
-		c.Json(ghttp.StatusBadRequest, ghttp.H{
-			"err": "Failed to send to server.",
-		})
+		msg := utils.JsonResponse(c, define.Error.CannotSendMessage, "to PostMessage server")
+		m.logger.Error("%s, err: %+v", msg, err)
 	} else {
 		m.logger.Info("Send define.GetMyPosts request: %+v", agreement)
 	}
@@ -191,36 +139,20 @@ func (m *PostMessageMgr) getMyPosts(c *ghttp.Context) {
 func (m *PostMessageMgr) modifyPost(c *ghttp.Context) {
 	pmp := &PostMessageProtocol{}
 	err := c.ReadJson(pmp)
-	// TODO: InvalidBodyData
 	if err != nil {
-		msg := "Invalid body data"
+		msg := utils.JsonResponse(c, define.Error.InvalidBodyData)
 		m.logger.Error("%s, err: %+v", msg, err)
-		c.Json(ghttp.StatusBadRequest, ghttp.H{
-			"ret": 2,
-			"msg": msg,
-		})
+		return
 	}
 
-	// TODO: MissingParameters
 	if pmp.Token == "" || pmp.PostId == 0 || pmp.Content == "" {
-		msg := fmt.Sprintf("缺少參數, PostMessage: %+v", pmp)
-		m.logger.Error(msg)
-		c.Json(ghttp.StatusBadRequest, ghttp.H{
-			"ret": 1,
-			"msg": msg,
-		})
+		m.logger.Error(utils.JsonResponse(c, define.Error.MissingParameters, "token, post_id or content"))
 		return
 	}
 
 	user, ok := m.getUserByTokenFunc(pmp.Token)
-
-	// TODO: NotFoundUser
 	if !ok {
-		msg := fmt.Sprintf("Not found token %s", pmp.Token)
-		m.logger.Error(msg)
-		c.Json(ghttp.StatusBadRequest, ghttp.H{
-			"msg": msg,
-		})
+		m.logger.Error(utils.JsonResponse(c, define.Error.NotFoundUser, "token", pmp.Token))
 		return
 	}
 
@@ -237,14 +169,9 @@ func (m *PostMessageMgr) modifyPost(c *ghttp.Context) {
 	})
 
 	_, err = agrt.SendToServer(define.PostMessageServer, agreement)
-
-	// TODO: CannotSendMessage
 	if err != nil {
-		msg := "Failed to send to PostMessage server"
+		msg := utils.JsonResponse(c, define.Error.CannotSendMessage, "to PostMessage server")
 		m.logger.Error("%s, err: %+v", msg, err)
-		c.Json(ghttp.StatusBadRequest, ghttp.H{
-			"msg": msg,
-		})
 	} else {
 		m.logger.Info("Send define.ModifyPost request: %+v", agreement)
 	}

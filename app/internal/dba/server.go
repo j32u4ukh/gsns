@@ -53,23 +53,19 @@ func (s *DbaServer) Handler(work *base.Work) {
 	}
 }
 
-func (s *DbaServer) Run() {
-
-}
-
 func (s *DbaServer) handleSystem(work *base.Work, agreement *agrt.Agreement) {
 	switch agreement.Service {
 	// 回應心跳包
 	case define.Heartbeat:
 		_, err := agrt.SendWork(work, agreement)
-		// TODO: CannotSendMessage
 		if err != nil {
-			logger.Error("Failed to send work, err: %+v", err)
+			_, _, agreement.Msg = define.ErrorMessage(define.Error.CannotSendMessage, "work")
+			logger.Error("%s, err: %+v", agreement.Msg, err)
 		}
 	case define.Introduction:
-		// TODO: WrongConnectionIdentity
 		if agreement.Cipher != define.CIPHER {
-			logger.Error("Cipher: %s, Identity: %d", agreement.Cipher, agreement.Identity)
+			_, _, agreement.Msg = define.ErrorMessage(define.Error.WrongConnectionIdentity, agreement.Cipher, agreement.Identity)
+			logger.Error(agreement.Msg)
 			gos.Disconnect(define.DbaPort, work.Index)
 		} else {
 			s.serverIdDict[agreement.Identity] = work.Index
@@ -93,54 +89,30 @@ func (s *DbaServer) handleNormalCommand(work *base.Work, agreement *agrt.Agreeme
 func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement) {
 	switch agreement.Service {
 	case define.Register:
-		var err error
-		defer func() {
-			_, err = agrt.SendWork(work, agreement)
-			// TODO: CannotSendMessage
-			if err != nil {
-				logger.Error("Failed to send work, err: %+v", err)
-			} else {
-				logger.Info("Send define.Register response: (%d) %+v", agreement.ReturnCode, agreement)
-			}
-		}()
-
+		defer s.responseCommission(work, agreement)
 		account := agreement.Accounts[0]
 		inserter := s.tables[TidAccount].GetInserter()
 		defer s.tables[TidAccount].PutInserter(inserter)
-		err = inserter.Insert(account)
+		err := inserter.Insert(account)
 
-		// TODO: InvalidInsertData
 		if err != nil {
-			logger.Error("Insert err: %+v", err)
-			agreement.ReturnCode = 1
-			agreement.Msg = "Failed to insert account."
+			_, agreement.ReturnCode, agreement.Msg = define.ErrorMessage(define.Error.InvalidInsertData, "account")
+			logger.Error("%s, err: %+v", agreement.Msg, err)
 			return
 		}
 
 		var result *database.SqlResult
 		result, err = inserter.Exec()
-		// TODO: FailedInsertDb
 		if err != nil {
-			logger.Error("Insert exec err: %+v", err)
-			agreement.ReturnCode = 2
-			agreement.Msg = "Failed to execute insert statement."
+			_, agreement.ReturnCode, agreement.Msg = define.ErrorMessage(define.Error.FailedInsertDb, "account")
+			logger.Error("%s, err: %+v", agreement.Msg, err)
 			return
 		}
 
-		agreement.ReturnCode = 0
 		account.Index = int32(result.LastInsertId)
 
 	case define.Login:
-		var err error
-		defer func() {
-			_, err = agrt.SendWork(work, agreement)
-			// TODO: CannotSendMessage
-			if err != nil {
-				logger.Error("Failed to send work, err: %+v", err)
-			} else {
-				logger.Info("Send define.Login response: (%d) %+v", agreement.ReturnCode, agreement)
-			}
-		}()
+		defer s.responseCommission(work, agreement)
 		account := agreement.Accounts[0]
 
 		//////////////////////////////////////////////////
@@ -152,11 +124,9 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 			AddAndCondtion(gosql.WS().Eq("account", account.Account)).
 			AddAndCondtion(gosql.WS().Eq("password", account.Password)))
 		results, err := accountSelector.Query(func() any { return &pbgo.Account{} })
-		// TODO: FailedSelectDb
 		if err != nil {
-			agreement.ReturnCode = 1
-			agreement.Msg = "Failed to query account data."
-			logger.Error(agreement.Msg)
+			_, agreement.ReturnCode, agreement.Msg = define.ErrorMessage(define.Error.FailedSelectDb, "account")
+			logger.Error("%s, err: %+v", agreement.Msg, err)
 			return
 		}
 		if len(results) != 1 {
@@ -181,11 +151,9 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 		defer s.tables[TidEdge].PutSelector(edgeSelector)
 		edgeSelector.SetCondition(gosql.WS().Eq("user_id", account.Index))
 		results, err = edgeSelector.Query(func() any { return &pbgo.Edge{} })
-		// TODO: FailedSelectDb
 		if err != nil {
-			agreement.ReturnCode = 3
-			agreement.Msg = "Failed to query edge data."
-			logger.Error(agreement.Msg)
+			_, agreement.ReturnCode, agreement.Msg = define.ErrorMessage(define.Error.FailedSelectDb, "account")
+			logger.Error("%s, err: %+v", agreement.Msg, err)
 			return
 		}
 		var edge *pbgo.Edge
@@ -209,9 +177,9 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 		defer s.tables[TidPostMessage].PutSelector(pmSelector)
 		pmSelector.SetCondition(gosql.WS().Eq("user_id", account.Index))
 		results, err = pmSelector.Query(func() any { return &pbgo.PostMessage{} })
-		// TODO: FailedSelectDb
 		if err != nil {
-			logger.Error("Failed to query post data.")
+			_, agreement.ReturnCode, agreement.Msg = define.ErrorMessage(define.Error.FailedSelectDb, "post message")
+			logger.Error("%s, err: %+v", agreement.Msg, err)
 			return
 		}
 		agreement2 := agrt.GetAgreement()
@@ -228,53 +196,32 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 			agreement2.PostMessages = append(agreement2.PostMessages, pm)
 		}
 		_, err = agrt.SendToClient(define.DbaPort, s.serverIdDict[define.PostMessageServer], agreement2)
-		// TODO: CannotSendMessage
 		if err != nil {
-			logger.Error("Failed to marshal agreement2, err: %+v", err)
+			_, agreement2.ReturnCode, agreement2.Msg = define.ErrorMessage(define.Error.CannotSendMessage, "to PostMessage server")
+			logger.Error("%s, err: %+v", agreement2.Msg, err)
 		} else {
 			logger.Info("Send to PostMessage server define.Login response: %+v", agreement2)
 		}
 
 	case define.SetUserData:
-		var err error
-		defer func() {
-			_, err = agrt.SendWork(work, agreement)
-			// TODO: CannotSendMessage
-			if err != nil {
-				logger.Error("Failed to send work, err: %+v", err)
-			} else {
-				logger.Info("Send define.SetUserData response: (%d) %+v", agreement.ReturnCode, agreement)
-			}
-		}()
-
+		defer s.responseCommission(work, agreement)
 		account := agreement.Accounts[0]
 		updater := s.tables[TidAccount].GetUpdater()
 		defer s.tables[TidAccount].PutUpdater(updater)
 		updater.UpdateAny(account)
 		updater.SetCondition(gosql.WS().Eq("index", account.Index))
-		_, err = updater.Exec()
-		// TODO: FailedUpdateDb
+		_, err := updater.Exec()
 		if err != nil {
-			agreement.ReturnCode = 1
-			agreement.Msg = fmt.Sprintf("Failed to update account: %+v", account)
-			agreement.Accounts = agreement.Accounts[:0]
+			_, agreement.ReturnCode, agreement.Msg = define.ErrorMessage(define.Error.FailedUpdateDb, fmt.Sprintf("account: %+v", account))
 			logger.Error("%s, err: %+v", agreement.Msg, err)
+			agreement.Accounts = agreement.Accounts[:0]
 			return
 		}
 
 		agreement.ReturnCode = 0
 
 	case define.AddPost:
-		var err error
-		defer func() {
-			_, err = agrt.SendWork(work, agreement)
-			// TODO: CannotSendMessage
-			if err != nil {
-				logger.Error("Failed to send work, err: %+v", err)
-			} else {
-				logger.Info("Send define.AddPost response: (%d) %+v", agreement.ReturnCode, agreement)
-			}
-		}()
+		defer s.responseCommission(work, agreement)
 
 		post := agreement.PostMessages[0]
 
@@ -284,41 +231,30 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 
 		inserter := s.tables[TidPostMessage].GetInserter()
 		defer s.tables[TidPostMessage].PutInserter(inserter)
-		err = inserter.Insert(post)
-		// TODO: InvalidInsertData
+		err := inserter.Insert(post)
+
 		if err != nil {
-			fmt.Printf("Insert err: %+v", err)
-			agreement.ReturnCode = 1
-			agreement.Msg = "Failed to insert account."
+			_, agreement.ReturnCode, agreement.Msg = define.ErrorMessage(define.Error.InvalidInsertData, "account")
+			logger.Error("%s, err: %+v", agreement.Msg, err)
 			agreement.PostMessages = agreement.PostMessages[:0]
 			return
 		}
 
 		var result *database.SqlResult
 		result, err = inserter.Exec()
-		// TODO: FailedInsertDb
 		if err != nil {
-			agreement.ReturnCode = 2
-			agreement.Msg = "Failed to execute insert statement."
+			_, agreement.ReturnCode, agreement.Msg = define.ErrorMessage(define.Error.FailedInsertDb, "account")
 			logger.Error("%s, err: %+v", agreement.Msg, err)
 			agreement.PostMessages = agreement.PostMessages[:0]
 			return
 		}
 
 		logger.Info("result: %s, post: %+v", result, agreement.PostMessages[0])
-		agreement.ReturnCode = 0
+		agreement.ReturnCode = define.Error.None
 
 	case define.GetPost:
-		var err error
-		defer func() {
-			_, err = agrt.SendWork(work, agreement)
-			// TODO: CannotSendMessage
-			if err != nil {
-				logger.Error("Failed to send work, err: %+v", err)
-			} else {
-				logger.Info("Send define.GetPost response(%d): %+v", agreement.ReturnCode, agreement)
-			}
-		}()
+		defer s.responseCommission(work, agreement)
+
 		var pm *pbgo.PostMessage
 		pm = agreement.PostMessages[0]
 		selector := s.tables[TidPostMessage].GetSelector()
@@ -329,10 +265,9 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 			AddOrCondtion(gosql.WS().Eq("parent_id", pm.Id)))
 		results, err := selector.Query(func() any { return &pbgo.PostMessage{} })
 		agreement.PostMessages = agreement.PostMessages[:0]
-		// TODO: FailedSelectDb
 		if err != nil {
-			agreement.ReturnCode = 2
-			agreement.Msg = fmt.Sprintf("Failed to query post(%d).", pm.Id)
+			_, agreement.ReturnCode, agreement.Msg = define.ErrorMessage(define.Error.FailedSelectDb, fmt.Sprintf("post(%d).", pm.Id))
+			logger.Error("%s, err: %+v", agreement.Msg, err)
 		} else if len(results) == 0 {
 			agreement.ReturnCode = 3
 			agreement.Msg = fmt.Sprintf("Not found post with id(%d).", pm.Id)
@@ -349,54 +284,35 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 		}
 
 	case define.ModifyPost:
-		defer func() {
-			_, err := agrt.SendWork(work, agreement)
-			// TODO: CannotSendMessage
-			if err != nil {
-				logger.Error("Failed to send work, err: %+v", err)
-			} else {
-				logger.Info("Send define.ModifyPost response(%d): %+v", agreement.ReturnCode, agreement)
-			}
-		}()
+		defer s.responseCommission(work, agreement)
+
 		pm := agreement.PostMessages[0]
 		updater := s.tables[TidPostMessage].GetUpdater()
 		defer s.tables[TidPostMessage].PutUpdater(updater)
 		updater.UpdateAny(pm)
 		updater.SetCondition(gosql.WS().Eq("id", pm.Id))
 		result, err := updater.Exec()
-		// TODO: FailedUpdateDb
 		if err != nil {
-			agreement.ReturnCode = 1
-			agreement.Msg = fmt.Sprintf("Failed to modify post(%d).", pm.Id)
+			_, agreement.ReturnCode, agreement.Msg = define.ErrorMessage(define.Error.FailedUpdateDb, fmt.Sprintf("post(%d)", pm.Id))
+			logger.Error("%s, err: %+v", agreement.Msg, err)
 		} else {
 			logger.Info("Modify result: %+v", result)
 			agreement.ReturnCode = 0
 		}
 
 	case define.GetOtherUsers:
-		var err error
-		defer func() {
-			_, err = agrt.SendWork(work, agreement)
-			// TODO: CannotSendMessage
-			if err != nil {
-				logger.Error("Failed to send work, err: %+v", err)
-			} else {
-				logger.Info("Send define.GetOtherUsers response(%d): %+v", agreement.ReturnCode, agreement)
-			}
-		}()
+		defer s.responseCommission(work, agreement)
 
 		requester := agreement.Accounts[0].Index
 		selector := s.tables[TidAccount].GetSelector()
 		defer s.tables[TidAccount].PutSelector(selector)
-		// selector.SetSelectItem(stmt.NewSelectItem("id"))
+		// TODO: selector.SetSelectItem(stmt.NewSelectItem("id"))
 		logger.Info("requester: %d", requester)
 		selector.SetCondition(gosql.WS().Ne("index", requester))
 		results, err := selector.Query(func() any { return &pbgo.Account{} })
-		// TODO: FailedSelectDb
 		if err != nil {
-			agreement.ReturnCode = 1
-			agreement.Msg = "Failed to select other users' list."
-			logger.Error("GetOtherUsers err: %+v", err)
+			_, agreement.ReturnCode, agreement.Msg = define.ErrorMessage(define.Error.FailedSelectDb, "other users' list")
+			logger.Error("%s, err: %+v", agreement.Msg, err)
 			return
 		}
 		var account *pbgo.Account
@@ -413,55 +329,34 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 		agreement.ReturnCode = 0
 
 	case define.Subscribe:
-		var err error
-		defer func() {
-			_, err = agrt.SendWork(work, agreement)
-			// TODO: CannotSendMessage
-			if err != nil {
-				logger.Error("Failed to send work, err: %+v", err)
-			} else {
-				logger.Info("Send define.Subscribe response(%d): %+v", agreement.ReturnCode, agreement)
-			}
-		}()
+		defer s.responseCommission(work, agreement)
 
 		edge := agreement.Edges[0]
 		inserter := s.tables[TidEdge].GetInserter()
 		defer s.tables[TidEdge].PutInserter(inserter)
-		err = inserter.Insert(edge)
-		// TODO: InvalidInsertData
+		err := inserter.Insert(edge)
+
 		if err != nil {
-			agreement.ReturnCode = 1
-			agreement.Msg = "Failed to insert edge."
+			_, agreement.ReturnCode, agreement.Msg = define.ErrorMessage(define.Error.InvalidInsertData, "edge")
+			logger.Error("%s, err: %+v", agreement.Msg, err)
 			agreement.Edges = agreement.Edges[:0]
-			logger.Error("Subscribe err: %+v", err)
 			return
 		}
 
 		var result *database.SqlResult
 		result, err = inserter.Exec()
-		// TODO: FailedInsertDb
 		if err != nil {
-			fmt.Printf("Insert Exec err: %+v\n", err)
-			agreement.ReturnCode = 2
-			agreement.Msg = "Failed to execute insert statement."
+			_, agreement.ReturnCode, agreement.Msg = define.ErrorMessage(define.Error.FailedInsertDb, "edge")
+			logger.Error("%s, err: %+v", agreement.Msg, err)
 			agreement.Edges = agreement.Edges[:0]
 			return
 		}
 
 		logger.Info("result: %s, edge: %+v", result, edge)
-		agreement.ReturnCode = 0
+		agreement.ReturnCode = define.Error.None
 
 	case define.GetSubscribedPosts:
-		var err error
-		defer func() {
-			_, err = agrt.SendWork(work, agreement)
-			// TODO: CannotSendMessage
-			if err != nil {
-				logger.Error("Failed to send work, err: %+v", err)
-			} else {
-				logger.Info("Send define.GetSubscribedPosts response(%d): %+v", agreement.ReturnCode, agreement)
-			}
-		}()
+		defer s.responseCommission(work, agreement)
 
 		userIds := []any{}
 		for _, account := range agreement.Accounts {
@@ -479,11 +374,9 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 			AddAndCondtion(gosql.WS().Ge("update_time", startTime)).
 			AddAndCondtion(gosql.WS().Le("update_time", stopTime)))
 		results, err := selector.Query(func() any { return &pbgo.PostMessage{} })
-		// TODO: FailedSelectDb
 		if err != nil {
-			agreement.ReturnCode = 1
-			agreement.Msg = fmt.Sprintf("Failed to query posts from %+v.", userIds)
-			logger.Error("%s, err: %v", agreement.Msg, err)
+			_, agreement.ReturnCode, agreement.Msg = define.ErrorMessage(define.Error.FailedSelectDb, fmt.Sprintf("posts from %+v.", userIds))
+			logger.Error("%s, err: %+v", agreement.Msg, err)
 		} else {
 			agreement.ReturnCode = 0
 			var pm *pbgo.PostMessage
@@ -501,5 +394,15 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 	default:
 		logger.Error("Unsupport commission: %d", agreement.Service)
 		work.Finish()
+	}
+}
+
+func (s *DbaServer) responseCommission(work *base.Work, agreement *agrt.Agreement) {
+	_, err := agrt.SendWork(work, agreement)
+	if err != nil {
+		_, _, agreement.Msg = define.ErrorMessage(define.Error.CannotSendMessage, "work")
+		logger.Error("%s, err: %+v", agreement.Msg, err)
+	} else {
+		logger.Info("Send %s response(%d): %+v", define.ServiceName(agreement.Service), agreement.ReturnCode, agreement)
 	}
 }

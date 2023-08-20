@@ -101,19 +101,6 @@ func initGos() error {
 }
 
 func Run() {
-	var start time.Time
-	var during, frameTime time.Duration = 0, 20 * time.Millisecond
-
-	for {
-		start = time.Now()
-
-		gos.RunAns()
-		gos.RunAsk()
-		server.Run()
-
-		during = time.Since(start)
-		if during < frameTime {
-			time.Sleep(frameTime - during)
-		}
-	}
+	gos.SetFrameTime(20 * time.Millisecond)
+	gos.Run(nil)
 }

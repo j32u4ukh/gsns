@@ -51,16 +51,6 @@ func (s *PostMessageServer) handleDbaSystem(work *base.Work, agreement *agrt.Agr
 
 func (s *PostMessageServer) handleDbaNormal(work *base.Work, agreement *agrt.Agreement) {
 	switch agreement.Service {
-	// case define.GetPost:
-	// 	work.Finish()
-	// 	if agreement.ReturnCode != 0 {
-	// 		logger.Error("ReturnCode: %d, err: %s", agreement.ReturnCode, agreement.Msg)
-	// 	} else {
-	// 		for i, pm := range agreement.PostMessages {
-	// 			logger.Debug("%d) %+v", i, pm)
-	// 			s.cachePost(pm)
-	// 		}
-	// 	}
 	// 用戶登入後，取得貼文數據並緩存下來
 	case define.GetMyPosts:
 		work.Finish()
@@ -69,7 +59,7 @@ func (s *PostMessageServer) handleDbaNormal(work *base.Work, agreement *agrt.Agr
 			s.cachePost(pm)
 		}
 	default:
-		logger.Warn("Unsupport service: %d\n", agreement.Service)
+		logger.Warn("Unsupport service: %d", agreement.Service)
 		work.Finish()
 	}
 }
@@ -79,37 +69,26 @@ func (s *PostMessageServer) handleDbaCommission(work *base.Work, agreement *agrt
 	case define.AddPost:
 		work.Finish()
 
-		if agreement.ReturnCode == 0 {
+		if agreement.ReturnCode == define.Error.None {
 			post := proto.Clone(agreement.PostMessages[0]).(*pbgo.PostMessage)
 			logger.Info("New post: %+v", post)
 			s.cachePost(post)
-		}
-
-		_, err := agrt.SendToClient(define.PostMessagePort, s.serverIdDict[define.GsnsServer], agreement)
-
-		if err != nil {
-			logger.Error("Failed to send Gsns serve, err: %+v", err)
 		} else {
-			logger.Info("Send define.AddPost response(%d): %+v", agreement.ReturnCode, agreement)
+			logger.Info("ReturnCode: %d, Msg: %s", agreement.ReturnCode, agreement.Msg)
 		}
+		s.responseToGsns(agreement)
 	case define.GetPost:
 		work.Finish()
 		logger.Info("Receive define.GetPost response(%d): %+v", agreement.ReturnCode, agreement)
 
-		if agreement.ReturnCode == 0 {
+		if agreement.ReturnCode == define.Error.None {
 			for _, pm := range agreement.PostMessages {
 				s.cachePost(proto.Clone(pm).(*pbgo.PostMessage))
 			}
-		}
-
-		_, err := agrt.SendToClient(define.PostMessagePort, s.serverIdDict[define.GsnsServer], agreement)
-
-		if err != nil {
-			logger.Error("Failed to send to Gsns server, err: %+v", err)
-			return
 		} else {
-			logger.Info("Send define.GetPost response(%d): %+v", agreement.ReturnCode, agreement)
+			logger.Info("ReturnCode: %d, Msg: %s", agreement.ReturnCode, agreement.Msg)
 		}
+		s.responseToGsns(agreement)
 	case define.ModifyPost:
 		work.Finish()
 		logger.Info("Receive define.ModifyPost response(%d): %+v", agreement.ReturnCode, agreement)
@@ -119,24 +98,10 @@ func (s *PostMessageServer) handleDbaCommission(work *base.Work, agreement *agrt
 			s.pmRoots[pm.Id] = pm
 			s.postIds[pm.UserId].Add(pm.Id)
 		}
-
-		_, err := agrt.SendToClient(define.PostMessagePort, s.serverIdDict[define.GsnsServer], agreement)
-
-		if err != nil {
-			logger.Error("Failed to send to Gsns server, err: %+v", err)
-		} else {
-			logger.Info("Send define.ModifyPost response(%d): %+v", agreement.ReturnCode, agreement)
-		}
+		s.responseToGsns(agreement)
 	case define.GetSubscribedPosts:
 		work.Finish()
-		_, err := agrt.SendToClient(define.PostMessagePort, s.serverIdDict[define.GsnsServer], agreement)
-
-		if err != nil {
-			logger.Error("Failed to send to Gsns server, err: %+v", err)
-		} else {
-			logger.Info("Send define.GetSubscribedPosts response(%d): %+v", agreement.ReturnCode, agreement)
-		}
-
+		s.responseToGsns(agreement)
 	default:
 		fmt.Printf("Unsupport commission: %d\n", agreement.Service)
 		work.Finish()
@@ -156,4 +121,14 @@ func (s *PostMessageServer) cachePost(pm *pbgo.PostMessage) {
 		s.postIds[pm.UserId] = cntr.NewSet[uint64]()
 	}
 	s.postIds[pm.UserId].Add(pm.Id)
+}
+
+func (s *PostMessageServer) responseToGsns(agreement *agrt.Agreement) {
+	_, err := agrt.SendToClient(define.PostMessagePort, s.serverIdDict[define.GsnsServer], agreement)
+	if err != nil {
+		_, _, msg := define.ErrorMessage(define.Error.CannotSendMessage, "to Gsns server")
+		logger.Error("%s, err: %+v", msg, err)
+	} else {
+		logger.Info("Send %s response(%d): %+v", define.ServiceName(agreement.Service), agreement.ReturnCode, agreement)
+	}
 }

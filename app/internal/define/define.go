@@ -38,3 +38,36 @@ const (
 	// 取得訂閱用戶的貼文
 	GetSubscribedPosts
 )
+
+func ServiceName(service int32) string {
+	switch service {
+	case Heartbeat:
+		return "Heartbeat"
+	case GetUserData:
+		return "GetUserData"
+	case Register:
+		return "Register"
+	case Login:
+		return "Login"
+	case SetUserData:
+		return "SetUserData"
+	case AddPost:
+		return "AddPost"
+	case GetPost:
+		return "GetPost"
+	case GetMyPosts:
+		return "GetMyPosts"
+	case ModifyPost:
+		return "ModifyPost"
+	case Introduction:
+		return "Introduction"
+	case GetOtherUsers:
+		return "GetOtherUsers"
+	case Subscribe:
+		return "Subscribe"
+	case GetSubscribedPosts:
+		return "GetSubscribedPosts"
+	default:
+		return "Unknown"
+	}
+}

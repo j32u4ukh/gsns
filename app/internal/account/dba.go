@@ -51,17 +51,6 @@ func (s *AccountServer) handleDbaSystemCommand(work *base.Work, agreement *agrt.
 
 func (s *AccountServer) handleDbaNormalCommand(work *base.Work, agreement *agrt.Agreement) {
 	switch agreement.Service {
-	// // 取得用戶資訊
-	// case define.GetUserData:
-	// 	logger.Debug("GetUserData")
-	// 	if agreement.ReturnCode == 0 {
-	// 		for _, account := range agreement.Accounts {
-	// 			logger.Debug("account: %+v", account)
-	// 			// 將用戶資訊加入緩存
-	// 			s.accounts.Set(account.Index, account.Account, account)
-	// 		}
-	// 	}
-	// 	work.Finish()
 	default:
 		logger.Warn("Unsupport service: %d\n", agreement.Service)
 		work.Finish()
@@ -73,25 +62,23 @@ func (s *AccountServer) handleDbaCommission(work *base.Work, agreement *agrt.Agr
 	case define.Register:
 		work.Finish()
 
-		// 將新註冊用戶加入緩存管理
-		account := proto.Clone(agreement.Accounts[0]).(*pbgo.Account)
-		s.accounts.Set(account.Index, account.Account, account)
-		logger.Info("New account created : %+v", account)
-		// 隱藏密碼相關資訊，無須提供給 GSNS
-		agreement.Accounts[0].Password = ""
-
-		_, err := agrt.SendToClient(define.AccountPort, s.serverIdDict[define.GsnsServer], agreement)
-		if err != nil {
-			logger.Error("Failed to send to Gsns server, err: %+v", err)
+		if agreement.ReturnCode == define.Error.None {
+			// 將新註冊用戶加入緩存管理
+			account := proto.Clone(agreement.Accounts[0]).(*pbgo.Account)
+			s.accounts.Set(account.Index, account.Account, account)
+			logger.Info("New account created : %+v", account)
+			// 隱藏密碼相關資訊，無須提供給 GSNS
+			agreement.Accounts[0].Password = ""
 		} else {
-			logger.Info("Send define.Register response(%d): %+v", agreement.ReturnCode, agreement)
+			logger.Info("ReturnCode: %d, Msg: %s", agreement.ReturnCode, agreement.Msg)
 		}
+		s.responseToGsns(agreement)
 
 	case define.Login:
 		work.Finish()
 		logger.Info("Recieved login response: %+v", agreement)
 
-		if agreement.ReturnCode == 0 {
+		if agreement.ReturnCode == define.Error.None {
 			// 將新註冊用戶加入緩存管理
 			account := proto.Clone(agreement.Accounts[0]).(*pbgo.Account)
 			if !s.accounts.ContainKey1(account.Index) {
@@ -114,26 +101,15 @@ func (s *AccountServer) handleDbaCommission(work *base.Work, agreement *agrt.Agr
 			for _, edge := range agreement.Edges {
 				s.Edges[edge.UserId].Add(edge.Target)
 			}
-
 		} else {
-			logger.Info("Failed to login, ReturnCode: %d", agreement.ReturnCode)
+			logger.Info("ReturnCode: %d, Msg: %s", agreement.ReturnCode, agreement.Msg)
 		}
-
-		_, err := agrt.SendToClient(define.AccountPort, s.serverIdDict[define.GsnsServer], agreement)
-
-		if err != nil {
-			logger.Error("Failed to send to Gsns server, err: %+v", err)
-		} else {
-			logger.Info("Send define.Login response(%d): %+v", agreement.ReturnCode, agreement)
-		}
+		s.responseToGsns(agreement)
 
 	case define.SetUserData:
-		var err error
 		work.Finish()
 
-		if agreement.ReturnCode != 0 {
-			logger.Error("ReturnCode: %d", agreement.ReturnCode)
-		} else {
+		if agreement.ReturnCode == define.Error.None {
 			account := proto.Clone(agreement.Accounts[0]).(*pbgo.Account)
 			logger.Debug("New account: %+v", account)
 
@@ -143,31 +119,17 @@ func (s *AccountServer) handleDbaCommission(work *base.Work, agreement *agrt.Agr
 
 			// 隱藏密碼相關資訊，無須提供給 GSNS
 			agreement.Accounts[0].Password = ""
-		}
-
-		_, err = agrt.SendToClient(define.AccountPort, s.serverIdDict[define.GsnsServer], agreement)
-
-		if err != nil {
-			logger.Error("Failed to send to %s, err: %+v", define.ServerName(define.GsnsServer), err)
 		} else {
-			logger.Info("Send define.SetUserData response(%d): %+v", agreement.ReturnCode, agreement)
+			logger.Info("ReturnCode: %d, Msg: %s", agreement.ReturnCode, agreement.Msg)
 		}
+		s.responseToGsns(agreement)
 
 	case define.GetOtherUsers:
 		work.Finish()
-
-		if agreement.ReturnCode != 0 {
-			logger.Error("ReturnCode: %d", agreement.ReturnCode)
-			agreement.Accounts = agreement.Accounts[:0]
+		if agreement.ReturnCode != define.Error.None {
+			logger.Info("ReturnCode: %d, Msg: %s", agreement.ReturnCode, agreement.Msg)
 		}
-
-		_, err := agrt.SendToClient(define.AccountPort, s.serverIdDict[define.GsnsServer], agreement)
-
-		if err != nil {
-			logger.Error("Failed to send to Gsns server, err: %+v", err)
-		} else {
-			logger.Info("Send define.GetOtherUsers response(%d): %+v", agreement.ReturnCode, agreement)
-		}
+		s.responseToGsns(agreement)
 
 	case define.Subscribe:
 		work.Finish()
@@ -176,16 +138,22 @@ func (s *AccountServer) handleDbaCommission(work *base.Work, agreement *agrt.Agr
 			for _, edge := range agreement.Edges {
 				s.Edges[edge.UserId].Add(edge.Target)
 			}
-		}
-		_, err := agrt.SendToClient(define.AccountPort, s.serverIdDict[define.GsnsServer], agreement)
-
-		if err != nil {
-			logger.Error("Failed to send to Gsns server, err: %+v", err)
 		} else {
-			logger.Info("Send define.Subscribe response(%d): %+v", agreement.ReturnCode, agreement)
+			logger.Info("ReturnCode: %d, Msg: %s", agreement.ReturnCode, agreement.Msg)
 		}
+		s.responseToGsns(agreement)
 	default:
 		fmt.Printf("Unsupport commission: %d\n", agreement.Service)
 		work.Finish()
+	}
+}
+
+func (s *AccountServer) responseToGsns(agreement *agrt.Agreement) {
+	_, err := agrt.SendToClient(define.AccountPort, s.serverIdDict[define.GsnsServer], agreement)
+	if err != nil {
+		_, _, msg := define.ErrorMessage(define.Error.CannotSendMessage, "to Gsns server")
+		logger.Error("%s, err: %+v", msg, err)
+	} else {
+		logger.Info("Send %s response(%d): %+v", define.ServiceName(agreement.Service), agreement.ReturnCode, agreement)
 	}
 }

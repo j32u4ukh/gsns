@@ -66,24 +66,21 @@ func (s *PostMessageServer) Handler(work *base.Work) {
 	}
 }
 
-func (s *PostMessageServer) Run() {
-
-}
-
 func (s *PostMessageServer) handleSystem(work *base.Work, agreement *agrt.Agreement) {
 	switch agreement.Service {
 	// 回應心跳包
 	case define.Heartbeat:
+		agreement.ReturnCode = define.Error.None
 		agreement.Msg = "OK"
 		_, err := agrt.SendWork(work, agreement)
-		// TODO: CannotSendMessage
 		if err != nil {
-			logger.Error("Failed to send work, err: %+v", err)
+			_, _, agreement.Msg = define.ErrorMessage(define.Error.CannotSendMessage, "work")
+			logger.Error("%s, err: %+v", agreement.Msg, err)
 		}
 	case define.Introduction:
-		// TODO: WrongConnectionIdentity
 		if agreement.Cipher != define.CIPHER {
-			logger.Error("Cipher: %s, Identity: %d", agreement.Cipher, agreement.Identity)
+			_, _, agreement.Msg = define.ErrorMessage(define.Error.WrongConnectionIdentity, agreement.Cipher, agreement.Identity)
+			logger.Error(agreement.Msg)
 			gos.Disconnect(define.DbaPort, work.Index)
 		} else {
 			s.serverIdDict[agreement.Identity] = work.Index
@@ -109,38 +106,38 @@ func (s *PostMessageServer) handleCommission(work *base.Work, agreement *agrt.Ag
 
 	switch agreement.Service {
 	case define.AddPost:
-		// 將註冊數據傳到 Dba 伺服器
-		_, err := agrt.SendToServer(define.DbaServer, agreement)
-		// TODO: CannotSendMessage
-		if err != nil {
-			agreement.ReturnCode = 1
-			agreement.Msg = "Failed to send to Dba server"
-			_, err = agrt.SendWork(work, agreement)
-			// TODO: CannotSendMessage
-			if err != nil {
-				logger.Error("Failed to send work, err: %+v", err)
-				work.Finish()
-			} else {
-				logger.Info("Send define.AddPost response(%d): %+v", agreement.ReturnCode, agreement)
-			}
-		} else {
-			logger.Info("Send define.AddPost request: %+v", agreement)
-			work.Finish()
-		}
+		s.handleCommissionRequest(work, agreement)
+
+		// // 將註冊數據傳到 Dba 伺服器
+		// _, err := agrt.SendToServer(define.DbaServer, agreement)
+		// if err != nil {
+		// 	_, agreement.ReturnCode, agreement.Msg = define.ErrorMessage(define.Error.CannotSendMessage, "to Dba server")
+		// 	logger.Error("%s, err: %+v", agreement.Msg, err)
+
+		// 	_, err = agrt.SendWork(work, agreement)
+		// 	if err != nil {
+		// 		_, _, agreement.Msg = define.ErrorMessage(define.Error.CannotSendMessage, "work")
+		// 		logger.Error("%s, err: %+v", agreement.Msg, err)
+		// 		work.Finish()
+		// 	} else {
+		// 		logger.Info("Send define.AddPost response(%d): %+v", agreement.ReturnCode, agreement)
+		// 	}
+		// } else {
+		// 	logger.Info("Send define.AddPost request: %+v", agreement)
+		// 	work.Finish()
+		// }
 
 	// TODO: 若該 post id 存在於緩存當中，則可直接返回，不需要再問 DBA
 	case define.GetPost:
 		var err error
 		pm := agreement.PostMessages[0]
 		if root, ok := s.pmRoots[pm.Id]; ok {
-			agreement.ReturnCode = 0
+			agreement.ReturnCode = define.Error.None
 			agreement.PostMessages[0] = proto.Clone(root).(*pbgo.PostMessage)
 		} else {
 			_, err = agrt.SendToServer(define.DbaServer, agreement)
-			// TODO: CannotSendMessage
 			if err != nil {
-				agreement.ReturnCode = 2
-				agreement.Msg = "Failed to query from DbaServer."
+				_, agreement.ReturnCode, agreement.Msg = define.ErrorMessage(define.Error.CannotSendMessage, "to Dba server")
 				logger.Error("%s, err: %+v", agreement.Msg, err)
 			} else {
 				logger.Info("Send define.GetPost request: %+v", agreement)
@@ -150,11 +147,11 @@ func (s *PostMessageServer) handleCommission(work *base.Work, agreement *agrt.Ag
 		}
 
 		_, err = agrt.SendWork(work, agreement)
-		// TODO: CannotSendMessage
 		if err != nil {
-			logger.Error("Failed to send work, err: %+v", err)
+			_, _, agreement.Msg = define.ErrorMessage(define.Error.CannotSendMessage, "work")
+			logger.Error("%s, err: %+v", agreement.Msg, err)
 		} else {
-			logger.Info("Send define.GetPost response(%d): %+v", agreement.ReturnCode, agreement)
+			logger.Info("Send %s request: %+v", define.ServiceName(agreement.Service), agreement)
 		}
 
 	case define.GetMyPosts:
@@ -162,7 +159,7 @@ func (s *PostMessageServer) handleCommission(work *base.Work, agreement *agrt.Ag
 
 		// 取得用戶 userId 的貼文 ID 列表
 		if postIds, ok := s.postIds[userId]; ok {
-			agreement.ReturnCode = 0
+			agreement.ReturnCode = define.Error.None
 
 			// 根據貼文 ID 列表，依序讀取對應的貼文
 			for postId := range postIds.Elements {
@@ -171,69 +168,72 @@ func (s *PostMessageServer) handleCommission(work *base.Work, agreement *agrt.Ag
 				}
 			}
 		} else {
-			agreement.ReturnCode = 1
-			agreement.Msg = fmt.Sprintf("Not found posts belong to user with id: %d", userId)
+			// agreement.ReturnCode = 1
+			// agreement.Msg = fmt.Sprintf("Not found posts belong to user with id: %d", userId)
+			_, agreement.ReturnCode, agreement.Msg = define.ErrorMessage(define.Error.NotFoundUser, "user_id", userId)
 		}
 
 		_, err := agrt.SendWork(work, agreement)
-		// TODO: CannotSendMessage
 		if err != nil {
-			logger.Error("Failed to send work, err: %+v", err)
+			_, _, agreement.Msg = define.ErrorMessage(define.Error.CannotSendMessage, "work")
+			logger.Error("%s, err: %+v", agreement.Msg, err)
 		} else {
-			logger.Info("Send define.GetMyPosts response(%d): %+v", agreement.ReturnCode, agreement)
+			logger.Info("Send %s request: %+v", define.ServiceName(agreement.Service), agreement)
 		}
 
 	case define.ModifyPost:
-		var err error
 		if len(agreement.PostMessages) == 1 {
-			_, err = agrt.SendToServer(define.DbaServer, agreement)
-
+			s.handleCommissionRequest(work, agreement)
+		} else {
+			_, err := agrt.SendWork(work, agreement)
 			if err != nil {
-				agreement.ReturnCode = 2
-				agreement.Msg = "Failed to query to DbaServer."
+				_, _, agreement.Msg = define.ErrorMessage(define.Error.CannotSendMessage, "work")
 				logger.Error("%s, err: %+v", agreement.Msg, err)
 			} else {
-				logger.Info("Send define.ModifyPost request: %+v", agreement)
-				work.Finish()
-				return
+				logger.Info("Send %s request: %+v", define.ServiceName(agreement.Service), agreement)
 			}
-		} else {
-			agreement.ReturnCode = 1
-			agreement.Msg = "Not found posts' id."
-		}
-
-		_, err = agrt.SendWork(work, agreement)
-		// TODO: CannotSendMessage
-		if err != nil {
-			logger.Error("Failed to send work, err: %+v", err)
-		} else {
-			logger.Info("Send define.ModifyPost response(%d): %+v", agreement.ReturnCode, agreement)
 		}
 
 	case define.GetSubscribedPosts:
-		// ==================================================
-		// 準備將請求轉送給 DBA server
-		// ==================================================
-		_, err := agrt.SendToServer(define.DbaServer, agreement)
-		// TODO: CannotSendMessage
-		if err != nil {
-			agreement.ReturnCode = 1
-			agreement.Msg = "Failed to send to Dba server"
-			_, err := agrt.SendWork(work, agreement)
-			// TODO: CannotSendMessage
-			if err != nil {
-				logger.Error("Failed to send work, err: %+v", err)
-				work.Finish()
-			} else {
-				logger.Info("Send define.GetSubscribedPosts response(%d): %+v", agreement.ReturnCode, agreement)
-			}
-		} else {
-			logger.Info("Send define.GetSubscribedPosts request: %+v", agreement)
-			work.Finish()
-		}
+		s.handleCommissionRequest(work, agreement)
+		// _, err := agrt.SendToServer(define.DbaServer, agreement)
+		// if err != nil {
+		// 	_, agreement.ReturnCode, agreement.Msg = define.ErrorMessage(define.Error.CannotSendMessage, "to Dba server")
+		// 	logger.Error("%s, err: %+v", agreement.Msg, err)
+		// 	_, err := agrt.SendWork(work, agreement)
+		// 	if err != nil {
+		// 		_, _, agreement.Msg = define.ErrorMessage(define.Error.CannotSendMessage, "work")
+		// 		logger.Error("%s, err: %+v", agreement.Msg, err)
+		// 		work.Finish()
+		// 	} else {
+		// 		logger.Info("Send define.GetSubscribedPosts response(%d): %+v", agreement.ReturnCode, agreement)
+		// 	}
+		// } else {
+		// 	logger.Info("Send define.GetSubscribedPosts request: %+v", agreement)
+		// 	work.Finish()
+		// }
 
 	default:
 		fmt.Printf("Unsupport commission service: %d", agreement.Service)
+		work.Finish()
+	}
+}
+
+func (s *PostMessageServer) handleCommissionRequest(work *base.Work, agreement *agrt.Agreement) {
+	_, err := agrt.SendToServer(define.DbaServer, agreement)
+	if err != nil {
+		_, agreement.ReturnCode, agreement.Msg = define.ErrorMessage(define.Error.CannotSendMessage, "to Dba server")
+		logger.Error("%s, err: %+v", agreement.Msg, err)
+		_, err = agrt.SendWork(work, agreement)
+		if err != nil {
+			_, _, agreement.Msg = define.ErrorMessage(define.Error.CannotSendMessage, "work")
+			logger.Error("%s, err: %+v", agreement.Msg, err)
+			work.Finish()
+		} else {
+			logger.Info("Send %s response(%d): %+v", define.ServiceName(agreement.Service), agreement.ReturnCode, agreement)
+		}
+	} else {
+		logger.Info("Send %s request: %+v", define.ServiceName(agreement.Service), agreement)
 		work.Finish()
 	}
 }

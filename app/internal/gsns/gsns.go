@@ -122,6 +122,7 @@ func initGos() error {
 	}
 	return nil
 }
+
 func Run() {
 	gos.SetFrameTime(20 * time.Millisecond)
 	gos.Run(nil)

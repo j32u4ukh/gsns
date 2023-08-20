@@ -85,107 +85,142 @@ func (m *PostMessageMgr) handleNormal(work *base.Work, agreement *agrt.Agreement
 }
 
 func (m *PostMessageMgr) handleCommission(work *base.Work, agreement *agrt.Agreement) {
+	work.Finish()
 	switch agreement.Service {
 	case define.AddPost:
-		work.Finish()
-		// 利用 cid 取得對應的 Context
-		c := m.httpAnswer.GetContext(agreement.Cid)
-		m.logger.Debug("returnCode: %d", agreement.ReturnCode)
-
-		if agreement.ReturnCode != 0 {
-			c.Json(ghttp.StatusBadGateway, ghttp.H{
-				"ret": agreement.ReturnCode,
-				"msg": agreement.Msg,
-			})
-		} else {
+		m.responseCommission(agreement, func(c *ghttp.Context) {
 			c.Json(ghttp.StatusOK, ghttp.H{
-				"ret": 0,
+				"ret": define.Error.None,
 				"msg": fmt.Sprintf("Post successfully: %+v", agreement.PostMessages[0]),
 			})
-		}
-		m.httpAnswer.Send(c)
+		})
+
+		// // 利用 cid 取得對應的 Context
+		// c := m.httpAnswer.GetContext(agreement.Cid)
+		// m.logger.Debug("returnCode: %d", agreement.ReturnCode)
+
+		// if agreement.ReturnCode != 0 {
+		// 	c.Json(ghttp.StatusBadGateway, ghttp.H{
+		// 		"ret": agreement.ReturnCode,
+		// 		"msg": agreement.Msg,
+		// 	})
+		// } else {
+
+		// }
+		// m.httpAnswer.Send(c)
+
 	case define.GetPost:
-		work.Finish()
-		// 利用 cid 取得對應的 Context
-		c := m.httpAnswer.GetContext(agreement.Cid)
-		m.logger.Debug("Receive define.GetPost response(%d): %+v", agreement.ReturnCode, agreement)
-
-		if agreement.ReturnCode != 0 {
-			c.Json(ghttp.StatusBadGateway, ghttp.H{
-				"ret": agreement.ReturnCode,
-				"msg": agreement.Msg,
-			})
-		} else {
+		m.responseCommission(agreement, func(c *ghttp.Context) {
 			c.Json(ghttp.StatusOK, ghttp.H{
-				"ret": 0,
+				"ret": define.Error.None,
 				"pms": agreement.PostMessages,
 			})
-		}
-		m.httpAnswer.Send(c)
+		})
+
+		// // 利用 cid 取得對應的 Context
+		// c := m.httpAnswer.GetContext(agreement.Cid)
+		// m.logger.Debug("Receive define.GetPost response(%d): %+v", agreement.ReturnCode, agreement)
+
+		// if agreement.ReturnCode != 0 {
+		// 	c.Json(ghttp.StatusBadGateway, ghttp.H{
+		// 		"ret": agreement.ReturnCode,
+		// 		"msg": agreement.Msg,
+		// 	})
+		// } else {
+
+		// }
+		// m.httpAnswer.Send(c)
+
 	case define.GetMyPosts:
-		// 利用 cid 取得對應的 Context
-		c := m.httpAnswer.GetContext(agreement.Cid)
-		m.logger.Debug("returnCode: %d", agreement.ReturnCode)
-
-		if agreement.ReturnCode != 0 {
-			c.Json(ghttp.StatusBadGateway, ghttp.H{
-				"ret": agreement.ReturnCode,
-				"msg": agreement.Msg,
-			})
-		} else {
+		m.responseCommission(agreement, func(c *ghttp.Context) {
 			c.Json(ghttp.StatusOK, ghttp.H{
-				"ret": 0,
+				"ret": define.Error.None,
 				"pms": agreement.PostMessages,
 			})
-		}
-		m.httpAnswer.Send(c)
-		work.Finish()
-	case define.ModifyPost:
-		work.Finish()
-		// 利用 cid 取得對應的 Context
-		c := m.httpAnswer.GetContext(agreement.Cid)
-		m.logger.Debug("returnCode: %d", agreement.ReturnCode)
+		})
 
-		if agreement.ReturnCode != 0 {
-			c.Json(ghttp.StatusBadGateway, ghttp.H{
-				"ret": agreement.ReturnCode,
-				"msg": agreement.Msg,
-			})
-		} else {
+		// // 利用 cid 取得對應的 Context
+		// c := m.httpAnswer.GetContext(agreement.Cid)
+		// m.logger.Debug("returnCode: %d", agreement.ReturnCode)
+
+		// if agreement.ReturnCode != 0 {
+		// 	c.Json(ghttp.StatusBadGateway, ghttp.H{
+		// 		"ret": agreement.ReturnCode,
+		// 		"msg": agreement.Msg,
+		// 	})
+		// } else {
+
+		// }
+		// m.httpAnswer.Send(c)
+
+	case define.ModifyPost:
+		m.responseCommission(agreement, func(c *ghttp.Context) {
 			c.Json(ghttp.StatusOK, ghttp.H{
-				"ret": 0,
+				"ret": define.Error.None,
 				"pm":  fmt.Sprintf("%+v", agreement.PostMessages[0]),
 			})
-		}
-		m.httpAnswer.Send(c)
-	case define.GetSubscribedPosts:
-		work.Finish()
-		// 利用 cid 取得對應的 Context
-		c := m.httpAnswer.GetContext(agreement.Cid)
-		m.logger.Debug("returnCode: %d", agreement.ReturnCode)
+		})
 
-		if agreement.ReturnCode != 0 {
-			c.Json(ghttp.StatusBadGateway, ghttp.H{
-				"ret": agreement.ReturnCode,
-				"msg": agreement.Msg,
-			})
-		} else {
-			for i, pm := range agreement.PostMessages {
-				m.logger.Debug("%d) pm: %+v", i, pm)
-			}
+		// // 利用 cid 取得對應的 Context
+		// c := m.httpAnswer.GetContext(agreement.Cid)
+		// m.logger.Debug("returnCode: %d", agreement.ReturnCode)
+
+		// if agreement.ReturnCode != 0 {
+		// 	c.Json(ghttp.StatusBadGateway, ghttp.H{
+		// 		"ret": agreement.ReturnCode,
+		// 		"msg": agreement.Msg,
+		// 	})
+		// } else {
+
+		// }
+		// m.httpAnswer.Send(c)
+
+	case define.GetSubscribedPosts:
+		m.responseCommission(agreement, func(c *ghttp.Context) {
 			c.Json(ghttp.StatusOK, ghttp.H{
 				"n_post": len(agreement.PostMessages),
 				"posts":  agreement.PostMessages,
 			})
-		}
-		m.httpAnswer.Send(c)
+		})
+
+		// // 利用 cid 取得對應的 Context
+		// c := m.httpAnswer.GetContext(agreement.Cid)
+		// m.logger.Debug("returnCode: %d", agreement.ReturnCode)
+
+		// if agreement.ReturnCode != 0 {
+		// 	c.Json(ghttp.StatusBadGateway, ghttp.H{
+		// 		"ret": agreement.ReturnCode,
+		// 		"msg": agreement.Msg,
+		// 	})
+		// } else {
+		// 	for i, pm := range agreement.PostMessages {
+		// 		m.logger.Debug("%d) pm: %+v", i, pm)
+		// 	}
+
+		// }
+		// m.httpAnswer.Send(c)
 
 	default:
 		fmt.Printf("Unsupport commission service: %d\n", agreement.Service)
-		work.Finish()
 	}
 }
 
 func (m *PostMessageMgr) SetFuncGetUserByToken(f func(token string) (*pbgo.User, bool)) {
 	m.getUserByTokenFunc = f
+}
+
+func (m *PostMessageMgr) responseCommission(agreement *agrt.Agreement, handlerFunc func(c *ghttp.Context)) {
+	// 檢視收到的回應
+	m.logger.Info("agreement(%d): %+v", agreement.ReturnCode, agreement)
+	// 利用 cid 取得對應的 Context
+	c := m.httpAnswer.GetContext(agreement.Cid)
+	if (agreement.ReturnCode == define.Error.None) && (handlerFunc != nil) {
+		handlerFunc(c)
+	} else {
+		c.Json(define.GetStatus(agreement.ReturnCode), ghttp.H{
+			"ret": agreement.ReturnCode,
+			"msg": agreement.Msg,
+		})
+	}
+	m.httpAnswer.Send(c)
 }

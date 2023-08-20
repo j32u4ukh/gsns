@@ -70,24 +70,6 @@ func initGos() error {
 	asker, err := gos.Bind(define.DbaServer, address, define.DbaPort, gosDefine.Tcp0, base.OnEventsFunc{
 		gosDefine.OnConnected: func(any) {
 			logger.Info("完成與 Dba Server 建立 TCP 連線")
-			// agreement := agrt.GetAgreement()
-			// defer agrt.PutAgreement(agreement)
-			// agreement.Cmd = int32(define.NormalCommand)
-			// agreement.Service = int32(define.GetUserData)
-
-			// // 請求取得用戶資料
-			// td := base.NewTransData()
-			// bs, _ := agreement.Marshal()
-			// td.AddByteArray(bs)
-			// data := td.FormData()
-
-			// // 將註冊結果回傳主伺服器
-			// err := gos.SendToServer(define.DbaServer, &data, int32(len(data)))
-
-			// if err != nil {
-			// 	logger.Error("Failed to send to dba %d: %v\nError: %+v", define.DbaServer, data, err)
-			// 	return
-			// }
 		},
 	}, &introduction, &heartbeat)
 
@@ -122,19 +104,6 @@ func initGos() error {
 }
 
 func Run() {
-	var start time.Time
-	var during, frameTime time.Duration = 0, 20 * time.Millisecond
-
-	for {
-		start = time.Now()
-
-		gos.RunAns()
-		gos.RunAsk()
-		as.Run()
-
-		during = time.Since(start)
-		if during < frameTime {
-			time.Sleep(frameTime - during)
-		}
-	}
+	gos.SetFrameTime(20 * time.Millisecond)
+	gos.Run(nil)
 }

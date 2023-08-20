@@ -5,6 +5,7 @@ import (
 	"internal/agrt"
 	"internal/define"
 	"internal/pbgo"
+	"internal/utils"
 	"strconv"
 	"time"
 
@@ -26,27 +27,14 @@ func (s *MainServer) getOtherUsers(c *ghttp.Context) {
 	var sUserId string
 	var ok bool
 
-	// TODO: MissingParameters
 	if sUserId, ok = c.Params["user_id"]; !ok {
-		msg := "Not found parameter user_id"
-		logger.Error(msg)
-		c.Json(ghttp.StatusNotFound, ghttp.H{
-			"ret": 1,
-			"msg": msg,
-		})
+		logger.Error(utils.JsonResponse(c, define.Error.MissingParameters, "user_id"))
 		return
 	}
 
-	// TODO: NotFoundUser
 	userId, err := strconv.ParseInt(sUserId, 10, 64)
-
 	if err != nil {
-		msg := "Invalid user id."
-		logger.Error(msg)
-		c.Json(ghttp.StatusBadRequest, ghttp.H{
-			"ret": 2,
-			"msg": msg,
-		})
+		logger.Error(utils.JsonResponse(c, define.Error.NotFoundUser, "user_id", sUserId))
 		return
 	}
 
@@ -76,53 +64,34 @@ func (s *MainServer) getOtherUsers(c *ghttp.Context) {
 // [endpoint]/social/subscribe
 func (s *MainServer) subscribe(c *ghttp.Context) {
 	ip := &SocialProtocol{}
-	c.ReadJson(ip)
+	err := c.ReadJson(ip)
 
-	// TODO: MissingParameters
+	if err != nil {
+		msg := utils.JsonResponse(c, define.Error.InvalidBodyData)
+		logger.Error("%s, err: %+v", msg, err)
+		return
+	}
+
 	if ip.Token == "" || ip.TargetId == 0 {
-		msg := "缺少參數"
-		logger.Error(msg)
-		c.Json(ghttp.StatusBadRequest, ghttp.H{
-			"ret": 1,
-			"msg": msg,
-		})
+		logger.Error(utils.JsonResponse(c, define.Error.MissingParameters, "token or target_id"))
 		return
 	}
 
 	user, ok := s.AMgr.GetUserByToken(ip.Token)
-
-	// TODO: NotFoundUser
 	if !ok {
-		msg := fmt.Sprintf("Not found token %s", ip.Token)
-		logger.Error(msg)
-		c.Json(ghttp.StatusBadRequest, ghttp.H{
-			"ret": 2,
-			"msg": msg,
-		})
+		logger.Error(utils.JsonResponse(c, define.Error.NotFoundUser, "token", ip.Token))
 		return
 	}
 
-	// TODO: InvalidTarget
 	if user.Index == ip.TargetId {
-		msg := fmt.Sprintf("不能訂閱自己 User(%d), Target(%d)", user.Index, ip.TargetId)
-		logger.Error(msg)
-		c.Json(ghttp.StatusBadRequest, ghttp.H{
-			"ret": 3,
-			"msg": msg,
-		})
+		logger.Error(utils.JsonResponse(c, define.Error.InvalidTarget, fmt.Sprintf("User(%d)", user.Index), fmt.Sprintf("User(%d)", ip.TargetId)))
 		return
 	}
 
 	// 避免重複訂閱，先檢查訂閱對象的 ID 再送出請求
 	if edges, ok := s.AMgr.Edges[user.Index]; ok {
 		if edges.Contains(ip.TargetId) {
-			msg := fmt.Sprintf("User %s has subscribed user %d", user.Name, ip.TargetId)
-			logger.Info(msg)
-			// TODO: DuplicateEntity
-			c.Json(ghttp.StatusConflict, ghttp.H{
-				"ret": 0,
-				"msg": msg,
-			})
+			logger.Info(utils.JsonResponse(c, define.Error.DuplicateEntity, fmt.Sprintf("User %s has subscribed user %d", user.Name, ip.TargetId)))
 			return
 		}
 	}
@@ -137,15 +106,9 @@ func (s *MainServer) subscribe(c *ghttp.Context) {
 		Target: ip.TargetId,
 	})
 
-	// TODO: CannotSendMessage
-	_, err := agrt.SendToServer(define.AccountServer, agreement)
+	_, err = agrt.SendToServer(define.AccountServer, agreement)
 	if err != nil {
-		msg := "Failed to send request to account server"
-		logger.Error("%s, err: %+v", msg, err)
-		c.Json(ghttp.StatusInternalServerError, ghttp.H{
-			"ret": 5,
-			"msg": msg,
-		})
+		logger.Error("%s, err: %+v", utils.JsonResponse(c, define.Error.CannotSendMessage, "to Dba server"), err)
 		return
 	} else {
 		logger.Info("Send define.Subscribe request: %+v", agreement)
@@ -155,31 +118,22 @@ func (s *MainServer) subscribe(c *ghttp.Context) {
 // [endpoint]/social/subscribed_posts
 func (s *MainServer) getSubscribedPosts(c *ghttp.Context) {
 	ip := &SocialProtocol{}
-	c.ReadJson(ip)
+	err := c.ReadJson(ip)
 
-	// TODO: MissingParameters
-	if ip.Token == "" {
-		msg := "缺少參數"
-		logger.Error(msg)
-		c.Json(ghttp.StatusBadRequest, ghttp.H{
-			"ret": 1,
-			"msg": msg,
-		})
+	if err != nil {
+		msg := utils.JsonResponse(c, define.Error.InvalidBodyData)
+		logger.Error("%s, err: %+v", msg, err)
 		return
 	}
 
-	var user *pbgo.User
-	var ok bool
-	user, ok = s.AMgr.GetUserByToken(ip.Token)
+	if ip.Token == "" {
+		logger.Error(utils.JsonResponse(c, define.Error.MissingParameters, "token"))
+		return
+	}
 
-	// TODO: NotFoundUser
+	user, ok := s.AMgr.GetUserByToken(ip.Token)
 	if !ok {
-		msg := fmt.Sprintf("Not found token %s", ip.Token)
-		logger.Error(msg)
-		c.Json(ghttp.StatusBadRequest, ghttp.H{
-			"ret": 2,
-			"msg": msg,
-		})
+		logger.Error(utils.JsonResponse(c, define.Error.NotFoundUser, "token", ip.Token))
 		return
 	}
 
@@ -207,7 +161,6 @@ func (s *MainServer) getSubscribedPosts(c *ghttp.Context) {
 	agreement.Cmd = define.CommissionCommand
 	agreement.Service = define.GetSubscribedPosts
 	agreement.Cid = c.GetId()
-	var err error
 
 	if ip.StartUtc != 0 {
 		agreement.StartUtc = ip.StartUtc
@@ -227,15 +180,10 @@ func (s *MainServer) getSubscribedPosts(c *ghttp.Context) {
 		})
 	}
 
-	// TODO: CannotSendMessage
 	_, err = agrt.SendToServer(define.PostMessageServer, agreement)
 	if err != nil {
-		msg := "Failed to sned to PostMessage server."
+		msg := utils.JsonResponse(c, define.Error.CannotSendMessage, "to PostMessage server")
 		logger.Error("%s, err: %+v", msg, err)
-		c.Json(ghttp.StatusInternalServerError, ghttp.H{
-			"ret": 4,
-			"msg": msg,
-		})
 	} else {
 		logger.Info("Send define.GetSubscribedPosts request: %+v", agreement)
 	}

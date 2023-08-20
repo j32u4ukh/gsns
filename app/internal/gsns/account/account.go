@@ -5,6 +5,7 @@ import (
 	"internal/agrt"
 	"internal/define"
 	"internal/pbgo"
+	"internal/utils"
 	"time"
 
 	"github.com/j32u4ukh/cntr"
@@ -80,35 +81,21 @@ func (m *AccountMgr) handleSystem(work *base.Work, agreement *agrt.Agreement) {
 }
 
 func (m *AccountMgr) handleAccountCommission(work *base.Work, agreement *agrt.Agreement) {
+	work.Finish()
 	switch agreement.Service {
 	case define.Register:
-		work.Finish()
-		// 利用 cid 取得對應的 Context
-		c := m.httpAnswer.GetContext(agreement.Cid)
-		m.logger.Debug("returnCode: %d", agreement.ReturnCode)
-
-		if agreement.ReturnCode != 0 {
-			c.Json(ghttp.StatusBadGateway, ghttp.H{
-				"ret": 1,
-				"msg": fmt.Sprintf("returnCode: %d", agreement.ReturnCode),
-			})
-		} else {
-			c.Json(ghttp.StatusOK, ghttp.H{
-				"ret": 0,
-				"msg": fmt.Sprintf("registered account: %+v", agreement.Accounts[0]),
-			})
-		}
-		m.httpAnswer.Send(c)
+		m.responseCommission(agreement, nil)
+		// // 利用 cid 取得對應的 Context
+		// c := m.httpAnswer.GetContext(agreement.Cid)
+		// m.logger.Info("agreement(%d): %+v", agreement.ReturnCode, agreement)
+		// c.Json(define.GetStatus(agreement.ReturnCode), ghttp.H{
+		// 	"ret": agreement.ReturnCode,
+		// 	"msg": agreement.Msg,
+		// })
+		// m.httpAnswer.Send(c)
 
 	case define.Login:
-		work.Finish()
-
-		// 取得空閒的 HTTP 連線物件
-		c := m.httpAnswer.GetContext(agreement.Cid)
-		defer m.httpAnswer.Send(c)
-		m.logger.Debug("returnCode: %d", agreement.ReturnCode)
-
-		if agreement.ReturnCode == 0 {
+		m.responseCommission(agreement, func(c *ghttp.Context) {
 			account := agreement.Accounts[0]
 			m.logger.Info("index: %d, name: %s, Account: %+v", account.Index, account.Account, account)
 			user := &pbgo.User{
@@ -123,11 +110,8 @@ func (m *AccountMgr) handleAccountCommission(work *base.Work, agreement *agrt.Ag
 			} else {
 				err := m.users.Add(user.Index, user.Token, user)
 				if err != nil {
-					m.logger.Error("Failed to add user, err: %+v", err)
-					c.Json(ghttp.StatusInternalServerError, ghttp.H{
-						"msg":   "Login failed",
-						"token": -1,
-					})
+					msg := utils.JsonResponse(c, define.Error.InvalidInsertData, user)
+					m.logger.Error("%s, err: %+v", msg, err)
 					return
 				}
 			}
@@ -148,30 +132,65 @@ func (m *AccountMgr) handleAccountCommission(work *base.Work, agreement *agrt.Ag
 				"info":   user.Info,
 				"n_edge": len(agreement.Edges),
 			})
-		} else {
-			m.logger.Error("Failed to login, ReturnCode: %d", agreement.ReturnCode)
-			c.Json(ghttp.StatusInternalServerError, ghttp.H{
-				"msg":   "Login failed",
-				"token": -1,
-			})
-		}
+		})
+
+		// // 取得空閒的 HTTP 連線物件
+		// c := m.httpAnswer.GetContext(agreement.Cid)
+		// defer m.httpAnswer.Send(c)
+		// m.logger.Info("agreement(%d): %+v", agreement.ReturnCode, agreement)
+
+		// if agreement.ReturnCode == define.Error.None {
+		// 	account := agreement.Accounts[0]
+		// 	m.logger.Info("index: %d, name: %s, Account: %+v", account.Index, account.Account, account)
+		// 	user := &pbgo.User{
+		// 		Index: account.Index,
+		// 		Name:  account.Account,
+		// 		Info:  account.Info,
+		// 		Token: m.getToken(),
+		// 	}
+		// 	m.logger.Info("New user: %+v", user)
+		// 	if m.users.ContainKey1(account.Index) {
+		// 		m.users.UpdateByKey1(account.Index, cntr.NewBivalue(account.Index, user.Token, user))
+		// 	} else {
+		// 		err := m.users.Add(user.Index, user.Token, user)
+		// 		if err != nil {
+		// 			msg := utils.JsonResponse(c, define.Error.InvalidInsertData, user)
+		// 			m.logger.Error("%s, err: %+v", msg, err)
+		// 			return
+		// 		}
+		// 	}
+
+		// 	// 初始化用戶的 Edges
+		// 	if _, ok := m.Edges[account.Index]; !ok {
+		// 		m.Edges[account.Index] = cntr.NewSet[int32]()
+		// 	}
+
+		// 	// 寫入社群資訊
+		// 	for _, edge := range agreement.Edges {
+		// 		m.Edges[account.Index].Add(edge.Target)
+		// 	}
+
+		// 	c.Json(ghttp.StatusOK, ghttp.H{
+		// 		"msg":    fmt.Sprintf("User %s login success", account.Account),
+		// 		"token":  user.Token,
+		// 		"info":   user.Info,
+		// 		"n_edge": len(agreement.Edges),
+		// 	})
+		// } else {
+		// 	c.Json(define.GetStatus(agreement.ReturnCode), ghttp.H{
+		// 		"ret": agreement.ReturnCode,
+		// 		"msg": agreement.Msg,
+		// 	})
+		// }
 
 	case define.SetUserData:
-		work.Finish()
-
-		// 取得空閒的 HTTP 連線物件
-		c := m.httpAnswer.GetContext(agreement.Cid)
-		m.logger.Debug("returnCode: %d", agreement.ReturnCode)
-
-		if agreement.ReturnCode == 0 {
+		m.responseCommission(agreement, func(c *ghttp.Context) {
 			account := agreement.Accounts[0]
 			m.logger.Info("index: %d, name: %s", account.Index, account.Account)
 			// 檢查緩存中是否存在
 			user, ok := m.users.GetByKey1(account.Index)
 			if !ok {
-				c.Json(ghttp.StatusInternalServerError, ghttp.H{
-					"err": fmt.Sprintf("Not found user %s in cache.", account.Account),
-				})
+				m.logger.Error(utils.JsonResponse(c, define.Error.NotFoundUser, "index", account.Index))
 			} else {
 				user.Name = account.Account
 				user.Info = account.Info
@@ -186,27 +205,59 @@ func (m *AccountMgr) handleAccountCommission(work *base.Work, agreement *agrt.Ag
 					"info":  user.Info,
 				})
 			}
-		} else {
-			c.Json(ghttp.StatusInternalServerError, ghttp.H{
-				"err": fmt.Sprintf("Return code %d", agreement.ReturnCode),
-			})
-		}
-		m.httpAnswer.Send(c)
+		})
+
+		// // 取得空閒的 HTTP 連線物件
+		// c := m.httpAnswer.GetContext(agreement.Cid)
+
+		// if agreement.ReturnCode == define.Error.None {
+		// 	account := agreement.Accounts[0]
+		// 	m.logger.Info("index: %d, name: %s", account.Index, account.Account)
+		// 	// 檢查緩存中是否存在
+		// 	user, ok := m.users.GetByKey1(account.Index)
+		// 	if !ok {
+		// 		m.logger.Error(utils.JsonResponse(c, define.Error.NotFoundUser, "index", account.Index))
+		// 	} else {
+		// 		user.Name = account.Account
+		// 		user.Info = account.Info
+		// 		bivalue := cntr.NewBivalue(user.Index, user.Token, user)
+
+		// 		// 更新用戶緩存
+		// 		m.users.UpdateByKey1(user.Index, bivalue)
+
+		// 		c.Json(ghttp.StatusOK, ghttp.H{
+		// 			"msg":   fmt.Sprintf("User %s update success", account.Account),
+		// 			"token": user.Token,
+		// 			"info":  user.Info,
+		// 		})
+		// 	}
+		// } else {
+		// 	c.Json(define.GetStatus(agreement.ReturnCode), ghttp.H{
+		// 		"ret": agreement.ReturnCode,
+		// 		"msg": agreement.Msg,
+		// 	})
+		// }
+		// m.httpAnswer.Send(c)
 
 	case define.GetOtherUsers:
-		work.Finish()
-		c := m.httpAnswer.GetContext(agreement.Cid)
-		c.Json(ghttp.StatusOK, ghttp.H{
-			"users": agreement.Accounts,
+		m.responseCommission(agreement, func(c *ghttp.Context) {
+			c.Json(ghttp.StatusOK, ghttp.H{
+				"users": agreement.Accounts,
+			})
 		})
-		m.httpAnswer.Send(c)
+
+		// c := m.httpAnswer.GetContext(agreement.Cid)
+		// if agreement.ReturnCode == define.Error.None {
+		// } else {
+		// 	c.Json(define.GetStatus(agreement.ReturnCode), ghttp.H{
+		// 		"ret": agreement.ReturnCode,
+		// 		"msg": agreement.Msg,
+		// 	})
+		// }
+		// m.httpAnswer.Send(c)
 
 	case define.Subscribe:
-		// 取得空閒的 HTTP 連線物件
-		c := m.httpAnswer.GetContext(agreement.Cid)
-		m.logger.Debug("returnCode: %d", agreement.ReturnCode)
-
-		if agreement.ReturnCode == 0 {
+		m.responseCommission(agreement, func(c *ghttp.Context) {
 			edge := agreement.Edges[0]
 			if _, ok := m.Edges[edge.UserId]; !ok {
 				m.Edges[edge.UserId] = cntr.NewSet[int32]()
@@ -216,14 +267,23 @@ func (m *AccountMgr) handleAccountCommission(work *base.Work, agreement *agrt.Ag
 				"ret": 0,
 				"msg": fmt.Sprintf("User %d subscribe user %d", edge.UserId, edge.Target),
 			})
-		} else {
-			c.Json(ghttp.StatusInternalServerError, ghttp.H{
-				"err": fmt.Sprintf("Return code %d", agreement.ReturnCode),
-			})
-		}
-
-		work.Finish()
-		m.httpAnswer.Send(c)
+		})
 	default:
 	}
+}
+
+func (m *AccountMgr) responseCommission(agreement *agrt.Agreement, handlerFunc func(c *ghttp.Context)) {
+	// 檢視收到的回應
+	m.logger.Info("agreement(%d): %+v", agreement.ReturnCode, agreement)
+	// 利用 cid 取得對應的 Context
+	c := m.httpAnswer.GetContext(agreement.Cid)
+	if (agreement.ReturnCode == define.Error.None) && (handlerFunc != nil) {
+		handlerFunc(c)
+	} else {
+		c.Json(define.GetStatus(agreement.ReturnCode), ghttp.H{
+			"ret": agreement.ReturnCode,
+			"msg": agreement.Msg,
+		})
+	}
+	m.httpAnswer.Send(c)
 }

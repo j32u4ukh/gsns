@@ -79,19 +79,7 @@ func initDatabase() error {
 }
 
 func Run() {
-	var start time.Time
-	var during, frameTime time.Duration = 0, 20 * time.Millisecond
 	defer s.db.Close()
-
-	for {
-		start = time.Now()
-
-		gos.RunAns()
-		s.Run()
-
-		during = time.Since(start)
-		if during < frameTime {
-			time.Sleep(frameTime - during)
-		}
-	}
+	gos.SetFrameTime(20 * time.Millisecond)
+	gos.Run(nil)
 }
