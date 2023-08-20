@@ -1,0 +1,82 @@
+version: '3.9'
+
+volumes:
+  db-store:
+
+services:
+
+  db:
+    container_name: 'mariadb'
+    # Dockerfile 的路徑位於 [context]/[dockerfile]。
+    build:
+      # Dockerfile 中的相對路徑，是相對於[context]這個位置。
+      context: .
+      dockerfile: containers/mariadb/Dockerfile    
+    volumes:
+      - type: volume
+        source: db-store
+        target: /var/lib/mysql
+        volume:
+          nocopy: true
+    ports:
+      - target: 3306
+        published: ${DB_PORT:-3306}
+        protocol: tcp
+        mode: host
+
+    environment:
+      - MYSQL_DATABASE=${DB_NAME:-pekomiko}
+      - MYSQL_USER=${DB_USER:-db_user}
+      - MYSQL_PASSWORD=${DB_PASS:-password}
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD:-password}
+      - MYSQL_ROOT_HOST=%
+
+    healthcheck:
+      test: mysqladmin ping -h 127.0.0.1 -u$$MYSQL_USER -p$$MYSQL_PASSWORD
+      # ヘルスチェックのインターバルは10秒
+      interval: 10s
+      # タイムアウト時間は10秒
+      timeout: 10s
+      # リトライ回数は3回
+      retries: 3
+      # ヘルスチェックが失敗しても無視する時間は30秒
+      start_period: 30s
+
+    networks:
+      - social-network
+
+  app:
+    container_name: 'gsns'
+    build:
+      context: .
+      dockerfile: ./containers/go/Dockerfile
+    ports:
+      - 1023:1023
+      - 1022:1022
+      - 1021:1021
+      - 1020:1020
+    volumes:
+      - type: bind
+        source: ./app
+        target: /usr/src/app
+        consistency: delegated
+    depends_on:
+      db:
+        # dbのヘルスチェックが終わってからappを起動させる
+        condition: service_healthy
+
+    tty: true
+    environment:
+      - DB_CONNECTION=mysql
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_DATABASE=${DB_NAME:-pekomiko}
+      - DB_USERNAME=${DB_USER:-db_user}
+      - DB_PASSWORD=${DB_PASS:-password}
+    
+    networks:
+      - social-network
+
+networks:
+  social-network:
+    driver: bridge

@@ -16,3 +16,8 @@
 
 # Add by myself
 *.log
+
+/app/cmd/dba/dba
+/app/cmd/account/account
+/app/cmd/post_message/post_message
+/app/cmd/gsns/gsns

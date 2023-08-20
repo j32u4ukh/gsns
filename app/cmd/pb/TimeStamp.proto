@@ -1,0 +1,22 @@
+syntax = "proto3";
+option go_package = ".;pbgo";
+
+message TimeStamp {
+    // 年
+    int32 year = 1;
+
+    // 月
+    int32 month = 2;
+
+    // 日
+    int32 day = 3;
+
+    // 時
+    int32 hour = 4;
+
+    // 分
+    int32 minute = 5;
+
+    // 秒
+    int32 second = 6;
+}
