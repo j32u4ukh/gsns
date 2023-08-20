@@ -153,8 +153,12 @@ func (m *AccountMgr) handleAccountCommission(work *base.Work, agreement *agrt.Ag
 
 	case define.GetOtherUsers:
 		m.responseCommission(agreement, func(c *ghttp.Context) {
+			ids := []int32{}
+			for _, account := range agreement.Accounts {
+				ids = append(ids, account.Index)
+			}
 			c.Json(ghttp.StatusOK, ghttp.H{
-				"users": agreement.Accounts,
+				"users": ids,
 			})
 		})
 

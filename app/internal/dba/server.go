@@ -11,6 +11,7 @@ import (
 	"github.com/j32u4ukh/gos/base"
 	"github.com/j32u4ukh/gosql"
 	"github.com/j32u4ukh/gosql/database"
+	"github.com/j32u4ukh/gosql/stmt"
 )
 
 type DbaServer struct {
@@ -311,8 +312,8 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 		requester := agreement.Accounts[0].Index
 		selector := s.tables[TidAccount].GetSelector()
 		defer s.tables[TidAccount].PutSelector(selector)
-		// TODO: selector.SetSelectItem(stmt.NewSelectItem("id"))
 		logger.Info("requester: %d", requester)
+		selector.SetSelectItem(stmt.NewSelectItem("index").UseBacktick())
 		selector.SetCondition(gosql.WS().Ne("index", requester))
 		results, err := selector.Query(func() any { return &pbgo.Account{} })
 		if err != nil {
@@ -324,10 +325,10 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 		agreement.Accounts = agreement.Accounts[:0]
 		for _, result := range results {
 			account = result.(*pbgo.Account)
+			logger.Debug("account: %+v", account)
 			account.Password = ""
 			account.CreateTime = nil
 			account.UpdateTime = nil
-			logger.Debug("account: %+v", account)
 			agreement.Accounts = append(agreement.Accounts, account)
 		}
 
