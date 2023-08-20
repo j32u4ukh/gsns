@@ -54,7 +54,7 @@ type ErrorConfig struct {
 
 	// 409 Conflict
 	Conflict int32 `yaml:"Conflict"`
-	// 重複的作用實體
+	// 重複的實體
 	DuplicateEntity int32 `yaml:"DuplicateEntity"`
 
 	// 500 Internal Server Error
@@ -174,7 +174,14 @@ func ErrorMessage(code int32, contents ...any) (int32, int32, string) {
 		}
 	// 根據參數找不到用戶
 	case Error.NotFoundUser:
-		em = fmt.Sprintf("Not found user refer to %s: %+v", contents[0].(string), contents[1])
+		nContent := len(contents)
+		if nContent == 2 {
+			em = fmt.Sprintf("Not found user refer to %s: %+v", contents[0].(string), contents[1])
+		} else if nContent == 4 {
+			em = fmt.Sprintf("Not found user refer to (%s, %s): (%+v, %+v)", contents[0].(string), contents[2].(string), contents[1], contents[3])
+		} else {
+			em = fmt.Sprintf("Not found user refer to %+v", contents[0])
+		}
 
 	// 409 Conflict
 	case Error.Conflict:

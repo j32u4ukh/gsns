@@ -113,7 +113,9 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 
 	case define.Login:
 		defer s.responseCommission(work, agreement)
+		agreement.ReturnCode = define.Error.None
 		account := agreement.Accounts[0]
+		agreement.Accounts = agreement.Accounts[:0]
 
 		//////////////////////////////////////////////////
 		// 開始讀取帳號資料
@@ -129,9 +131,13 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 			logger.Error("%s, err: %+v", agreement.Msg, err)
 			return
 		}
-		if len(results) != 1 {
-			agreement.ReturnCode = 2
-			agreement.Msg = fmt.Sprintf("讀取的結果數量不正確, #account: %d", len(results))
+		nResult := len(results)
+		if nResult == 0 {
+			_, agreement.ReturnCode, agreement.Msg = define.ErrorMessage(define.Error.NotFoundUser, "account", account.Account, "password", account.Password)
+			logger.Error(agreement.Msg)
+			return
+		} else if nResult > 1 {
+			_, agreement.ReturnCode, agreement.Msg = define.ErrorMessage(define.Error.DuplicateEntity, fmt.Sprintf("#result: %d", nResult))
 			logger.Error(agreement.Msg)
 			return
 		}
@@ -140,7 +146,7 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 		account.CreateTime = nil
 		account.UpdateUtc = utils.TimestampToUtc(account.UpdateTime)
 		account.UpdateTime = nil
-		agreement.Accounts[0] = account
+		agreement.Accounts = append(agreement.Accounts, account)
 		//////////////////////////////////////////////////
 		// 完成帳號資料讀取
 		//////////////////////////////////////////////////
@@ -152,7 +158,7 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 		edgeSelector.SetCondition(gosql.WS().Eq("user_id", account.Index))
 		results, err = edgeSelector.Query(func() any { return &pbgo.Edge{} })
 		if err != nil {
-			_, agreement.ReturnCode, agreement.Msg = define.ErrorMessage(define.Error.FailedSelectDb, "account")
+			_, agreement.ReturnCode, agreement.Msg = define.ErrorMessage(define.Error.FailedSelectDb, "edge")
 			logger.Error("%s, err: %+v", agreement.Msg, err)
 			return
 		}
@@ -166,24 +172,23 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 			edge.UpdateTime = nil
 			agreement.Edges = append(agreement.Edges, edge)
 		}
-		agreement.ReturnCode = 0
 		//////////////////////////////////////////////////
 		// 完成社群資料讀取
 		//////////////////////////////////////////////////
 		//////////////////////////////////////////////////
 		// 開始讀取貼文資料
 		//////////////////////////////////////////////////
+		agreement2 := agrt.GetAgreement()
+		defer agrt.PutAgreement(agreement2)
 		pmSelector := s.tables[TidPostMessage].GetSelector()
 		defer s.tables[TidPostMessage].PutSelector(pmSelector)
 		pmSelector.SetCondition(gosql.WS().Eq("user_id", account.Index))
 		results, err = pmSelector.Query(func() any { return &pbgo.PostMessage{} })
 		if err != nil {
-			_, agreement.ReturnCode, agreement.Msg = define.ErrorMessage(define.Error.FailedSelectDb, "post message")
-			logger.Error("%s, err: %+v", agreement.Msg, err)
+			_, agreement2.ReturnCode, agreement2.Msg = define.ErrorMessage(define.Error.FailedSelectDb, "post message")
+			logger.Error("%s, err: %+v", agreement2.Msg, err)
 			return
 		}
-		agreement2 := agrt.GetAgreement()
-		defer agrt.PutAgreement(agreement2)
 		agreement2.Cmd = define.NormalCommand
 		agreement2.Service = define.GetMyPosts
 		var pm *pbgo.PostMessage

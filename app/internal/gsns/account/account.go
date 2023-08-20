@@ -127,9 +127,10 @@ func (m *AccountMgr) handleAccountCommission(work *base.Work, agreement *agrt.Ag
 			}
 
 			c.Json(ghttp.StatusOK, ghttp.H{
+				"ret":    define.Error.None,
 				"msg":    fmt.Sprintf("User %s login success", account.Account),
 				"token":  user.Token,
-				"info":   user.Info,
+				"index":  user.Index,
 				"n_edge": len(agreement.Edges),
 			})
 		})
