@@ -85,14 +85,6 @@ func (m *AccountMgr) handleAccountCommission(work *base.Work, agreement *agrt.Ag
 	switch agreement.Service {
 	case define.Register:
 		m.responseCommission(agreement, nil)
-		// // 利用 cid 取得對應的 Context
-		// c := m.httpAnswer.GetContext(agreement.Cid)
-		// m.logger.Info("agreement(%d): %+v", agreement.ReturnCode, agreement)
-		// c.Json(define.GetStatus(agreement.ReturnCode), ghttp.H{
-		// 	"ret": agreement.ReturnCode,
-		// 	"msg": agreement.Msg,
-		// })
-		// m.httpAnswer.Send(c)
 
 	case define.Login:
 		m.responseCommission(agreement, func(c *ghttp.Context) {
@@ -135,55 +127,6 @@ func (m *AccountMgr) handleAccountCommission(work *base.Work, agreement *agrt.Ag
 			})
 		})
 
-		// // 取得空閒的 HTTP 連線物件
-		// c := m.httpAnswer.GetContext(agreement.Cid)
-		// defer m.httpAnswer.Send(c)
-		// m.logger.Info("agreement(%d): %+v", agreement.ReturnCode, agreement)
-
-		// if agreement.ReturnCode == define.Error.None {
-		// 	account := agreement.Accounts[0]
-		// 	m.logger.Info("index: %d, name: %s, Account: %+v", account.Index, account.Account, account)
-		// 	user := &pbgo.User{
-		// 		Index: account.Index,
-		// 		Name:  account.Account,
-		// 		Info:  account.Info,
-		// 		Token: m.getToken(),
-		// 	}
-		// 	m.logger.Info("New user: %+v", user)
-		// 	if m.users.ContainKey1(account.Index) {
-		// 		m.users.UpdateByKey1(account.Index, cntr.NewBivalue(account.Index, user.Token, user))
-		// 	} else {
-		// 		err := m.users.Add(user.Index, user.Token, user)
-		// 		if err != nil {
-		// 			msg := utils.JsonResponse(c, define.Error.InvalidInsertData, user)
-		// 			m.logger.Error("%s, err: %+v", msg, err)
-		// 			return
-		// 		}
-		// 	}
-
-		// 	// 初始化用戶的 Edges
-		// 	if _, ok := m.Edges[account.Index]; !ok {
-		// 		m.Edges[account.Index] = cntr.NewSet[int32]()
-		// 	}
-
-		// 	// 寫入社群資訊
-		// 	for _, edge := range agreement.Edges {
-		// 		m.Edges[account.Index].Add(edge.Target)
-		// 	}
-
-		// 	c.Json(ghttp.StatusOK, ghttp.H{
-		// 		"msg":    fmt.Sprintf("User %s login success", account.Account),
-		// 		"token":  user.Token,
-		// 		"info":   user.Info,
-		// 		"n_edge": len(agreement.Edges),
-		// 	})
-		// } else {
-		// 	c.Json(define.GetStatus(agreement.ReturnCode), ghttp.H{
-		// 		"ret": agreement.ReturnCode,
-		// 		"msg": agreement.Msg,
-		// 	})
-		// }
-
 	case define.SetUserData:
 		m.responseCommission(agreement, func(c *ghttp.Context) {
 			account := agreement.Accounts[0]
@@ -208,54 +151,12 @@ func (m *AccountMgr) handleAccountCommission(work *base.Work, agreement *agrt.Ag
 			}
 		})
 
-		// // 取得空閒的 HTTP 連線物件
-		// c := m.httpAnswer.GetContext(agreement.Cid)
-
-		// if agreement.ReturnCode == define.Error.None {
-		// 	account := agreement.Accounts[0]
-		// 	m.logger.Info("index: %d, name: %s", account.Index, account.Account)
-		// 	// 檢查緩存中是否存在
-		// 	user, ok := m.users.GetByKey1(account.Index)
-		// 	if !ok {
-		// 		m.logger.Error(utils.JsonResponse(c, define.Error.NotFoundUser, "index", account.Index))
-		// 	} else {
-		// 		user.Name = account.Account
-		// 		user.Info = account.Info
-		// 		bivalue := cntr.NewBivalue(user.Index, user.Token, user)
-
-		// 		// 更新用戶緩存
-		// 		m.users.UpdateByKey1(user.Index, bivalue)
-
-		// 		c.Json(ghttp.StatusOK, ghttp.H{
-		// 			"msg":   fmt.Sprintf("User %s update success", account.Account),
-		// 			"token": user.Token,
-		// 			"info":  user.Info,
-		// 		})
-		// 	}
-		// } else {
-		// 	c.Json(define.GetStatus(agreement.ReturnCode), ghttp.H{
-		// 		"ret": agreement.ReturnCode,
-		// 		"msg": agreement.Msg,
-		// 	})
-		// }
-		// m.httpAnswer.Send(c)
-
 	case define.GetOtherUsers:
 		m.responseCommission(agreement, func(c *ghttp.Context) {
 			c.Json(ghttp.StatusOK, ghttp.H{
 				"users": agreement.Accounts,
 			})
 		})
-
-		// c := m.httpAnswer.GetContext(agreement.Cid)
-		// if agreement.ReturnCode == define.Error.None {
-		// } else {
-		// 	c.Json(define.GetStatus(agreement.ReturnCode), ghttp.H{
-		// 		"ret": agreement.ReturnCode,
-		// 		"msg": agreement.Msg,
-		// 	})
-		// }
-		// m.httpAnswer.Send(c)
 
 	case define.Subscribe:
 		m.responseCommission(agreement, func(c *ghttp.Context) {

@@ -108,25 +108,6 @@ func (s *PostMessageServer) handleCommission(work *base.Work, agreement *agrt.Ag
 	case define.AddPost:
 		s.handleCommissionRequest(work, agreement)
 
-		// // 將註冊數據傳到 Dba 伺服器
-		// _, err := agrt.SendToServer(define.DbaServer, agreement)
-		// if err != nil {
-		// 	_, agreement.ReturnCode, agreement.Msg = define.ErrorMessage(define.Error.CannotSendMessage, "to Dba server")
-		// 	logger.Error("%s, err: %+v", agreement.Msg, err)
-
-		// 	_, err = agrt.SendWork(work, agreement)
-		// 	if err != nil {
-		// 		_, _, agreement.Msg = define.ErrorMessage(define.Error.CannotSendMessage, "work")
-		// 		logger.Error("%s, err: %+v", agreement.Msg, err)
-		// 		work.Finish()
-		// 	} else {
-		// 		logger.Info("Send define.AddPost response(%d): %+v", agreement.ReturnCode, agreement)
-		// 	}
-		// } else {
-		// 	logger.Info("Send define.AddPost request: %+v", agreement)
-		// 	work.Finish()
-		// }
-
 	// TODO: 若該 post id 存在於緩存當中，則可直接返回，不需要再問 DBA
 	case define.GetPost:
 		var err error
@@ -168,8 +149,6 @@ func (s *PostMessageServer) handleCommission(work *base.Work, agreement *agrt.Ag
 				}
 			}
 		} else {
-			// agreement.ReturnCode = 1
-			// agreement.Msg = fmt.Sprintf("Not found posts belong to user with id: %d", userId)
 			_, agreement.ReturnCode, agreement.Msg = define.ErrorMessage(define.Error.NotFoundUser, "user_id", userId)
 		}
 
@@ -196,22 +175,6 @@ func (s *PostMessageServer) handleCommission(work *base.Work, agreement *agrt.Ag
 
 	case define.GetSubscribedPosts:
 		s.handleCommissionRequest(work, agreement)
-		// _, err := agrt.SendToServer(define.DbaServer, agreement)
-		// if err != nil {
-		// 	_, agreement.ReturnCode, agreement.Msg = define.ErrorMessage(define.Error.CannotSendMessage, "to Dba server")
-		// 	logger.Error("%s, err: %+v", agreement.Msg, err)
-		// 	_, err := agrt.SendWork(work, agreement)
-		// 	if err != nil {
-		// 		_, _, agreement.Msg = define.ErrorMessage(define.Error.CannotSendMessage, "work")
-		// 		logger.Error("%s, err: %+v", agreement.Msg, err)
-		// 		work.Finish()
-		// 	} else {
-		// 		logger.Info("Send define.GetSubscribedPosts response(%d): %+v", agreement.ReturnCode, agreement)
-		// 	}
-		// } else {
-		// 	logger.Info("Send define.GetSubscribedPosts request: %+v", agreement)
-		// 	work.Finish()
-		// }
 
 	default:
 		fmt.Printf("Unsupport commission service: %d", agreement.Service)

@@ -100,25 +100,6 @@ func (s *AccountServer) handleCommission(work *base.Work, agreement *agrt.Agreem
 	case define.Register:
 		s.handleCommissionRequest(work, agreement)
 
-		// // 將註冊數據傳到 Dba 伺服器
-		// _, err := agrt.SendToServer(define.DbaServer, agreement)
-		// if err != nil {
-		// 	_, agreement.ReturnCode, agreement.Msg = define.ErrorMessage(define.Error.CannotSendMessage, "to Dba server")
-		// 	logger.Error("%s, err: %+v", agreement.Msg, err)
-
-		// 	_, err = agrt.SendWork(work, agreement)
-		// 	if err != nil {
-		// 		_, _, agreement.Msg = define.ErrorMessage(define.Error.CannotSendMessage, "work")
-		// 		logger.Error("%s, err: %+v", agreement.Msg, err)
-		// 		work.Finish()
-		// 	} else {
-		// 		logger.Info("Send define.Register response(%d): %+v", agreement.ReturnCode, agreement.Msg)
-		// 	}
-		// } else {
-		// 	logger.Info("Send define.Register request: %+v", agreement)
-		// 	work.Finish()
-		// }
-
 	case define.Login:
 		defer logger.Info("Check Login agreement: %+v", agreement)
 		data := agreement.Accounts[0]
@@ -165,25 +146,6 @@ func (s *AccountServer) handleCommission(work *base.Work, agreement *agrt.Agreem
 			s.handleCommissionRequest(work, agreement)
 		}
 
-		// _, err = agrt.SendToServer(define.DbaServer, agreement)
-		// if err != nil {
-		// 	_, agreement.ReturnCode, agreement.Msg = define.ErrorMessage(define.Error.CannotSendMessage, "to Dba server")
-		// 	logger.Error("%s, err: %+v", agreement.Msg, err)
-		// 	agreement.Accounts = agreement.Accounts[:0]
-
-		// 	_, err = agrt.SendWork(work, agreement)
-		// 	if err != nil {
-		// 		_, _, agreement.Msg = define.ErrorMessage(define.Error.CannotSendMessage, "work")
-		// 		logger.Error("%s, err: %+v", agreement.Msg, err)
-		// 		work.Finish()
-		// 	} else {
-		// 		logger.Info("Send define.Login response: (%d) %+v", agreement.ReturnCode, agreement)
-		// 	}
-		// } else {
-		// 	logger.Info("Send define.Login request: %+v", agreement)
-		// 	work.Finish()
-		// }
-
 	// 設置用戶資料
 	case define.SetUserData:
 		var err error
@@ -210,64 +172,13 @@ func (s *AccountServer) handleCommission(work *base.Work, agreement *agrt.Agreem
 		// 更新緩存後，再將更新請求傳送給 DBA server
 		// ==================================================
 		s.handleCommissionRequest(work, agreement)
-		// _, err = agrt.SendToServer(define.DbaServer, agreement)
-		// if err != nil {
-		// 	_, agreement.ReturnCode, agreement.Msg = define.ErrorMessage(define.Error.CannotSendMessage, "to Dba server")
-		// 	logger.Error("%s, err: %+v", agreement.Msg, err)
-
-		// 	_, err = agrt.SendWork(work, agreement)
-		// 	if err != nil {
-		// 		_, _, agreement.Msg = define.ErrorMessage(define.Error.CannotSendMessage, "work")
-		// 		logger.Error("%s, err: %+v", agreement.Msg, err)
-		// 		work.Finish()
-		// 	} else {
-		// 		logger.Info("Send define.SetUserData response: (%d) %+v", agreement.ReturnCode, agreement)
-		// 	}
-		// } else {
-		// 	logger.Info("Send define.SetUserData request: %+v", agreement)
-		// 	// 當前工作直接結束，無須回應
-		// 	work.Finish()
-		// }
 
 	case define.GetOtherUsers:
 		s.handleCommissionRequest(work, agreement)
 
-		// _, err := agrt.SendToServer(define.DbaServer, agreement)
-		// if err != nil {
-		// 	_, agreement.ReturnCode, agreement.Msg = define.ErrorMessage(define.Error.CannotSendMessage, "to Dba server")
-		// 	logger.Error("%s, err: %+v", agreement.Msg, err)
-		// 	_, err = agrt.SendWork(work, agreement)
-		// 	if err != nil {
-		// 		_, _, agreement.Msg = define.ErrorMessage(define.Error.CannotSendMessage, "work")
-		// 		logger.Error("%s, err: %+v", agreement.Msg, err)
-		// 		work.Finish()
-		// 	} else {
-		// 		logger.Info("Send define.GetOtherUsers response: (%d) %+v", agreement.ReturnCode, agreement)
-		// 	}
-		// } else {
-		// 	logger.Info("Send define.GetOtherUsers request: %+v", agreement)
-		// 	work.Finish()
-		// }
-
 	case define.Subscribe:
 		s.handleCommissionRequest(work, agreement)
 
-		// _, err := agrt.SendToServer(define.DbaServer, agreement)
-		// if err != nil {
-		// 	_, agreement.ReturnCode, agreement.Msg = define.ErrorMessage(define.Error.CannotSendMessage, "to Dba server")
-		// 	logger.Error("%s, err: %+v", agreement.Msg, err)
-		// 	_, err = agrt.SendWork(work, agreement)
-		// 	if err != nil {
-		// 		_, _, agreement.Msg = define.ErrorMessage(define.Error.CannotSendMessage, "work")
-		// 		logger.Error("%s, err: %+v", agreement.Msg, err)
-		// 		work.Finish()
-		// 	} else {
-		// 		logger.Info("Send define.Subscribe response: (%d) %+v", agreement.ReturnCode, agreement)
-		// 	}
-		// } else {
-		// 	logger.Info("Send define.Subscribe request: %+v", agreement)
-		// 	work.Finish()
-		// }
 	default:
 		fmt.Printf("Unsupport commission: %d", agreement.Service)
 		work.Finish()
