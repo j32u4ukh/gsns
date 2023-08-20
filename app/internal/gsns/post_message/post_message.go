@@ -23,15 +23,17 @@ type PostMessageProtocol struct {
 // 與 PostMessage 相關的由這個物件來管理
 type PostMessageMgr struct {
 	httpAnswer         *ans.HttpAnser
-	logger             *glog.Logger
+	serverLogger       *glog.Logger
+	clientLogger       *glog.Logger
 	getUserByTokenFunc func(token string) (*pbgo.User, bool)
 	heartbeatTime      time.Time
 }
 
-func NewPostMessageMgr(lg *glog.Logger) *PostMessageMgr {
+func NewPostMessageMgr(slog, clog *glog.Logger) *PostMessageMgr {
 	m := &PostMessageMgr{
 		heartbeatTime: time.Now(),
-		logger:        lg,
+		serverLogger:  slog,
+		clientLogger:  clog,
 	}
 	return m
 }
@@ -46,7 +48,7 @@ func (m *PostMessageMgr) WorkHandler(work *base.Work) {
 	err := agreement.Init(work)
 	if err != nil {
 		work.Finish()
-		m.logger.Error("Failed to unmarshal agreement, err: %+v", err)
+		m.serverLogger.Error("Failed to unmarshal agreement, err: %+v", err)
 		return
 	}
 	switch agreement.Cmd {
@@ -66,12 +68,12 @@ func (m *PostMessageMgr) handleSystem(work *base.Work, agreement *agrt.Agreement
 	switch agreement.Service {
 	case define.Heartbeat:
 		if time.Now().After(m.heartbeatTime) {
-			m.logger.Info("Heart response Now: %+v", time.Now())
+			m.serverLogger.Info("Heart response Now: %+v", time.Now())
 			m.heartbeatTime = time.Now().Add(1 * time.Minute)
 		}
 		work.Finish()
 	default:
-		fmt.Printf("Unsupport system service: %d\n", agreement.Service)
+		m.clientLogger.Warn("Unsupport system service: %d", agreement.Service)
 		work.Finish()
 	}
 }
@@ -138,7 +140,7 @@ func (m *PostMessageMgr) SetFuncGetUserByToken(f func(token string) (*pbgo.User,
 
 func (m *PostMessageMgr) responseCommission(agreement *agrt.Agreement, handlerFunc func(c *ghttp.Context)) {
 	// 檢視收到的回應
-	m.logger.Info("agreement(%d): %+v", agreement.ReturnCode, agreement)
+	m.serverLogger.Info("agreement(%d): %+v", agreement.ReturnCode, agreement)
 	// 利用 cid 取得對應的 Context
 	c := m.httpAnswer.GetContext(agreement.Cid)
 	if (agreement.ReturnCode == define.Error.None) && (handlerFunc != nil) {

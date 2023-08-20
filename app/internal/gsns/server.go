@@ -15,8 +15,8 @@ type MainServer struct {
 
 func newMainServer() *MainServer {
 	m := &MainServer{
-		AMgr: account.NewAccountMgr(logger),
-		PMgr: pm.NewPostMessageMgr(logger),
+		AMgr: account.NewAccountMgr(serverLogger, clientLogger),
+		PMgr: pm.NewPostMessageMgr(serverLogger, clientLogger),
 	}
 	m.PMgr.SetFuncGetUserByToken(m.AMgr.GetUserByToken)
 	return m

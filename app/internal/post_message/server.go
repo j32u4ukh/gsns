@@ -50,7 +50,7 @@ func (s *PostMessageServer) Handler(work *base.Work) {
 	err := agreement.Init(work)
 	if err != nil {
 		work.Finish()
-		logger.Error("Failed to unmarshal agreement, err: %+v", err)
+		serverLogger.Error("Failed to unmarshal agreement, err: %+v", err)
 		return
 	}
 	switch agreement.Cmd {
@@ -61,7 +61,7 @@ func (s *PostMessageServer) Handler(work *base.Work) {
 	case define.CommissionCommand:
 		s.handleCommission(work, agreement)
 	default:
-		logger.Warn("Unsupport command: %d\n", agreement.Cmd)
+		clientLogger.Warn("Unsupport command: %d", agreement.Cmd)
 		work.Finish()
 	}
 }
@@ -75,20 +75,20 @@ func (s *PostMessageServer) handleSystem(work *base.Work, agreement *agrt.Agreem
 		_, err := agrt.SendWork(work, agreement)
 		if err != nil {
 			_, _, agreement.Msg = define.ErrorMessage(define.Error.CannotSendMessage, "work")
-			logger.Error("%s, err: %+v", agreement.Msg, err)
+			serverLogger.Error("%s, err: %+v", agreement.Msg, err)
 		}
 	case define.Introduction:
 		if agreement.Cipher != define.CIPHER {
 			_, _, agreement.Msg = define.ErrorMessage(define.Error.WrongConnectionIdentity, agreement.Cipher, agreement.Identity)
-			logger.Error(agreement.Msg)
+			clientLogger.Error(agreement.Msg)
 			gos.Disconnect(define.DbaPort, work.Index)
 		} else {
 			s.serverIdDict[agreement.Identity] = work.Index
-			logger.Info("Hello %s from %d", define.ServerName(agreement.Identity), work.Index)
+			serverLogger.Info("Hello %s from %d", define.ServerName(agreement.Identity), work.Index)
 		}
 		work.Finish()
 	default:
-		logger.Warn("Unsupport system service: %d\n", agreement.Service)
+		clientLogger.Warn("Unsupport system service: %d\n", agreement.Service)
 		work.Finish()
 	}
 }
@@ -96,13 +96,13 @@ func (s *PostMessageServer) handleSystem(work *base.Work, agreement *agrt.Agreem
 func (s *PostMessageServer) handleNormal(work *base.Work, agreement *agrt.Agreement) {
 	switch agreement.Service {
 	default:
-		logger.Warn("Unsupport normal service: %d", agreement.Service)
+		clientLogger.Warn("Unsupport normal service: %d", agreement.Service)
 		work.Finish()
 	}
 }
 
 func (s *PostMessageServer) handleCommission(work *base.Work, agreement *agrt.Agreement) {
-	logger.Info("Service: %d, Cid: %d", agreement.Service, agreement.Cid)
+	serverLogger.Info("Service: %d, Cid: %d", agreement.Service, agreement.Cid)
 
 	switch agreement.Service {
 	case define.AddPost:
@@ -119,21 +119,14 @@ func (s *PostMessageServer) handleCommission(work *base.Work, agreement *agrt.Ag
 			_, err = agrt.SendToServer(define.DbaServer, agreement)
 			if err != nil {
 				_, agreement.ReturnCode, agreement.Msg = define.ErrorMessage(define.Error.CannotSendMessage, "to Dba server")
-				logger.Error("%s, err: %+v", agreement.Msg, err)
+				serverLogger.Error("%s, err: %+v", agreement.Msg, err)
 			} else {
-				logger.Info("Send define.GetPost request: %+v", agreement)
+				serverLogger.Info("Send define.GetPost request: %+v", agreement)
 				work.Finish()
 				return
 			}
 		}
-
-		_, err = agrt.SendWork(work, agreement)
-		if err != nil {
-			_, _, agreement.Msg = define.ErrorMessage(define.Error.CannotSendMessage, "work")
-			logger.Error("%s, err: %+v", agreement.Msg, err)
-		} else {
-			logger.Info("Send %s request: %+v", define.ServiceName(agreement.Service), agreement)
-		}
+		s.handleRequest(work, agreement)
 
 	case define.GetMyPosts:
 		userId := agreement.Accounts[0].Index
@@ -152,25 +145,15 @@ func (s *PostMessageServer) handleCommission(work *base.Work, agreement *agrt.Ag
 			_, agreement.ReturnCode, agreement.Msg = define.ErrorMessage(define.Error.NotFoundUser, "user_id", userId)
 		}
 
-		_, err := agrt.SendWork(work, agreement)
-		if err != nil {
-			_, _, agreement.Msg = define.ErrorMessage(define.Error.CannotSendMessage, "work")
-			logger.Error("%s, err: %+v", agreement.Msg, err)
-		} else {
-			logger.Info("Send %s request: %+v", define.ServiceName(agreement.Service), agreement)
-		}
+		s.handleRequest(work, agreement)
 
 	case define.ModifyPost:
-		if len(agreement.PostMessages) == 1 {
+		nPost := len(agreement.PostMessages)
+		if nPost == 1 {
 			s.handleCommissionRequest(work, agreement)
 		} else {
-			_, err := agrt.SendWork(work, agreement)
-			if err != nil {
-				_, _, agreement.Msg = define.ErrorMessage(define.Error.CannotSendMessage, "work")
-				logger.Error("%s, err: %+v", agreement.Msg, err)
-			} else {
-				logger.Info("Send %s request: %+v", define.ServiceName(agreement.Service), agreement)
-			}
+			_, agreement.ReturnCode, agreement.Msg = define.ErrorMessage(define.Error.TooManyParameter, 1, nPost)
+			s.handleRequest(work, agreement)
 		}
 
 	case define.GetSubscribedPosts:
@@ -182,21 +165,31 @@ func (s *PostMessageServer) handleCommission(work *base.Work, agreement *agrt.Ag
 	}
 }
 
+func (s *PostMessageServer) handleRequest(work *base.Work, agreement *agrt.Agreement) {
+	_, err := agrt.SendWork(work, agreement)
+	if err != nil {
+		_, _, agreement.Msg = define.ErrorMessage(define.Error.CannotSendMessage, "work")
+		serverLogger.Error("%s, err: %+v", agreement.Msg, err)
+	} else {
+		serverLogger.Info("Send %s request: %+v", define.ServiceName(agreement.Service), agreement)
+	}
+}
+
 func (s *PostMessageServer) handleCommissionRequest(work *base.Work, agreement *agrt.Agreement) {
 	_, err := agrt.SendToServer(define.DbaServer, agreement)
 	if err != nil {
 		_, agreement.ReturnCode, agreement.Msg = define.ErrorMessage(define.Error.CannotSendMessage, "to Dba server")
-		logger.Error("%s, err: %+v", agreement.Msg, err)
+		serverLogger.Error("%s, err: %+v", agreement.Msg, err)
 		_, err = agrt.SendWork(work, agreement)
 		if err != nil {
 			_, _, agreement.Msg = define.ErrorMessage(define.Error.CannotSendMessage, "work")
-			logger.Error("%s, err: %+v", agreement.Msg, err)
+			serverLogger.Error("%s, err: %+v", agreement.Msg, err)
 			work.Finish()
 		} else {
-			logger.Info("Send %s response(%d): %+v", define.ServiceName(agreement.Service), agreement.ReturnCode, agreement)
+			serverLogger.Info("Send %s response(%d): %+v", define.ServiceName(agreement.Service), agreement.ReturnCode, agreement)
 		}
 	} else {
-		logger.Info("Send %s request: %+v", define.ServiceName(agreement.Service), agreement)
+		serverLogger.Info("Send %s request: %+v", define.ServiceName(agreement.Service), agreement)
 		work.Finish()
 	}
 }

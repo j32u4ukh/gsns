@@ -18,6 +18,8 @@ InvalidBodyData: 400006
 InvalidTarget: 400007
 # 錯誤的參數
 WrongParameter: 400008
+# 過多的參數
+TooManyParameter: 400009
 
 
 # 401 Unauthorized

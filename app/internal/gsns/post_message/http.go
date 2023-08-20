@@ -26,19 +26,19 @@ func (m *PostMessageMgr) addNewPost(c *ghttp.Context) {
 	err := c.ReadJson(pmp)
 	if err != nil {
 		msg := utils.JsonResponse(c, define.Error.InvalidBodyData)
-		m.logger.Error("%s, err: %+v", msg, err)
+		m.clientLogger.Error("%s, err: %+v", msg, err)
 		return
 	}
-	m.logger.Info("PostMessageProtocol: %+v", pmp)
+	m.serverLogger.Info("PostMessageProtocol: %+v", pmp)
 
 	if pmp.Token == "" || pmp.Content == "" {
-		m.logger.Error(utils.JsonResponse(c, define.Error.MissingParameters, "token or content"))
+		m.clientLogger.Error(utils.JsonResponse(c, define.Error.MissingParameters, "token or content"))
 		return
 	}
 
 	user, ok := m.getUserByTokenFunc(pmp.Token)
 	if !ok {
-		m.logger.Error(utils.JsonResponse(c, define.Error.NotFoundUser, "token", pmp.Token))
+		m.clientLogger.Error(utils.JsonResponse(c, define.Error.NotFoundUser, "token", pmp.Token))
 		return
 	}
 
@@ -56,9 +56,9 @@ func (m *PostMessageMgr) addNewPost(c *ghttp.Context) {
 	_, err = agrt.SendToServer(define.PostMessageServer, agreement)
 	if err != nil {
 		msg := utils.JsonResponse(c, define.Error.CannotSendMessage, "to PostMessage server")
-		m.logger.Error("%s, err: %+v", msg, err)
+		m.serverLogger.Error("%s, err: %+v", msg, err)
 	} else {
-		m.logger.Info("Send define.AddPost request: %+v", agreement)
+		m.serverLogger.Info("Send define.AddPost request: %+v", agreement)
 	}
 }
 
@@ -68,12 +68,12 @@ func (m *PostMessageMgr) getPost(c *ghttp.Context) {
 	value := c.GetValue("post_id")
 
 	if value == nil {
-		m.logger.Error(utils.JsonResponse(c, define.Error.MissingParameters, "post_id"))
+		m.clientLogger.Error(utils.JsonResponse(c, define.Error.MissingParameters, "post_id"))
 		return
 	}
 
 	post_id := value.(int64)
-	m.logger.Info("post_id: %d", post_id)
+	m.serverLogger.Info("post_id: %d", post_id)
 
 	agreement := agrt.GetAgreement()
 	defer agrt.PutAgreement(agreement)
@@ -87,9 +87,9 @@ func (m *PostMessageMgr) getPost(c *ghttp.Context) {
 	_, err := agrt.SendToServer(define.PostMessageServer, agreement)
 	if err != nil {
 		msg := utils.JsonResponse(c, define.Error.CannotSendMessage, "to PostMessage server")
-		m.logger.Error("%s, err: %+v", msg, err)
+		m.serverLogger.Error("%s, err: %+v", msg, err)
 	} else {
-		m.logger.Info("Send define.GetPost request: %+v", agreement)
+		m.serverLogger.Info("Send define.GetPost request: %+v", agreement)
 	}
 }
 
@@ -100,19 +100,19 @@ func (m *PostMessageMgr) getMyPosts(c *ghttp.Context) {
 	err := c.ReadJson(pmp)
 	if err != nil {
 		msg := utils.JsonResponse(c, define.Error.InvalidBodyData)
-		m.logger.Error("%s, err: %+v", msg, err)
+		m.clientLogger.Error("%s, err: %+v", msg, err)
 		return
 	}
-	m.logger.Info("PostMessageProtocol: %+v", pmp)
+	m.serverLogger.Info("PostMessageProtocol: %+v", pmp)
 
 	if pmp.Token == "" {
-		m.logger.Error(utils.JsonResponse(c, define.Error.MissingParameters, "token"))
+		m.clientLogger.Error(utils.JsonResponse(c, define.Error.MissingParameters, "token"))
 		return
 	}
 
 	user, ok := m.getUserByTokenFunc(pmp.Token)
 	if !ok {
-		m.logger.Error(utils.JsonResponse(c, define.Error.NotFoundUser, "token", pmp.Token))
+		m.clientLogger.Error(utils.JsonResponse(c, define.Error.NotFoundUser, "token", pmp.Token))
 		return
 	}
 
@@ -128,9 +128,9 @@ func (m *PostMessageMgr) getMyPosts(c *ghttp.Context) {
 	_, err = agrt.SendToServer(define.PostMessageServer, agreement)
 	if err != nil {
 		msg := utils.JsonResponse(c, define.Error.CannotSendMessage, "to PostMessage server")
-		m.logger.Error("%s, err: %+v", msg, err)
+		m.serverLogger.Error("%s, err: %+v", msg, err)
 	} else {
-		m.logger.Info("Send define.GetMyPosts request: %+v", agreement)
+		m.serverLogger.Info("Send define.GetMyPosts request: %+v", agreement)
 	}
 }
 
@@ -141,18 +141,18 @@ func (m *PostMessageMgr) modifyPost(c *ghttp.Context) {
 	err := c.ReadJson(pmp)
 	if err != nil {
 		msg := utils.JsonResponse(c, define.Error.InvalidBodyData)
-		m.logger.Error("%s, err: %+v", msg, err)
+		m.clientLogger.Error("%s, err: %+v", msg, err)
 		return
 	}
 
 	if pmp.Token == "" || pmp.PostId == 0 || pmp.Content == "" {
-		m.logger.Error(utils.JsonResponse(c, define.Error.MissingParameters, "token, post_id or content"))
+		m.clientLogger.Error(utils.JsonResponse(c, define.Error.MissingParameters, "token, post_id or content"))
 		return
 	}
 
 	user, ok := m.getUserByTokenFunc(pmp.Token)
 	if !ok {
-		m.logger.Error(utils.JsonResponse(c, define.Error.NotFoundUser, "token", pmp.Token))
+		m.clientLogger.Error(utils.JsonResponse(c, define.Error.NotFoundUser, "token", pmp.Token))
 		return
 	}
 
@@ -171,8 +171,8 @@ func (m *PostMessageMgr) modifyPost(c *ghttp.Context) {
 	_, err = agrt.SendToServer(define.PostMessageServer, agreement)
 	if err != nil {
 		msg := utils.JsonResponse(c, define.Error.CannotSendMessage, "to PostMessage server")
-		m.logger.Error("%s, err: %+v", msg, err)
+		m.serverLogger.Error("%s, err: %+v", msg, err)
 	} else {
-		m.logger.Info("Send define.ModifyPost request: %+v", agreement)
+		m.serverLogger.Info("Send define.ModifyPost request: %+v", agreement)
 	}
 }

@@ -17,10 +17,12 @@ import (
 
 var as *AccountServer
 var dbaAsker *ask.Tcp0Asker
-var logger *glog.Logger
+var serverLogger *glog.Logger
+var clientLogger *glog.Logger
 
 func Init() error {
-	logger = glog.GetLogger(0)
+	serverLogger = glog.GetLogger(1)
+	clientLogger = glog.GetLogger(2)
 	err := initGos()
 	if err != nil {
 		return errors.Wrap(err, "Failed to init gos.")
@@ -69,7 +71,7 @@ func initGos() error {
 	var address string = "127.0.0.1"
 	asker, err := gos.Bind(define.DbaServer, address, define.DbaPort, gosDefine.Tcp0, base.OnEventsFunc{
 		gosDefine.OnConnected: func(any) {
-			logger.Info("完成與 Dba Server 建立 TCP 連線")
+			serverLogger.Info("完成與 Dba Server 建立 TCP 連線")
 		},
 	}, &introduction, &heartbeat)
 
@@ -79,8 +81,8 @@ func initGos() error {
 
 	dbaAsker = asker.(*ask.Tcp0Asker)
 	dbaAsker.SetWorkHandler(as.DbaHandler)
-	logger.Info("DbaServer Asker 伺服器初始化完成")
-	logger.Info("伺服器初始化完成")
+	serverLogger.Info("DbaServer Asker 伺服器初始化完成")
+	serverLogger.Info("伺服器初始化完成")
 
 	fmt.Printf("AccountServer | 伺服器初始化完成\n")
 
@@ -88,7 +90,7 @@ func initGos() error {
 	// 開始所有已註冊的監聽
 	// =============================================
 	gos.StartListen()
-	logger.Info("開始所有已註冊的監聽")
+	serverLogger.Info("開始所有已註冊的監聽")
 
 	// =============================================
 	// 開始所有已註冊的連線
@@ -99,7 +101,7 @@ func initGos() error {
 		return errors.Wrap(err, "與 DbaServer 連線時發生錯誤")
 	}
 
-	logger.Info("成功與 DbaServer 連線")
+	serverLogger.Info("成功與 DbaServer 連線")
 	return nil
 }
 

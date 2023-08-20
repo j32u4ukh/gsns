@@ -10,71 +10,49 @@ import (
 
 func main() {
 	fmt.Println("Hello, account!")
-	logger := glog.SetLogger(0, "gsns", glog.DebugLevel)
-	logger.SetOptions(glog.UtcOption(8))
-	logger.SetOptions(glog.FolderOption("../log", glog.ShiftDayAndSize, 1, 5*glog.MB))
-	logger.SetOptions(glog.BasicOption(&glog.Option{
-		Level:     glog.DebugLevel,
-		ToConsole: true,
-		ToFile:    false,
-		FileInfo:  true,
-		LineInfo:  true,
-	}))
-	logger.SetOptions(glog.BasicOption(&glog.Option{
-		Level:     glog.InfoLevel,
-		ToConsole: true,
-		ToFile:    false,
-		FileInfo:  true,
-		LineInfo:  true,
-	}))
-	logger.SetOptions(glog.BasicOption(&glog.Option{
-		Level:     glog.WarnLevel,
-		ToConsole: true,
-		ToFile:    true,
-		FileInfo:  true,
-		LineInfo:  true,
-	}))
-	logger.SetOptions(glog.BasicOption(&glog.Option{
-		Level:     glog.ErrorLevel,
-		ToConsole: true,
-		ToFile:    true,
-		FileInfo:  true,
-		LineInfo:  true,
-	}))
+	options := []glog.IOption{
+		glog.UtcOption(8),
+		glog.FolderOption("../log", glog.ShiftDayAndSize, 1, 5*glog.MB),
+		glog.BasicOption(&glog.Option{
+			Level:     glog.DebugLevel,
+			ToConsole: true,
+			ToFile:    false,
+			FileInfo:  true,
+			LineInfo:  true,
+		}),
+		glog.BasicOption(&glog.Option{
+			Level:     glog.InfoLevel,
+			ToConsole: true,
+			ToFile:    false,
+			FileInfo:  true,
+			LineInfo:  true,
+		}),
+		glog.BasicOption(&glog.Option{
+			Level:     glog.WarnLevel,
+			ToConsole: true,
+			ToFile:    true,
+			FileInfo:  true,
+			LineInfo:  true,
+		}),
+		glog.BasicOption(&glog.Option{
+			Level:     glog.ErrorLevel,
+			ToConsole: true,
+			ToFile:    true,
+			FileInfo:  true,
+			LineInfo:  true,
+		}),
+	}
 
-	gosLogger := glog.SetLogger(1, "gos", glog.DebugLevel)
+	gosLogger := glog.SetLogger(0, "gos", glog.DebugLevel)
 	gosLogger.SetSkip(3)
-	gosLogger.SetOptions(glog.UtcOption(8))
-	gosLogger.SetOptions(glog.FolderOption("../log", glog.ShiftDayAndSize, 1, 5*glog.MB))
-	gosLogger.SetOptions(glog.BasicOption(&glog.Option{
-		Level:     glog.DebugLevel,
-		ToConsole: true,
-		ToFile:    false,
-		FileInfo:  true,
-		LineInfo:  true,
-	}))
-	gosLogger.SetOptions(glog.BasicOption(&glog.Option{
-		Level:     glog.InfoLevel,
-		ToConsole: true,
-		ToFile:    false,
-		FileInfo:  true,
-		LineInfo:  true,
-	}))
-	gosLogger.SetOptions(glog.BasicOption(&glog.Option{
-		Level:     glog.WarnLevel,
-		ToConsole: true,
-		ToFile:    true,
-		FileInfo:  true,
-		LineInfo:  true,
-	}))
-	gosLogger.SetOptions(glog.BasicOption(&glog.Option{
-		Level:     glog.ErrorLevel,
-		ToConsole: true,
-		ToFile:    true,
-		FileInfo:  true,
-		LineInfo:  true,
-	}))
+	gosLogger.SetOptions(options...)
 	gos.SetLogger(gosLogger)
+	logger := glog.SetLogger(1, "account-server", glog.DebugLevel)
+	logger.SetOptions(options...)
+	// logger.SetSkip(3)
+	logger = glog.SetLogger(2, "account-client", glog.DebugLevel)
+	logger.SetOptions(options...)
+	// logger.SetSkip(3)
 
 	err := account.Init()
 	if err != nil {

@@ -28,15 +28,17 @@ type AccountMgr struct {
 	// key1: user id, key2: token
 	users         *cntr.BikeyMap[int32, string, *pbgo.User]
 	Edges         map[int32]*cntr.Set[int32]
-	logger        *glog.Logger
+	serverLogger  *glog.Logger
+	clientLogger  *glog.Logger
 	heartbeatTime time.Time
 }
 
-func NewAccountMgr(lg *glog.Logger) *AccountMgr {
+func NewAccountMgr(slog, clog *glog.Logger) *AccountMgr {
 	m := &AccountMgr{
 		users:         cntr.NewBikeyMap[int32, string, *pbgo.User](),
 		Edges:         make(map[int32]*cntr.Set[int32]),
-		logger:        lg,
+		serverLogger:  slog,
+		clientLogger:  clog,
 		heartbeatTime: time.Now(),
 	}
 	return m
@@ -52,7 +54,7 @@ func (m *AccountMgr) WorkHandler(work *base.Work) {
 	err := agreement.Init(work)
 	if err != nil {
 		work.Finish()
-		m.logger.Error("Failed to unmarshal agreement, err: %+v", err)
+		m.serverLogger.Error("Failed to unmarshal agreement, err: %+v", err)
 		return
 	}
 	switch agreement.Cmd {
@@ -70,7 +72,7 @@ func (m *AccountMgr) handleSystem(work *base.Work, agreement *agrt.Agreement) {
 	switch agreement.Service {
 	case define.Heartbeat:
 		if time.Now().After(m.heartbeatTime) {
-			m.logger.Info("Heart response Now: %+v", time.Now())
+			m.serverLogger.Info("Heart response Now: %+v", time.Now())
 			m.heartbeatTime = time.Now().Add(1 * time.Minute)
 		}
 		work.Finish()
@@ -89,21 +91,21 @@ func (m *AccountMgr) handleAccountCommission(work *base.Work, agreement *agrt.Ag
 	case define.Login:
 		m.responseCommission(agreement, func(c *ghttp.Context) {
 			account := agreement.Accounts[0]
-			m.logger.Info("index: %d, name: %s, Account: %+v", account.Index, account.Account, account)
+			m.serverLogger.Info("index: %d, name: %s, Account: %+v", account.Index, account.Account, account)
 			user := &pbgo.User{
 				Index: account.Index,
 				Name:  account.Account,
 				Info:  account.Info,
 				Token: m.getToken(),
 			}
-			m.logger.Info("New user: %+v", user)
+			m.serverLogger.Info("New user: %+v", user)
 			if m.users.ContainKey1(account.Index) {
 				m.users.UpdateByKey1(account.Index, cntr.NewBivalue(account.Index, user.Token, user))
 			} else {
 				err := m.users.Add(user.Index, user.Token, user)
 				if err != nil {
 					msg := utils.JsonResponse(c, define.Error.InvalidInsertData, user)
-					m.logger.Error("%s, err: %+v", msg, err)
+					m.clientLogger.Error("%s, err: %+v", msg, err)
 					return
 				}
 			}
@@ -130,11 +132,11 @@ func (m *AccountMgr) handleAccountCommission(work *base.Work, agreement *agrt.Ag
 	case define.SetUserData:
 		m.responseCommission(agreement, func(c *ghttp.Context) {
 			account := agreement.Accounts[0]
-			m.logger.Info("index: %d, name: %s", account.Index, account.Account)
+			m.serverLogger.Info("index: %d, name: %s", account.Index, account.Account)
 			// 檢查緩存中是否存在
 			user, ok := m.users.GetByKey1(account.Index)
 			if !ok {
-				m.logger.Error(utils.JsonResponse(c, define.Error.NotFoundUser, "index", account.Index))
+				m.clientLogger.Error(utils.JsonResponse(c, define.Error.NotFoundUser, "index", account.Index))
 			} else {
 				user.Name = account.Account
 				user.Info = account.Info
@@ -180,7 +182,7 @@ func (m *AccountMgr) handleAccountCommission(work *base.Work, agreement *agrt.Ag
 
 func (m *AccountMgr) responseCommission(agreement *agrt.Agreement, handlerFunc func(c *ghttp.Context)) {
 	// 檢視收到的回應
-	m.logger.Info("agreement(%d): %+v", agreement.ReturnCode, agreement)
+	m.serverLogger.Info("agreement(%d): %+v", agreement.ReturnCode, agreement)
 	// 利用 cid 取得對應的 Context
 	c := m.httpAnswer.GetContext(agreement.Cid)
 	if (agreement.ReturnCode == define.Error.None) && (handlerFunc != nil) {

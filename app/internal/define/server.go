@@ -23,13 +23,13 @@ const (
 func ServerName(id int32) string {
 	switch id {
 	case DbaServer:
-		return "DbaServer"
+		return "Dba"
 	case AccountServer:
-		return "AccountServer"
+		return "Account"
 	case PostMessageServer:
-		return "PostMessageServer"
+		return "PostMessage"
 	case GsnsServer:
-		return "GsnsServer"
+		return "Gsns"
 	default:
 		return "Unknown"
 	}

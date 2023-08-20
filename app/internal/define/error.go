@@ -40,7 +40,9 @@ type ErrorConfig struct {
 	// 無效的作用對象
 	InvalidTarget int32 `yaml:"InvalidTarget"`
 	// 錯誤的參數
-	WrongParameter int32 `yaml:"WrongParameters"`
+	WrongParameter int32 `yaml:"WrongParameter"`
+	// 過多的參數
+	TooManyParameter int32 `yaml:"TooManyParameter"`
 
 	// 401 Unauthorized
 	Unauthorized int32 `yaml:"Unauthorized"`
@@ -90,7 +92,7 @@ func GetStatus(code int32) int32 {
 	switch code {
 	// 400 Bad Request
 	case Error.BadRequest, Error.MissingParameters, Error.InvalidInsertData, Error.InvalidSelectData, Error.InvalidUpdateData, Error.InvalidDeleteData,
-		Error.InvalidBodyData, Error.InvalidTarget, Error.WrongParameter:
+		Error.InvalidBodyData, Error.InvalidTarget, Error.WrongParameter, Error.TooManyParameter:
 		status = ghttp.StatusBadRequest
 
 	// 401 Unauthorized
@@ -155,6 +157,9 @@ func ErrorMessage(code int32, contents ...any) (int32, int32, string) {
 	// 錯誤的參數
 	case Error.WrongParameter:
 		em = fmt.Sprintf("Wrong parameter: %s(%+v)", contents[0].(string), contents[1])
+	// 過多的參數
+	case Error.TooManyParameter:
+		em = fmt.Sprintf("#Parameter except: %d, actually: %d", contents[0].(int), contents[1].(int))
 
 	// 401 Unauthorized
 	case Error.Unauthorized:

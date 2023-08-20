@@ -18,7 +18,7 @@ func (s *AccountServer) DbaHandler(work *base.Work) {
 	err := agreement.Init(work)
 	if err != nil {
 		work.Finish()
-		logger.Error("Failed to unmarshal agreement, err: %+v", err)
+		serverLogger.Error("Failed to unmarshal agreement, err: %+v", err)
 		return
 	}
 	switch agreement.Cmd {
@@ -39,7 +39,7 @@ func (s *AccountServer) handleDbaSystemCommand(work *base.Work, agreement *agrt.
 	// 回應心跳包
 	case define.Heartbeat:
 		if time.Now().After(s.heartbeatTime) {
-			logger.Info("Heart response Now: %+v", time.Now())
+			serverLogger.Info("Heart response Now: %+v", time.Now())
 			s.heartbeatTime = time.Now().Add(1 * time.Minute)
 		}
 		work.Finish()
@@ -52,7 +52,7 @@ func (s *AccountServer) handleDbaSystemCommand(work *base.Work, agreement *agrt.
 func (s *AccountServer) handleDbaNormalCommand(work *base.Work, agreement *agrt.Agreement) {
 	switch agreement.Service {
 	default:
-		logger.Warn("Unsupport service: %d\n", agreement.Service)
+		clientLogger.Warn("Unsupport service: %d\n", agreement.Service)
 		work.Finish()
 	}
 }
@@ -66,29 +66,29 @@ func (s *AccountServer) handleDbaCommission(work *base.Work, agreement *agrt.Agr
 			// 將新註冊用戶加入緩存管理
 			account := proto.Clone(agreement.Accounts[0]).(*pbgo.Account)
 			s.accounts.Set(account.Index, account.Account, account)
-			logger.Info("New account created : %+v", account)
+			serverLogger.Info("New account created : %+v", account)
 			// 隱藏密碼相關資訊，無須提供給 GSNS
 			agreement.Accounts[0].Password = ""
 		} else {
-			logger.Info("ReturnCode: %d, Msg: %s", agreement.ReturnCode, agreement.Msg)
+			serverLogger.Info("ReturnCode: %d, Msg: %s", agreement.ReturnCode, agreement.Msg)
 		}
 		s.responseToGsns(agreement)
 
 	case define.Login:
 		work.Finish()
-		logger.Info("Recieved login response: %+v", agreement)
+		serverLogger.Info("Recieved login response: %+v", agreement)
 
 		if agreement.ReturnCode == define.Error.None {
 			// 將新註冊用戶加入緩存管理
 			account := proto.Clone(agreement.Accounts[0]).(*pbgo.Account)
 			if !s.accounts.ContainKey1(account.Index) {
-				logger.Info("加入緩存")
+				serverLogger.Info("加入緩存")
 				s.accounts.Add(account.Index, account.Account, account)
 			} else {
-				logger.Info("更新緩存")
+				serverLogger.Info("更新緩存")
 				s.accounts.UpdateByKey1(account.Index, cntr.NewBivalue(account.Index, account.Account, account))
 			}
-			logger.Info("Login account: %+v", account)
+			serverLogger.Info("Login account: %+v", account)
 
 			// 隱藏密碼相關資訊，無須提供給 GSNS
 			agreement.Accounts[0].Password = ""
@@ -102,7 +102,7 @@ func (s *AccountServer) handleDbaCommission(work *base.Work, agreement *agrt.Agr
 				s.Edges[edge.UserId].Add(edge.Target)
 			}
 		} else {
-			logger.Info("ReturnCode: %d, Msg: %s", agreement.ReturnCode, agreement.Msg)
+			serverLogger.Info("ReturnCode: %d, Msg: %s", agreement.ReturnCode, agreement.Msg)
 		}
 		s.responseToGsns(agreement)
 
@@ -111,7 +111,7 @@ func (s *AccountServer) handleDbaCommission(work *base.Work, agreement *agrt.Agr
 
 		if agreement.ReturnCode == define.Error.None {
 			account := proto.Clone(agreement.Accounts[0]).(*pbgo.Account)
-			logger.Debug("New account: %+v", account)
+			serverLogger.Debug("New account: %+v", account)
 
 			// 更新用戶帳號緩存
 			bivalue := cntr.NewBivalue(account.Index, account.Account, account)
@@ -120,14 +120,14 @@ func (s *AccountServer) handleDbaCommission(work *base.Work, agreement *agrt.Agr
 			// 隱藏密碼相關資訊，無須提供給 GSNS
 			agreement.Accounts[0].Password = ""
 		} else {
-			logger.Info("ReturnCode: %d, Msg: %s", agreement.ReturnCode, agreement.Msg)
+			serverLogger.Info("ReturnCode: %d, Msg: %s", agreement.ReturnCode, agreement.Msg)
 		}
 		s.responseToGsns(agreement)
 
 	case define.GetOtherUsers:
 		work.Finish()
 		if agreement.ReturnCode != define.Error.None {
-			logger.Info("ReturnCode: %d, Msg: %s", agreement.ReturnCode, agreement.Msg)
+			serverLogger.Info("ReturnCode: %d, Msg: %s", agreement.ReturnCode, agreement.Msg)
 		}
 		s.responseToGsns(agreement)
 
@@ -139,7 +139,7 @@ func (s *AccountServer) handleDbaCommission(work *base.Work, agreement *agrt.Agr
 				s.Edges[edge.UserId].Add(edge.Target)
 			}
 		} else {
-			logger.Info("ReturnCode: %d, Msg: %s", agreement.ReturnCode, agreement.Msg)
+			serverLogger.Info("ReturnCode: %d, Msg: %s", agreement.ReturnCode, agreement.Msg)
 		}
 		s.responseToGsns(agreement)
 	default:
@@ -152,8 +152,8 @@ func (s *AccountServer) responseToGsns(agreement *agrt.Agreement) {
 	_, err := agrt.SendToClient(define.AccountPort, s.serverIdDict[define.GsnsServer], agreement)
 	if err != nil {
 		_, _, msg := define.ErrorMessage(define.Error.CannotSendMessage, "to Gsns server")
-		logger.Error("%s, err: %+v", msg, err)
+		serverLogger.Error("%s, err: %+v", msg, err)
 	} else {
-		logger.Info("Send %s response(%d): %+v", define.ServiceName(agreement.Service), agreement.ReturnCode, agreement)
+		serverLogger.Info("Send %s response(%d): %+v", define.ServiceName(agreement.Service), agreement.ReturnCode, agreement)
 	}
 }

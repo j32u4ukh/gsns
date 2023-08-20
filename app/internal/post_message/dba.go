@@ -18,7 +18,7 @@ func (s *PostMessageServer) DbaHandler(work *base.Work) {
 	err := agreement.Init(work)
 	if err != nil {
 		work.Finish()
-		logger.Error("Failed to unmarshal agreement, err: %+v", err)
+		serverLogger.Error("Failed to unmarshal agreement, err: %+v", err)
 		return
 	}
 	switch agreement.Cmd {
@@ -39,7 +39,7 @@ func (s *PostMessageServer) handleDbaSystem(work *base.Work, agreement *agrt.Agr
 	// 回應心跳包
 	case define.Heartbeat:
 		if time.Now().After(s.heartbeatTime) {
-			logger.Info("Heart response Now: %+v", time.Now())
+			serverLogger.Info("Heart response Now: %+v", time.Now())
 			s.heartbeatTime = time.Now().Add(1 * time.Minute)
 		}
 		work.Finish()
@@ -55,11 +55,11 @@ func (s *PostMessageServer) handleDbaNormal(work *base.Work, agreement *agrt.Agr
 	case define.GetMyPosts:
 		work.Finish()
 		for i, pm := range agreement.PostMessages {
-			logger.Debug("%d) %+v", i, pm)
+			serverLogger.Debug("%d) %+v", i, pm)
 			s.cachePost(pm)
 		}
 	default:
-		logger.Warn("Unsupport service: %d", agreement.Service)
+		clientLogger.Warn("Unsupport service: %d", agreement.Service)
 		work.Finish()
 	}
 }
@@ -71,27 +71,27 @@ func (s *PostMessageServer) handleDbaCommission(work *base.Work, agreement *agrt
 
 		if agreement.ReturnCode == define.Error.None {
 			post := proto.Clone(agreement.PostMessages[0]).(*pbgo.PostMessage)
-			logger.Info("New post: %+v", post)
+			serverLogger.Info("New post: %+v", post)
 			s.cachePost(post)
 		} else {
-			logger.Info("ReturnCode: %d, Msg: %s", agreement.ReturnCode, agreement.Msg)
+			serverLogger.Info("ReturnCode: %d, Msg: %s", agreement.ReturnCode, agreement.Msg)
 		}
 		s.responseToGsns(agreement)
 	case define.GetPost:
 		work.Finish()
-		logger.Info("Receive define.GetPost response(%d): %+v", agreement.ReturnCode, agreement)
+		serverLogger.Info("Receive define.GetPost response(%d): %+v", agreement.ReturnCode, agreement)
 
 		if agreement.ReturnCode == define.Error.None {
 			for _, pm := range agreement.PostMessages {
 				s.cachePost(proto.Clone(pm).(*pbgo.PostMessage))
 			}
 		} else {
-			logger.Info("ReturnCode: %d, Msg: %s", agreement.ReturnCode, agreement.Msg)
+			serverLogger.Info("ReturnCode: %d, Msg: %s", agreement.ReturnCode, agreement.Msg)
 		}
 		s.responseToGsns(agreement)
 	case define.ModifyPost:
 		work.Finish()
-		logger.Info("Receive define.ModifyPost response(%d): %+v", agreement.ReturnCode, agreement)
+		serverLogger.Info("Receive define.ModifyPost response(%d): %+v", agreement.ReturnCode, agreement)
 
 		if agreement.ReturnCode == 0 {
 			pm := proto.Clone(agreement.PostMessages[0]).(*pbgo.PostMessage)
@@ -109,7 +109,7 @@ func (s *PostMessageServer) handleDbaCommission(work *base.Work, agreement *agrt
 }
 
 func (s *PostMessageServer) cachePost(pm *pbgo.PostMessage) {
-	logger.Info("Cache post: %+v", pm)
+	serverLogger.Info("Cache post: %+v", pm)
 	s.pmRoots[pm.Id] = pm
 	if pm.ParentId != 0 {
 		if _, ok := s.pmLeaves[pm.ParentId]; !ok {
@@ -127,8 +127,8 @@ func (s *PostMessageServer) responseToGsns(agreement *agrt.Agreement) {
 	_, err := agrt.SendToClient(define.PostMessagePort, s.serverIdDict[define.GsnsServer], agreement)
 	if err != nil {
 		_, _, msg := define.ErrorMessage(define.Error.CannotSendMessage, "to Gsns server")
-		logger.Error("%s, err: %+v", msg, err)
+		serverLogger.Error("%s, err: %+v", msg, err)
 	} else {
-		logger.Info("Send %s response(%d): %+v", define.ServiceName(agreement.Service), agreement.ReturnCode, agreement)
+		serverLogger.Info("Send %s response(%d): %+v", define.ServiceName(agreement.Service), agreement.ReturnCode, agreement)
 	}
 }

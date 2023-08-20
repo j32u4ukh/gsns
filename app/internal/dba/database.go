@@ -35,7 +35,7 @@ func (s *DbaServer) initTables() error {
 		if err != nil {
 			return errors.Wrapf(err, "建立表格 %s 時發生錯誤", tableName)
 		}
-		logger.Debug("初始化表格 %s\n%+v\n", tableName, result)
+		serverLogger.Debug("初始化表格 %s\n%+v\n", tableName, result)
 	}
 	return nil
 }

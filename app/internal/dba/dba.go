@@ -13,10 +13,12 @@ import (
 )
 
 var s *DbaServer
-var logger *glog.Logger
+var serverLogger *glog.Logger
+var clientLogger *glog.Logger
 
 func Init() error {
-	logger = glog.GetLogger(0)
+	serverLogger = glog.GetLogger(1)
+	clientLogger = glog.GetLogger(2)
 	err := initGos()
 	if err != nil {
 		return errors.Wrap(err, "Failed to initialize gos.")
@@ -31,7 +33,7 @@ func Init() error {
 // 初始化伺服器連線與監聽
 func initGos() error {
 	anser, err := gos.Listen(gosDefine.Tcp0, define.DbaPort)
-	logger.Info("Listen to port %d", define.DbaPort)
+	serverLogger.Info("Listen to port %d", define.DbaPort)
 
 	if err != nil {
 		return errors.Wrapf(err, "Failed to listen to port %d.", define.DbaPort)
@@ -40,13 +42,13 @@ func initGos() error {
 	s = NewDbaServer()
 	dbaAnser := anser.(*ans.Tcp0Anser)
 	dbaAnser.SetWorkHandler(s.Handler)
-	logger.Info("伺服器初始化完成")
+	serverLogger.Info("伺服器初始化完成")
 
 	// =============================================
 	// 開始所有已註冊的監聽
 	// =============================================
 	gos.StartListen()
-	logger.Info("開始所有已註冊的監聽")
+	serverLogger.Info("開始所有已註冊的監聽")
 	return nil
 }
 

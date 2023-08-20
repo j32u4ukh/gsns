@@ -17,10 +17,12 @@ import (
 var ms *MainServer
 var accountAsker *ask.Tcp0Asker
 var pmAsker *ask.Tcp0Asker
-var logger *glog.Logger
+var serverLogger *glog.Logger
+var clientLogger *glog.Logger
 
 func Init() error {
-	logger = glog.GetLogger(0)
+	serverLogger = glog.GetLogger(1)
+	clientLogger = glog.GetLogger(2)
 	err := initGos()
 	if err != nil {
 		return errors.Wrap(err, "初始化網路底層時發生錯誤")
@@ -59,14 +61,14 @@ func initGos() error {
 	// ==================================================
 	var port int32 = 1023
 	anser, err := gos.Listen(gosDefine.Http, port)
-	logger.Info("Listen to port %d", port)
+	serverLogger.Info("Listen to port %d", port)
 
 	if err != nil {
 		return errors.Wrapf(err, "Failed to listen port %d", port)
 	}
 
 	ms.SetHttpAnswer(anser.(*ans.HttpAnser))
-	logger.Info("Http Anser 伺服器初始化完成")
+	serverLogger.Info("Http Anser 伺服器初始化完成")
 
 	// ==================================================
 	// 與 Account Server 建立 TCP 連線，將數據依序寫入緩存
@@ -75,7 +77,7 @@ func initGos() error {
 	port = 1021
 	askAccount, err := gos.Bind(define.AccountServer, address, 1021, gosDefine.Tcp0, base.OnEventsFunc{
 		gosDefine.OnConnected: func(any) {
-			logger.Info("成功與 AccountServer 連線")
+			serverLogger.Info("成功與 AccountServer 連線")
 		},
 	}, &introduction, &heartbeat)
 
@@ -91,7 +93,7 @@ func initGos() error {
 	// ==================================================
 	askPostMessage, err := gos.Bind(define.PostMessageServer, address, define.PostMessagePort, gosDefine.Tcp0, base.OnEventsFunc{
 		gosDefine.OnConnected: func(any) {
-			logger.Info("成功與 PostMessage Server 連線")
+			serverLogger.Info("成功與 PostMessage Server 連線")
 		},
 	}, &introduction, &heartbeat)
 
@@ -103,19 +105,19 @@ func initGos() error {
 	pmAsker.SetWorkHandler(ms.PMgr.WorkHandler)
 
 	// =============================================
-	logger.Info("伺服器初始化完成")
+	serverLogger.Info("伺服器初始化完成")
 
 	// =============================================
 	// 開始所有已註冊的監聽
 	// =============================================
 	gos.StartListen()
-	logger.Info("開始所有已註冊的監聽")
+	serverLogger.Info("開始所有已註冊的監聽")
 
 	// =============================================
 	// 開始所有已註冊的連線
 	// =============================================
 	err = gos.StartConnect()
-	logger.Info("開始所有已註冊的連線")
+	serverLogger.Info("開始所有已註冊的連線")
 
 	if err != nil {
 		return errors.Wrap(err, "與 AccountServer 連線時發生錯誤")

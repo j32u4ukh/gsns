@@ -30,7 +30,7 @@ func (m *AccountMgr) getToken() string {
 	var err error
 	err = binary.Read(rand.Reader, binary.BigEndian, &value)
 	if err != nil {
-		m.logger.Error("value: %d, err: %+v", value, err)
+		m.serverLogger.Error("value: %d, err: %+v", value, err)
 		return ""
 	}
 	// 確保 token 唯一
@@ -38,10 +38,10 @@ func (m *AccountMgr) getToken() string {
 	for m.users.ContainKey2(token) {
 		err = binary.Read(rand.Reader, binary.BigEndian, &value)
 		if err != nil {
-			m.logger.Error("value: %d, err: %+v", value, err)
+			m.serverLogger.Error("value: %d, err: %+v", value, err)
 			return ""
 		}
 	}
-	m.logger.Info("token: %s", token)
+	m.serverLogger.Info("token: %s", token)
 	return token
 }

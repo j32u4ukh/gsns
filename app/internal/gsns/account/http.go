@@ -35,16 +35,16 @@ func (m *AccountMgr) register(c *ghttp.Context) {
 
 	if err != nil {
 		msg := utils.JsonResponse(c, define.Error.InvalidBodyData)
-		m.logger.Error("%s, err: %+v", msg, err)
+		m.clientLogger.Error("%s, err: %+v", msg, err)
 		return
 	}
 
-	m.logger.Info("AccountProtocol: %+v", ap)
+	m.serverLogger.Info("AccountProtocol: %+v", ap)
 
 	// 帳號名稱(Account) 和 密碼原文(Password) 為必須，個人資訊(Info) 可以不填
 	// TODO: 在前端就加密
 	if ap.Account == "" || ap.Password == "" {
-		m.logger.Error(utils.JsonResponse(c, define.Error.MissingParameters, "account or password"))
+		m.clientLogger.Error(utils.JsonResponse(c, define.Error.MissingParameters, "account or password"))
 		return
 	}
 
@@ -61,9 +61,9 @@ func (m *AccountMgr) register(c *ghttp.Context) {
 
 	_, err = agrt.SendToServer(define.AccountServer, agreement)
 	if err != nil {
-		m.logger.Error("%s, err: %+v", utils.JsonResponse(c, define.Error.CannotSendMessage, "to Account server"), err)
+		m.serverLogger.Error("%s, err: %+v", utils.JsonResponse(c, define.Error.CannotSendMessage, "to Account server"), err)
 	} else {
-		m.logger.Info("Send define.Register request: %+v", agreement)
+		m.serverLogger.Info("Send define.Register request: %+v", agreement)
 	}
 }
 
@@ -72,13 +72,13 @@ func (m *AccountMgr) login(c *ghttp.Context) {
 	err := c.ReadJson(ap)
 	if err != nil {
 		msg := utils.JsonResponse(c, define.Error.InvalidBodyData)
-		m.logger.Error("%s, err: %+v", msg, err)
+		m.clientLogger.Error("%s, err: %+v", msg, err)
 		return
 	}
-	m.logger.Info("AccountProtocol: %+v", ap)
+	m.serverLogger.Info("AccountProtocol: %+v", ap)
 
 	if ap.Account == "" || ap.Password == "" {
-		m.logger.Error(utils.JsonResponse(c, define.Error.MissingParameters, "account or password"))
+		m.clientLogger.Error(utils.JsonResponse(c, define.Error.MissingParameters, "account or password"))
 		return
 	}
 
@@ -95,9 +95,9 @@ func (m *AccountMgr) login(c *ghttp.Context) {
 	_, err = agrt.SendToServer(define.AccountServer, agreement)
 	if err != nil {
 		msg := utils.JsonResponse(c, define.Error.CannotSendMessage, "to Account server")
-		m.logger.Error("%s, err: %+v", msg, err)
+		m.serverLogger.Error("%s, err: %+v", msg, err)
 	} else {
-		m.logger.Info("Send define.Login request: %+v", agreement)
+		m.serverLogger.Info("Send define.Login request: %+v", agreement)
 	}
 }
 
@@ -106,18 +106,18 @@ func (m *AccountMgr) logout(c *ghttp.Context) {
 	err := c.ReadJson(ap)
 	if err != nil {
 		msg := utils.JsonResponse(c, define.Error.InvalidBodyData)
-		m.logger.Error("%s, err: %+v", msg, err)
+		m.serverLogger.Error("%s, err: %+v", msg, err)
 		return
 	}
 
 	if ap.Token == "" {
-		m.logger.Error(utils.JsonResponse(c, define.Error.MissingParameters, "token"))
+		m.clientLogger.Error(utils.JsonResponse(c, define.Error.MissingParameters, "token"))
 		return
 	}
 
 	user, ok := m.users.GetByKey2(ap.Token)
 	if !ok {
-		m.logger.Error(utils.JsonResponse(c, define.Error.NotFoundUser, "token", ap.Token))
+		m.clientLogger.Error(utils.JsonResponse(c, define.Error.NotFoundUser, "token", ap.Token))
 	} else {
 		m.users.DelByKey2(ap.Token)
 		c.Json(200, ghttp.H{
@@ -131,18 +131,18 @@ func (m *AccountMgr) getUserInfo(c *ghttp.Context) {
 	err := c.ReadJson(ap)
 	if err != nil {
 		msg := utils.JsonResponse(c, define.Error.InvalidBodyData)
-		m.logger.Error("%s, err: %+v", msg, err)
+		m.clientLogger.Error("%s, err: %+v", msg, err)
 		return
 	}
 
 	if ap.Token == "" {
-		m.logger.Error(utils.JsonResponse(c, define.Error.MissingParameters, "token"))
+		m.clientLogger.Error(utils.JsonResponse(c, define.Error.MissingParameters, "token"))
 		return
 	}
 
 	user, ok := m.users.GetByKey2(ap.Token)
 	if !ok {
-		m.logger.Error(utils.JsonResponse(c, define.Error.NotFoundUser, "token", ap.Token))
+		m.clientLogger.Error(utils.JsonResponse(c, define.Error.NotFoundUser, "token", ap.Token))
 	} else {
 		c.Json(ghttp.StatusOK, ghttp.H{
 			"name": user.Name,
@@ -156,19 +156,19 @@ func (m *AccountMgr) setUserInfo(c *ghttp.Context) {
 	err := c.ReadJson(ap)
 	if err != nil {
 		msg := utils.JsonResponse(c, define.Error.InvalidBodyData)
-		m.logger.Error("%s, err: %+v", msg, err)
+		m.clientLogger.Error("%s, err: %+v", msg, err)
 		return
 	}
 
 	if ap.Token == "" {
-		m.logger.Error(utils.JsonResponse(c, define.Error.MissingParameters, "token"))
+		m.clientLogger.Error(utils.JsonResponse(c, define.Error.MissingParameters, "token"))
 		return
 	}
 
 	user, ok := m.users.GetByKey2(ap.Token)
 
 	if !ok {
-		m.logger.Error(utils.JsonResponse(c, define.Error.NotFoundUser, "token", ap.Token))
+		m.clientLogger.Error(utils.JsonResponse(c, define.Error.NotFoundUser, "token", ap.Token))
 		return
 	}
 
@@ -197,8 +197,8 @@ func (m *AccountMgr) setUserInfo(c *ghttp.Context) {
 	_, err = agrt.SendToServer(define.AccountServer, agreement)
 	if err != nil {
 		msg := utils.JsonResponse(c, define.Error.CannotSendMessage, "to Account server")
-		m.logger.Error("%s, err: %+v", msg, err)
+		m.serverLogger.Error("%s, err: %+v", msg, err)
 	} else {
-		m.logger.Info("Send define.SetUserData request: %+v", agreement)
+		m.serverLogger.Info("Send define.SetUserData request: %+v", agreement)
 	}
 }
