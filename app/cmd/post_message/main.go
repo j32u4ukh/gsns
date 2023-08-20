@@ -6,6 +6,8 @@ import (
 
 	"github.com/j32u4ukh/glog/v2"
 	"github.com/j32u4ukh/gos"
+	gosDefine "github.com/j32u4ukh/gos/define"
+	gosUtils "github.com/j32u4ukh/gos/utils"
 )
 
 func main() {
@@ -44,6 +46,9 @@ func main() {
 		}),
 	}
 
+	gosUtils.GosConfig.AnswerConnectNumbers[gosDefine.Tcp0] = 10000
+	gosUtils.GosConfig.AnswerWorkNumbers[gosDefine.Tcp0] = 10000
+	gosUtils.GosConfig.AskerWorkNumbers[gosDefine.Tcp0] = 10000
 	gosLogger := glog.SetLogger(0, "gos", glog.DebugLevel)
 	gosLogger.SetSkip(3)
 	gosLogger.SetOptions(options...)

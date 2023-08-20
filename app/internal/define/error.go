@@ -90,6 +90,9 @@ func LoadConfig(path string, obj any) error {
 func GetStatus(code int32) int32 {
 	var status int32 = 0
 	switch code {
+	case Error.None:
+		status = ghttp.StatusOK
+
 	// 400 Bad Request
 	case Error.BadRequest, Error.MissingParameters, Error.InvalidInsertData, Error.InvalidSelectData, Error.InvalidUpdateData, Error.InvalidDeleteData,
 		Error.InvalidBodyData, Error.InvalidTarget, Error.WrongParameter, Error.TooManyParameter:

@@ -90,6 +90,7 @@ func (s *DbaServer) handleNormalCommand(work *base.Work, agreement *agrt.Agreeme
 func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement) {
 	switch agreement.Service {
 	case define.Register:
+		agreement.ReturnCode = define.Error.None
 		defer s.responseCommission(work, agreement)
 		account := agreement.Accounts[0]
 		inserter := s.tables[TidAccount].GetInserter()
@@ -111,10 +112,11 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 		}
 
 		account.Index = int32(result.LastInsertId)
+		agreement.Msg = fmt.Sprintf("User %s registered.", account.Account)
 
 	case define.Login:
-		defer s.responseCommission(work, agreement)
 		agreement.ReturnCode = define.Error.None
+		defer s.responseCommission(work, agreement)
 		account := agreement.Accounts[0]
 		agreement.Accounts = agreement.Accounts[:0]
 
@@ -210,6 +212,7 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 		}
 
 	case define.SetUserData:
+		agreement.ReturnCode = define.Error.None
 		defer s.responseCommission(work, agreement)
 		account := agreement.Accounts[0]
 		updater := s.tables[TidAccount].GetUpdater()
@@ -224,9 +227,8 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 			return
 		}
 
-		agreement.ReturnCode = 0
-
 	case define.AddPost:
+		agreement.ReturnCode = define.Error.None
 		defer s.responseCommission(work, agreement)
 
 		post := agreement.PostMessages[0]
@@ -256,9 +258,9 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 		}
 
 		serverLogger.Info("result: %s, post: %+v", result, agreement.PostMessages[0])
-		agreement.ReturnCode = define.Error.None
 
 	case define.GetPost:
+		agreement.ReturnCode = define.Error.None
 		defer s.responseCommission(work, agreement)
 
 		var pm *pbgo.PostMessage
@@ -278,7 +280,6 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 			agreement.ReturnCode = 3
 			agreement.Msg = fmt.Sprintf("Not found post with id(%d).", pm.Id)
 		} else {
-			agreement.ReturnCode = 0
 			for _, result := range results {
 				pm = result.(*pbgo.PostMessage)
 				pm.CreateUtc = utils.TimestampToUtc(pm.CreateTime)
@@ -290,6 +291,7 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 		}
 
 	case define.ModifyPost:
+		agreement.ReturnCode = define.Error.None
 		defer s.responseCommission(work, agreement)
 
 		pm := agreement.PostMessages[0]
@@ -303,10 +305,10 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 			serverLogger.Error("%s, err: %+v", agreement.Msg, err)
 		} else {
 			serverLogger.Info("Modify result: %+v", result)
-			agreement.ReturnCode = 0
 		}
 
 	case define.GetOtherUsers:
+		agreement.ReturnCode = define.Error.None
 		defer s.responseCommission(work, agreement)
 
 		requester := agreement.Accounts[0].Index
@@ -332,9 +334,8 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 			agreement.Accounts = append(agreement.Accounts, account)
 		}
 
-		agreement.ReturnCode = 0
-
 	case define.Subscribe:
+		agreement.ReturnCode = define.Error.None
 		defer s.responseCommission(work, agreement)
 
 		edge := agreement.Edges[0]
@@ -359,9 +360,9 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 		}
 
 		serverLogger.Info("result: %s, edge: %+v", result, edge)
-		agreement.ReturnCode = define.Error.None
 
 	case define.GetSubscribedPosts:
+		agreement.ReturnCode = define.Error.None
 		defer s.responseCommission(work, agreement)
 
 		userIds := []any{}
@@ -384,7 +385,6 @@ func (s *DbaServer) handleCommission(work *base.Work, agreement *agrt.Agreement)
 			_, agreement.ReturnCode, agreement.Msg = define.ErrorMessage(define.Error.FailedSelectDb, fmt.Sprintf("posts from %+v.", userIds))
 			serverLogger.Error("%s, err: %+v", agreement.Msg, err)
 		} else {
-			agreement.ReturnCode = 0
 			var pm *pbgo.PostMessage
 			for _, result := range results {
 				pm = result.(*pbgo.PostMessage)
