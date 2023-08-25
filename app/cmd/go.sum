@@ -1,6 +1,6 @@
-github.com/j32u4ukh/glog/v2 v2.0.5 h1:fQm01IKpJnDvu1CTGwq3werx35GE1m7qvrjK+jzvqvc=
-github.com/j32u4ukh/glog/v2 v2.0.5/go.mod h1:bTSp2wHDJWYRbf8b8oX/OmDjZ/Po0vQJdvZvH8/KsBA=
-github.com/j32u4ukh/gos v1.5.0 h1:wB4Ig6tetuCeidACDyCzkDUd57A8p6MruBAYnX9b3WU=
-github.com/j32u4ukh/gos v1.5.0/go.mod h1:VioqTXajGPprOiaii+l5JPVe3h97TEDXEvELu73qFpM=
+github.com/j32u4ukh/glog/v2 v2.0.6 h1:55tJ+BEUEJmwWIhCxs+NzlF+gSEUlOP6itXIaJe2z+4=
+github.com/j32u4ukh/glog/v2 v2.0.6/go.mod h1:bTSp2wHDJWYRbf8b8oX/OmDjZ/Po0vQJdvZvH8/KsBA=
+github.com/j32u4ukh/gos v1.5.1 h1:t/n6sMljcSY+lLd1P5ApFeajpqkwyZvLYAltH1p44s4=
+github.com/j32u4ukh/gos v1.5.1/go.mod h1:VioqTXajGPprOiaii+l5JPVe3h97TEDXEvELu73qFpM=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=

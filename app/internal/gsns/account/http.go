@@ -31,18 +31,16 @@ func (m *AccountMgr) HttpAccountHandler(router *ans.Router) {
 
 func (m *AccountMgr) register(c *ghttp.Context) {
 	ap := &AccountProtocol{}
-	err := c.ReadJson(ap)
+	jsonData, err := c.ReadJson(ap)
 
 	if err != nil {
 		msg := utils.JsonResponse(c, define.Error.InvalidBodyData)
 		m.clientLogger.Error("%s, err: %+v", msg, err)
+		m.clientLogger.Error("jsonData: %s", jsonData)
 		return
 	}
 
-	m.serverLogger.Info("AccountProtocol: %+v", ap)
-
 	// 帳號名稱(Account) 和 密碼原文(Password) 為必須，個人資訊(Info) 可以不填
-	// TODO: 在前端就加密
 	if ap.Account == "" || ap.Password == "" {
 		m.clientLogger.Error(utils.JsonResponse(c, define.Error.MissingParameters, "account or password"))
 		return
@@ -55,7 +53,7 @@ func (m *AccountMgr) register(c *ghttp.Context) {
 	agreement.Cid = c.GetId()
 	agreement.Accounts = append(agreement.Accounts, &pbgo.Account{
 		Account:  ap.Account,
-		Password: ap.Password,
+		Password: sha256Func(ap.Password),
 		Info:     ap.Info,
 	})
 
@@ -69,13 +67,13 @@ func (m *AccountMgr) register(c *ghttp.Context) {
 
 func (m *AccountMgr) login(c *ghttp.Context) {
 	ap := &AccountProtocol{}
-	err := c.ReadJson(ap)
+	jsonData, err := c.ReadJson(ap)
 	if err != nil {
 		msg := utils.JsonResponse(c, define.Error.InvalidBodyData)
 		m.clientLogger.Error("%s, err: %+v", msg, err)
+		m.clientLogger.Error("jsonData: %s", jsonData)
 		return
 	}
-	m.serverLogger.Info("AccountProtocol: %+v", ap)
 
 	if ap.Account == "" || ap.Password == "" {
 		m.clientLogger.Error(utils.JsonResponse(c, define.Error.MissingParameters, "account or password"))
@@ -89,7 +87,7 @@ func (m *AccountMgr) login(c *ghttp.Context) {
 	agreement.Cid = c.GetId()
 	agreement.Accounts = append(agreement.Accounts, &pbgo.Account{
 		Account:  ap.Account,
-		Password: ap.Password,
+		Password: sha256Func(ap.Password),
 	})
 
 	_, err = agrt.SendToServer(define.AccountServer, agreement)
@@ -103,10 +101,11 @@ func (m *AccountMgr) login(c *ghttp.Context) {
 
 func (m *AccountMgr) logout(c *ghttp.Context) {
 	ap := &AccountProtocol{}
-	err := c.ReadJson(ap)
+	jsonData, err := c.ReadJson(ap)
 	if err != nil {
 		msg := utils.JsonResponse(c, define.Error.InvalidBodyData)
 		m.serverLogger.Error("%s, err: %+v", msg, err)
+		m.clientLogger.Error("jsonData: %s", jsonData)
 		return
 	}
 
@@ -128,10 +127,11 @@ func (m *AccountMgr) logout(c *ghttp.Context) {
 
 func (m *AccountMgr) getUserInfo(c *ghttp.Context) {
 	ap := &AccountProtocol{}
-	err := c.ReadJson(ap)
+	jsonData, err := c.ReadJson(ap)
 	if err != nil {
 		msg := utils.JsonResponse(c, define.Error.InvalidBodyData)
 		m.clientLogger.Error("%s, err: %+v", msg, err)
+		m.clientLogger.Error("jsonData: %s", jsonData)
 		return
 	}
 
@@ -153,10 +153,11 @@ func (m *AccountMgr) getUserInfo(c *ghttp.Context) {
 
 func (m *AccountMgr) setUserInfo(c *ghttp.Context) {
 	ap := &AccountProtocol{}
-	err := c.ReadJson(ap)
+	jsonData, err := c.ReadJson(ap)
 	if err != nil {
 		msg := utils.JsonResponse(c, define.Error.InvalidBodyData)
 		m.clientLogger.Error("%s, err: %+v", msg, err)
+		m.clientLogger.Error("jsonData: %s", jsonData)
 		return
 	}
 

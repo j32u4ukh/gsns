@@ -12,53 +12,19 @@ import (
 
 func main() {
 	fmt.Println("Hello, post message!")
-
-	options := []glog.IOption{
-		glog.UtcOption(8),
-		glog.FolderOption("../log", glog.ShiftDayAndSize, 1, 5*glog.MB),
-		glog.BasicOption(&glog.Option{
-			Level:     glog.DebugLevel,
-			ToConsole: true,
-			ToFile:    false,
-			FileInfo:  true,
-			LineInfo:  true,
-		}),
-		glog.BasicOption(&glog.Option{
-			Level:     glog.InfoLevel,
-			ToConsole: true,
-			ToFile:    false,
-			FileInfo:  true,
-			LineInfo:  true,
-		}),
-		glog.BasicOption(&glog.Option{
-			Level:     glog.WarnLevel,
-			ToConsole: true,
-			ToFile:    true,
-			FileInfo:  true,
-			LineInfo:  true,
-		}),
-		glog.BasicOption(&glog.Option{
-			Level:     glog.ErrorLevel,
-			ToConsole: true,
-			ToFile:    true,
-			FileInfo:  true,
-			LineInfo:  true,
-		}),
-	}
+	option := glog.DefaultOption(false, false, 8, "../log")
 
 	gosUtils.GosConfig.AnswerConnectNumbers[gosDefine.Tcp0] = 10000
 	gosUtils.GosConfig.AnswerWorkNumbers[gosDefine.Tcp0] = 10000
 	gosUtils.GosConfig.AskerWorkNumbers[gosDefine.Tcp0] = 10000
 	gosLogger := glog.SetLogger(0, "gos", glog.DebugLevel)
 	gosLogger.SetSkip(3)
-	gosLogger.SetOptions(options...)
+	gosLogger.SetOptions(option)
 	gos.SetLogger(gosLogger)
 	logger := glog.SetLogger(1, "post-message-server", glog.DebugLevel)
-	logger.SetOptions(options...)
-	// logger.SetSkip(3)
+	logger.SetOptions(option)
 	logger = glog.SetLogger(2, "post-message-client", glog.DebugLevel)
-	logger.SetOptions(options...)
-	// logger.SetSkip(3)
+	logger.SetOptions(option)
 
 	err := pm.Init()
 	if err != nil {
