@@ -6,7 +6,7 @@ volumes:
 services:
 
   db:
-    container_name: 'mariadb'
+    container_name: 'gsns-db'
     # Dockerfile 的路徑位於 [context]/[dockerfile]。
     build:
       # Dockerfile 中的相對路徑，是相對於[context]這個位置。
@@ -20,7 +20,7 @@ services:
           nocopy: true
     ports:
       - target: 3306
-        published: ${DB_PORT:-3306}
+        published: ${DB_PORT:-3310}
         protocol: tcp
         mode: host
 
@@ -46,7 +46,7 @@ services:
       - social-network
 
   app:
-    container_name: 'gsns'
+    container_name: 'gsns-backend'
     build:
       context: .
       dockerfile: ./containers/go/Dockerfile
@@ -74,6 +74,26 @@ services:
       - DB_USERNAME=${DB_USER:-db_user}
       - DB_PASSWORD=${DB_PASS:-password}
     
+    networks:
+      - social-network
+
+  web:
+    container_name: 'gsns-frontend'
+    build:
+      context: .
+      dockerfile: ./containers/web/Dockerfile
+    # 映射容器的 8080 端口到主機的 8080 端口
+    ports:
+      - target: 8080
+        published: ${FRONT_PORT:-8080}
+        protocol: tcp
+        mode: host
+    volumes:
+      - type: bind
+        source: ./web
+        target: /usr/src/web
+        consistency: delegated
+    tty: true
     networks:
       - social-network
 

@@ -1,0 +1,29 @@
+html,
+body #app {
+  width: 100vw;
+  height: 100vh;
+  margin: 0px;
+  padding: 0px;
+  overflow: hidden;
+}
+
+/* width */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+  background: #00000026;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+  background: rgba(24, 100, 214, 0.67);
+  border-radius: 10px;
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
