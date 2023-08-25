@@ -2,7 +2,9 @@ package account
 
 import (
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/binary"
+	"encoding/hex"
 	"internal/pbgo"
 	"strconv"
 
@@ -44,4 +46,20 @@ func (m *AccountMgr) getToken() string {
 	}
 	m.serverLogger.Info("token: %s", token)
 	return token
+}
+
+func sha256Func(input string) string {
+	// 創建 SHA-256 散列對象
+	hash := sha256.New()
+
+	// 將輸入數據寫入散列對象
+	hash.Write([]byte(input))
+
+	// 計算散列值
+	hashValue := hash.Sum(nil)
+
+	// 將散列值轉換為十六進制字符串
+	hashHex := hex.EncodeToString(hashValue)
+
+	return hashHex
 }

@@ -40,10 +40,7 @@ func (m *AccountMgr) register(c *ghttp.Context) {
 		return
 	}
 
-	m.serverLogger.Info("AccountProtocol: %+v", ap)
-
 	// 帳號名稱(Account) 和 密碼原文(Password) 為必須，個人資訊(Info) 可以不填
-	// TODO: 在前端就加密
 	if ap.Account == "" || ap.Password == "" {
 		m.clientLogger.Error(utils.JsonResponse(c, define.Error.MissingParameters, "account or password"))
 		return
@@ -56,7 +53,7 @@ func (m *AccountMgr) register(c *ghttp.Context) {
 	agreement.Cid = c.GetId()
 	agreement.Accounts = append(agreement.Accounts, &pbgo.Account{
 		Account:  ap.Account,
-		Password: ap.Password,
+		Password: sha256Func(ap.Password),
 		Info:     ap.Info,
 	})
 
@@ -77,7 +74,6 @@ func (m *AccountMgr) login(c *ghttp.Context) {
 		m.clientLogger.Error("jsonData: %s", jsonData)
 		return
 	}
-	m.serverLogger.Info("AccountProtocol: %+v", ap)
 
 	if ap.Account == "" || ap.Password == "" {
 		m.clientLogger.Error(utils.JsonResponse(c, define.Error.MissingParameters, "account or password"))
@@ -91,7 +87,7 @@ func (m *AccountMgr) login(c *ghttp.Context) {
 	agreement.Cid = c.GetId()
 	agreement.Accounts = append(agreement.Accounts, &pbgo.Account{
 		Account:  ap.Account,
-		Password: ap.Password,
+		Password: sha256Func(ap.Password),
 	})
 
 	_, err = agrt.SendToServer(define.AccountServer, agreement)
