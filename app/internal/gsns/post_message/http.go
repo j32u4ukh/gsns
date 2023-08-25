@@ -23,10 +23,11 @@ func (m *PostMessageMgr) HttpHandler(router *ans.Router) {
 // [endpoint]/post
 func (m *PostMessageMgr) addNewPost(c *ghttp.Context) {
 	pmp := &PostMessageProtocol{}
-	err := c.ReadJson(pmp)
+	jsonData, err := c.ReadJson(pmp)
 	if err != nil {
 		msg := utils.JsonResponse(c, define.Error.InvalidBodyData)
 		m.clientLogger.Error("%s, err: %+v", msg, err)
+		m.clientLogger.Error("jsonData: %s", jsonData)
 		return
 	}
 	m.serverLogger.Info("PostMessageProtocol: %+v", pmp)
@@ -97,10 +98,11 @@ func (m *PostMessageMgr) getPost(c *ghttp.Context) {
 // [endpoint]/post/mine
 func (m *PostMessageMgr) getMyPosts(c *ghttp.Context) {
 	pmp := &PostMessageProtocol{}
-	err := c.ReadJson(pmp)
+	jsonData, err := c.ReadJson(pmp)
 	if err != nil {
 		msg := utils.JsonResponse(c, define.Error.InvalidBodyData)
 		m.clientLogger.Error("%s, err: %+v", msg, err)
+		m.clientLogger.Error("jsonData: %s", jsonData)
 		return
 	}
 	m.serverLogger.Info("PostMessageProtocol: %+v", pmp)
@@ -138,10 +140,11 @@ func (m *PostMessageMgr) getMyPosts(c *ghttp.Context) {
 // [endpoint]/post
 func (m *PostMessageMgr) modifyPost(c *ghttp.Context) {
 	pmp := &PostMessageProtocol{}
-	err := c.ReadJson(pmp)
+	jsonData, err := c.ReadJson(pmp)
 	if err != nil {
 		msg := utils.JsonResponse(c, define.Error.InvalidBodyData)
 		m.clientLogger.Error("%s, err: %+v", msg, err)
+		m.clientLogger.Error("jsonData: %s", jsonData)
 		return
 	}
 

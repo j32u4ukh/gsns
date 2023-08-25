@@ -31,11 +31,12 @@ func (m *AccountMgr) HttpAccountHandler(router *ans.Router) {
 
 func (m *AccountMgr) register(c *ghttp.Context) {
 	ap := &AccountProtocol{}
-	err := c.ReadJson(ap)
+	jsonData, err := c.ReadJson(ap)
 
 	if err != nil {
 		msg := utils.JsonResponse(c, define.Error.InvalidBodyData)
 		m.clientLogger.Error("%s, err: %+v", msg, err)
+		m.clientLogger.Error("jsonData: %s", jsonData)
 		return
 	}
 
@@ -69,10 +70,11 @@ func (m *AccountMgr) register(c *ghttp.Context) {
 
 func (m *AccountMgr) login(c *ghttp.Context) {
 	ap := &AccountProtocol{}
-	err := c.ReadJson(ap)
+	jsonData, err := c.ReadJson(ap)
 	if err != nil {
 		msg := utils.JsonResponse(c, define.Error.InvalidBodyData)
 		m.clientLogger.Error("%s, err: %+v", msg, err)
+		m.clientLogger.Error("jsonData: %s", jsonData)
 		return
 	}
 	m.serverLogger.Info("AccountProtocol: %+v", ap)
@@ -103,10 +105,11 @@ func (m *AccountMgr) login(c *ghttp.Context) {
 
 func (m *AccountMgr) logout(c *ghttp.Context) {
 	ap := &AccountProtocol{}
-	err := c.ReadJson(ap)
+	jsonData, err := c.ReadJson(ap)
 	if err != nil {
 		msg := utils.JsonResponse(c, define.Error.InvalidBodyData)
 		m.serverLogger.Error("%s, err: %+v", msg, err)
+		m.clientLogger.Error("jsonData: %s", jsonData)
 		return
 	}
 
@@ -128,10 +131,11 @@ func (m *AccountMgr) logout(c *ghttp.Context) {
 
 func (m *AccountMgr) getUserInfo(c *ghttp.Context) {
 	ap := &AccountProtocol{}
-	err := c.ReadJson(ap)
+	jsonData, err := c.ReadJson(ap)
 	if err != nil {
 		msg := utils.JsonResponse(c, define.Error.InvalidBodyData)
 		m.clientLogger.Error("%s, err: %+v", msg, err)
+		m.clientLogger.Error("jsonData: %s", jsonData)
 		return
 	}
 
@@ -153,10 +157,11 @@ func (m *AccountMgr) getUserInfo(c *ghttp.Context) {
 
 func (m *AccountMgr) setUserInfo(c *ghttp.Context) {
 	ap := &AccountProtocol{}
-	err := c.ReadJson(ap)
+	jsonData, err := c.ReadJson(ap)
 	if err != nil {
 		msg := utils.JsonResponse(c, define.Error.InvalidBodyData)
 		m.clientLogger.Error("%s, err: %+v", msg, err)
+		m.clientLogger.Error("jsonData: %s", jsonData)
 		return
 	}
 

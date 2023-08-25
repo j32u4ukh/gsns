@@ -48,23 +48,16 @@ func (s *MainServer) getOtherUsers(c *ghttp.Context) {
 	})
 
 	s.handleRequest(c, define.AccountServer, agreement)
-	// _, err = agrt.SendToServer(define.AccountServer, agreement)
-	// if err != nil {
-	// 	msg := utils.JsonResponse(c, define.Error.CannotSendMessage, "to Account server")
-	// 	serverLogger.Error(fmt.Sprintf("%s, err: %+v", msg, err))
-	// } else {
-	// 	serverLogger.Info("Send define.GetOtherUsers request: %+v", agreement)
-	// }
 }
 
 // [endpoint]/social/subscribe
 func (s *MainServer) subscribe(c *ghttp.Context) {
 	ip := &SocialProtocol{}
-	err := c.ReadJson(ip)
-
+	jsonData, err := c.ReadJson(ip)
 	if err != nil {
 		msg := utils.JsonResponse(c, define.Error.InvalidBodyData)
 		clientLogger.Error("%s, err: %+v", msg, err)
+		clientLogger.Error("jsonData: %s", jsonData)
 		return
 	}
 
@@ -103,24 +96,16 @@ func (s *MainServer) subscribe(c *ghttp.Context) {
 	})
 
 	s.handleRequest(c, define.AccountServer, agreement)
-	// _, err = agrt.SendToServer(define.AccountServer, agreement)
-	// if err != nil {
-	// 	msg := utils.JsonResponse(c, define.Error.CannotSendMessage, "to Dba server")
-	// 	serverLogger.Error("%s, err: %+v", msg, err)
-	// 	return
-	// } else {
-	// 	serverLogger.Info("Send define.Subscribe request: %+v", agreement)
-	// }
 }
 
 // [endpoint]/social/subscribed_posts
 func (s *MainServer) getSubscribedPosts(c *ghttp.Context) {
 	ip := &SocialProtocol{}
-	err := c.ReadJson(ip)
-
+	jsonData, err := c.ReadJson(ip)
 	if err != nil {
 		msg := utils.JsonResponse(c, define.Error.InvalidBodyData)
 		clientLogger.Error("%s, err: %+v", msg, err)
+		clientLogger.Error("jsonData: %s", jsonData)
 		return
 	}
 
@@ -179,13 +164,6 @@ func (s *MainServer) getSubscribedPosts(c *ghttp.Context) {
 	}
 
 	s.handleRequest(c, define.PostMessageServer, agreement)
-	// _, err = agrt.SendToServer(define.PostMessageServer, agreement)
-	// if err != nil {
-	// 	msg := utils.JsonResponse(c, define.Error.CannotSendMessage, "to PostMessage server")
-	// 	serverLogger.Error("%s, err: %+v", msg, err)
-	// } else {
-	// 	serverLogger.Info("Send define.GetSubscribedPosts request: %+v", agreement)
-	// }
 }
 
 func (s *MainServer) handleRequest(c *ghttp.Context, serverId int32, agreement *agrt.Agreement) {
