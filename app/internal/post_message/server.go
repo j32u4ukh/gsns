@@ -115,6 +115,7 @@ func (s *PostMessageServer) handleCommission(work *base.Work, agreement *agrt.Ag
 		if root, ok := s.pmRoots[pm.Id]; ok {
 			agreement.ReturnCode = define.Error.None
 			agreement.PostMessages[0] = proto.Clone(root).(*pbgo.PostMessage)
+			// TODO: parent id 為 pm.Id 的貼文也應回傳，又或是直接使用 DB 回覆?
 		} else {
 			_, err = agrt.SendToServer(define.DbaServer, agreement)
 			if err != nil {

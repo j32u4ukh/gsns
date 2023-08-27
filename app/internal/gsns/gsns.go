@@ -67,7 +67,9 @@ func initGos() error {
 		return errors.Wrapf(err, "Failed to listen port %d", port)
 	}
 
-	ms.SetHttpAnswer(anser.(*ans.HttpAnser))
+	httpServer := anser.(*ans.HttpAnser)
+	httpServer.Cors("http://localhost:8080")
+	ms.SetHttpAnswer(httpServer)
 	serverLogger.Info("Http Anser 伺服器初始化完成")
 
 	// ==================================================
