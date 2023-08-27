@@ -1,20 +1,33 @@
 export interface IPost {
     // 文章的唯一識別號
     id: number;
-    // 文章標題（這裡應該是拼寫錯誤，正確應為 title）
-    tittle: null;
-    // 文章描述，使用字串類型
-    description: string;
     // 作者的資訊，這裡使用空的物件表示，應該有更具體的型別
-    author: {};
-    // 作者的唯一識別號
-    authorId: number;
-    // 分享文章的人，使用空的陣列表示，應該有更具體的型別
-    sharedBy: never[];
-    // 文章的分類，使用字串陣列
-    categories: string[];
-    // 對文章的反應，使用空的陣列表示，應該有更具體的型別
-    reactions: never[];
+    author: IUser;
+    // 文章標題
+    title: String;
+    // 文章描述，使用字串類型
+    description: String;
     // 文章的圖片，使用字串陣列表示
-    pictures: string[];
+    pictures: String[];
+    // TODO: 之後可以新增一個影片
+    // 貼文的分類，使用字串陣列
+    categories: String[];
+    // 喜歡貼文的人，使用空的陣列表示，應該有更具體的型別
+    likes: IUser[];
+    // 分享文章的人，使用空的陣列表示，應該有更具體的型別
+    shares: IUser[];
+    // 對文章的反應，使用空的陣列表示，應該有更具體的型別
+    replys: IPost[];
+}
+
+export interface IUser{
+    id: number,
+    name: String,
+}
+
+export interface PostData{
+    parentId: number,
+    id: number,
+    user_id: number,
+    content: String,
 }

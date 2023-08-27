@@ -1,11 +1,17 @@
 import { createRouter, createWebHistory } from "vue-router";
 import Main from '../pages/Main.vue'
+import ThePost from '../pages/ThePost.vue'
 
 const routes = [
   {
     path: "/",
-    name: "main",
+    name: "Main",
     component: Main,
+  },
+  {
+    path: "/post/:postId",
+    name: 'ThePost',
+    component: ThePost,
   },
 ];
 

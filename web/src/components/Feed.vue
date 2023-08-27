@@ -48,7 +48,6 @@ import AddPostSvg from './Icon/AddPostSvg.vue'
 import CloseSvg from './Icon/CloseSvg.vue'
 import PictureSvg from './Icon/PictureSvg.vue'
 import GifSvg from './Icon/GifSvg.vue'
-import {getPosts} from "../api/posts"
 import {useCounterStore} from "../store/count"
 
 const counterStore = useCounterStore();
@@ -64,21 +63,6 @@ const props = defineProps({
         required: true
     }
 })
-
-
-
-const getPostsApi = (): Promise<void> => {
-    return new Promise(async (resolve, reject) => {
-        await getPosts()
-        .then((res:any) => {
-            console.log(res);
-            resolve();
-        }).catch((error) => {
-            console.log(error);
-            reject("An error has occured");
-        });
-    })
-}
 
 const handleClick = () => {
     let _count = counterStore.getCount();

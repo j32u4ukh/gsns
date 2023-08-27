@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { reactive } from 'vue'
-import TinyBlueTick from './Icon/TinyBlueTick.vue'
+import TinyBlueTickSvg from './Icon/TinyBlueTick.vue'
 
 // 使用 reactive 創建一個響應式數據對象 trendings，包含一組趨勢對象
 const trendings = reactive([
@@ -69,7 +69,7 @@ const trendings = reactive([
                     <p class="text-lg font-bold text-gray-800 dark:text-gray-300">Lukebana</p>
                     <p class="-mt-1 text-xs">@luk{{item}}d</p>
                 </div>
-                <TinyBlueTick/>
+                <TinyBlueTickSvg fill="blue"/>
             </div>
         </ul>
 

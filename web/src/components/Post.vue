@@ -12,10 +12,10 @@
                 </div>
                 <!-- 貼文中的用戶名 與 ID -->
                 <div class="flex flex-col ml-2">
-                    <p class="text-2xl font-bold text-gray-800 dark:text-gray-300">Lukebana</p>
-                    <p class="-mt-1">@luk3d</p>
+                    <p class="text-2xl font-bold text-gray-800 dark:text-gray-300">{{ props.post.author.name }}</p>
+                    <p class="-mt-1">@{{ props.post.author.id }}</p>
                 </div>
-                <TinyBlueTick text="1h" />
+                <TinyBlueTickLabel text="1h" />
             </div>
             <button class="active:scale-95 transform transition-transform">
                 <PostSettingsSvg/>
@@ -37,34 +37,33 @@
 
             gap-2`">
                 <img v-if="props.post.pictures.length > 1" :src="`${props.post.pictures[1]}`"
-                    :class="`w-full h-full   object-cover 
+                    :class="`w-full h-full object-cover 
                     ${props.post.pictures.length == 3 && 'row-span-1 col-span-1 h-full'}`"
                     alt="">
                 <img v-if="props.post.pictures.length > 2" :src="`${props.post.pictures[2]}`"
-                    :class="`w-full h-full   object-cover ${props.post.pictures.length == 3 && 'row-span-2 col-span-1'}`"
+                    :class="`w-full h-full object-cover ${props.post.pictures.length == 3 && 'row-span-2 col-span-1'}`"
                     alt="">
                 <img v-if="props.post.pictures.length > 3" :src="`${props.post.pictures[3]}`"
-                    :class="`w-full h-full   object-cover ${props.post.pictures.length == 4 && 'col-span-2'}`" alt="">
+                    :class="`w-full h-full object-cover ${props.post.pictures.length == 4 && 'col-span-2'}`" alt="">
                 <img v-if="props.post.pictures.length > 4" :src="`${props.post.pictures[4]}`"
-                    :class="`w-full h-2/4   object-cover ${props.post.pictures.length == 5 && 'col-span-3 row-span-1'}`"
+                    :class="`w-full h-2/4 object-cover ${props.post.pictures.length == 5 && 'col-span-3 row-span-1'}`"
                     alt="">
-
             </div>
         </div>
         <p v-html="generateDescription()" :class="`${props.post.pictures.length == 0 ? ' my-4 text-xl' : ''}`"></p>
 
         <div class="flex justify-between pt-4 border-t border-ll-border dark:border-ld-border mt-4">
-            <ReplyButton number="2.8k"/>
-            <ShareButton number="1.2k"/>
-            <LikeButton number="20.17k"/>
+            <ReplyButton :number="post.replys.length"/>
+            <ShareButton :number="post.shares.length"/>
+            <LikeButton :number="post.likes.length"/>
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
-import { PropType } from 'vue'
+import { PropType, ref } from 'vue'
 import { IPost } from '../types'
-import TinyBlueTick from './Label/TinyBlueTick.vue'
+import TinyBlueTickLabel from './Label/TinyBlueTick.vue'
 import PostSettingsSvg from './Icon/PostSettingsSvg.vue'
 import ReplyButton from './Button/ReplyButton.vue'
 import ShareButton from './Button/ShareButton.vue'

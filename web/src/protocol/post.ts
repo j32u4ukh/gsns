@@ -1,13 +1,6 @@
-export interface GetPostRequest {
-}
+import { PostData } from "../types";
 
-export interface GetPostResponse {
-    posts: PostResponseData[],
-}
-
-export interface PostResponseData{
-    userId: number,
-    id: number,
-    title: String,
-    body: String,
+export interface GetThePostResponse {
+    ret: number,
+    pms: PostData[],
 }

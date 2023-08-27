@@ -4,7 +4,7 @@ import { Local } from '../utils/storage';
 
 const service = ref(axios.create({
 	// baseURL: import.meta.env.API_URL || "http://localhost:5001/",
-    baseURL: "https://jsonplaceholder.typicode.com/",
+    baseURL: "http://localhost:1023",
 	timeout: 50000,
 	headers: { 'Content-Type': 'application/json' },
 }));
